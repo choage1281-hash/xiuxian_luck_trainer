@@ -789,7 +789,7 @@ function renderMainMenu() {
     
     let html = `
         <h1>🎯 運氣訓練工具</h1>
-        <h2>V2-12（修仙網頁線上版）</h2>
+        <h2>V2-13（修仙網頁線上版）</h2>
         <p style="text-align:center;">請選擇訓練難度（1 最簡單～10 最困難）</p>
     `;
 
@@ -3035,12 +3035,48 @@ var auth = null;
 try { if (FIREBASE_ONLINE_ENABLED) { auth = firebase.auth(); } } catch (e) {}
 
 function ensureSignedIn() {
-  return new Promise(function(resolve) {
-    if (!FIREBASE_ONLINE_ENABLED || !auth) return resolve(null);  // # 雲端關閉時直接略過
-    var off = auth.onAuthStateChanged(async function(u) {
+  return new Promise(function (resolve) {
+    if (!FIREBASE_ONLINE_ENABLED || !auth) return resolve(null);
+
+    var off = auth.onAuthStateChanged(async function (u) {
       if (u) { off(); return resolve(u); }
-      try { var cred = await auth.signInAnonymously(); off(); resolve(cred.user); }
-      catch (e) { off(); resolve(null); }
+
+      try {
+        var cred = await auth.signInAnonymously();  // # 匿名登入
+        off();
+        return resolve(cred.user);
+      } catch (e) {
+        off();
+        console.warn('匿名登入失敗（改為離線模式）：', e);
+        FIREBASE_ONLINE_ENABLED = false;
+
+        var code = (e && e.code) || '';
+        var host = (location && location.hostname) ? location.hostname : '';
+        var msg = '雲端連線未啟用，已切換為本機模式。';
+
+        if (code === 'auth/unauthorized-domain') {
+          msg = '目前網域未加入 Firebase 授權網域。請到 Firebase Console > Authentication > Settings > Authorized domains，加入：' + host;
+        } else if (code === 'auth/operation-not-allowed') {
+          msg = '匿名登入尚未啟用。請到 Firebase Console > Authentication > Sign-in method，開啟「匿名」。';
+        } else if (code === 'auth/network-request-failed') {
+          msg = '網路請求失敗，可能被瀏覽器阻擋第三方 Cookie 或網路中斷。';
+        }
+
+        // # 建立右下角離線提示
+        try {
+          var badge = document.getElementById('onlineStatusBadge');
+          if (!badge) {
+            badge = document.createElement('div');
+            badge.id = 'onlineStatusBadge';
+            badge.style.cssText = 'position:fixed;right:8px;bottom:8px;background:#222;color:#fff;padding:8px 10px;border-radius:8px;font-size:12px;opacity:.9;z-index:10000;';
+            document.body.appendChild(badge);
+          }
+          badge.textContent = '雲端：離線（' + host + '）';
+          badge.title = msg;
+        } catch (_) {}
+
+        return resolve(null);
+      }
     });
   });
 }
