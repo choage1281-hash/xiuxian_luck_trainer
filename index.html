@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>運氣訓練工具 V2-13（修仙網頁線上版）</title>
+    <title>運氣訓練工具 V2-13S（修仙網頁線上版）</title>
     <style>
         :root {
             --bg-color: #f0f2f5;
@@ -745,12 +745,13 @@ function startLinggenTest() {
 
 // # 對雲端使用者檔案進行合併更新
 async function updateUserProfile(fields) {
-    if (!FIREBASE_ONLINE_ENABLED || !db) return;
+    // 將使用者檔案資訊寫入 Supabase。當雲端未啟用時直接跳出。
+    if (!ONLINE_ENABLED || !supabaseClient) return;
     try {
-        await ensureSignedIn();
-        const u = auth && auth.currentUser;
-        if (!u) return;
-        await db.collection('users').doc(u.uid).set(fields, { merge: true });
+        const user = await ensureSignedIn();
+        if (!user) return;
+        // upsert 到 user_stats 表或其他表；此處假定 id 為主鍵
+        await supabaseClient.from('user_stats').upsert(Object.assign({ id: user.id }, fields));
     } catch (e) {
         console.warn('更新使用者資料失敗', e);
     }
@@ -789,7 +790,7 @@ function renderMainMenu() {
     
     let html = `
         <h1>🎯 運氣訓練工具</h1>
-        <h2>V2-13（修仙網頁線上版）</h2>
+        <h2>V2-13S（修仙網頁線上版）</h2>
         <p style="text-align:center;">請選擇訓練難度（1 最簡單～10 最困難）</p>
     `;
 
@@ -2168,34 +2169,34 @@ async function showTrialLeaderboard() {
 // # 顯示登入/帳號管理介面
 function showLoginMenu() {
     // 若雲端未啟用則顯示提示
-    if (!FIREBASE_ONLINE_ENABLED || !auth) {
+    if (!ONLINE_ENABLED || !supabaseClient) {
         showModal('帳號', '雲端未啟用，無法登入。', `<button data-action="close-modal">關閉</button>`);
         return;
     }
-    const u = auth.currentUser;
-    let content = '';
-    if (u && !u.isAnonymous) {
-        // 已登入
-        const name = u.displayName || u.email || '已登入';
-        content += `<p>已登入為：${name}</p>`;
-        content += `<button data-action="logout">登出</button>`;
-    } else {
-        // # 如果尚未登入或為匿名使用者，提供匿名登入和其他登入方式
-        content += `<button data-action="login-anonymous">匿名登入</button>`;
-        content += `<button data-action="login-google">以 Google 登入</button>`;
-        content += `<button data-action="login-yahoo">以 Yahoo 登入</button>`;
-        content += `<button data-action="login-facebook">以 Facebook 登入</button>`;
-        content += `<button data-action="login-email">以 Email/密碼註冊登入</button>`;
-    }
-    showModal('登入 / 帳號', content, `<button data-action="close-modal">關閉</button>`);
+    // 透過 ensureSignedIn() 取得目前使用者後再動態產生內容
+    ensureSignedIn().then(function(user) {
+        let content = '';
+        if (user) {
+            const meta = user.user_metadata || {};
+            const name = meta.full_name || meta.displayName || user.email || '已登入';
+            content += `<p>已登入為：${name}</p>`;
+            content += `<button data-action="logout">登出</button>`;
+        } else {
+            // 尚未登入：提供登入選項。Supabase 不支援匿名登入。
+            content += `<button data-action="login-google">以 Google 登入</button>`;
+            content += `<button data-action="login-yahoo">以 Yahoo 登入</button>`;
+            content += `<button data-action="login-facebook">以 Facebook 登入</button>`;
+            content += `<button data-action="login-email">以 Email/密碼註冊登入</button>`;
+        }
+        showModal('登入 / 帳號', content, `<button data-action="close-modal">關閉</button>`);
+    });
 }
 
 // # Google 登入
 function loginGoogle() {
-    if (!FIREBASE_ONLINE_ENABLED || !auth) return;
+    if (!ONLINE_ENABLED || !supabaseClient) return;
     signInWithGoogleKeepData().then(function(){
-        modal.style.display = 'none';
-        // 重新渲染主選單以更新登入狀態顯示
+        try { modal.style.display = 'none'; } catch (_) {}
         if (typeof renderMainMenu === 'function') renderMainMenu();
     }).catch(function(e){
         console.warn('Google 登入失敗', e);
@@ -2205,25 +2206,18 @@ function loginGoogle() {
 
 // # 匿名登入：手動呼叫 signInAnonymously（通常自動，但提供顯式操作）
 function loginAnonymous() {
-    if (!FIREBASE_ONLINE_ENABLED || !auth) return;
-    auth.signInAnonymously().then(function(res){
-        // # 關閉彈窗並重新渲染主選單
-        try { modal.style.display = 'none'; } catch (_) {}
-        if (typeof renderMainMenu === 'function') renderMainMenu();
-    }).catch(function(e){
-        console.warn('匿名登入失敗', e);
-        alert('匿名登入失敗');
-    });
+    // Supabase 不支援匿名登入
+    alert('此平台不支援匿名登入，請使用其他方式登入');
 }
 // # Email/密碼 登入或註冊（簡易 prompt）
 function loginEmail() {
-    if (!FIREBASE_ONLINE_ENABLED || !auth) return;
+    if (!ONLINE_ENABLED || !supabaseClient) return;
     const email = prompt('請輸入 Email');
     if (!email) return;
     const password = prompt('請輸入密碼 (至少 6 字)');
     if (!password) return;
     upgradeToEmailPassword(email, password).then(function(){
-        modal.style.display = 'none';
+        try { modal.style.display = 'none'; } catch (_) {}
         if (typeof renderMainMenu === 'function') renderMainMenu();
     }).catch(function(e){
         console.warn('Email 登入或註冊失敗', e);
@@ -2233,9 +2227,8 @@ function loginEmail() {
 
 // # Yahoo 登入
 function loginYahoo() {
-    if (!FIREBASE_ONLINE_ENABLED || !auth) return;
+    if (!ONLINE_ENABLED || !supabaseClient) return;
     signInWithYahooKeepData().then(function(){
-        // # 登入成功關閉彈窗並刷新主選單
         try { modal.style.display = 'none'; } catch (_) {}
         if (typeof renderMainMenu === 'function') renderMainMenu();
     }).catch(function(e){
@@ -2246,7 +2239,7 @@ function loginYahoo() {
 
 // # Facebook 登入
 function loginFacebook() {
-    if (!FIREBASE_ONLINE_ENABLED || !auth) return;
+    if (!ONLINE_ENABLED || !supabaseClient) return;
     signInWithFacebookKeepData().then(function(){
         try { modal.style.display = 'none'; } catch (_) {}
         if (typeof renderMainMenu === 'function') renderMainMenu();
@@ -2258,9 +2251,9 @@ function loginFacebook() {
 
 // # 登出
 function logout() {
-    if (!FIREBASE_ONLINE_ENABLED || !auth) return;
+    if (!ONLINE_ENABLED || !supabaseClient) return;
     signOutOnline().then(function(){
-        modal.style.display = 'none';
+        try { modal.style.display = 'none'; } catch (_) {}
         if (typeof renderMainMenu === 'function') renderMainMenu();
     }).catch(function(e){
         console.warn('登出失敗', e);
@@ -3083,29 +3076,30 @@ function ensureSignedIn() {
 
 // # 升級登入（Google）保留匿名資料
 async function signInWithGoogleKeepData() {
-  if (!FIREBASE_ONLINE_ENABLED || !auth) return null;
-  var provider = new firebase.auth.GoogleAuthProvider();
-  var u = auth.currentUser;
-  if (u && u.isAnonymous) { await u.linkWithPopup(provider); return auth.currentUser; }
-  var res = await auth.signInWithPopup(provider);
-  return res.user;
+  if (!ONLINE_ENABLED || !supabaseClient) return null;
+  try {
+    const { data, error } = await supabaseClient.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: window.location.href }
+    });
+    if (error) { throw error; }
+    return data && data.user ? data.user : null;
+  } catch (e) {
+    console.warn('Google 登入失敗', e);
+    throw e;
+  }
 }
 
 // # 升級登入（Yahoo）保留匿名資料
 async function signInWithYahooKeepData() {
-  // # 若雲端未啟用則略過
-  if (!FIREBASE_ONLINE_ENABLED || !auth) return null;
+  if (!ONLINE_ENABLED || !supabaseClient) return null;
   try {
-    var provider = new firebase.auth.OAuthProvider('yahoo.com');
-    var u = auth.currentUser;
-    // # 若目前為匿名用戶，使用 linkWithPopup 保留既有資料
-    if (u && u.isAnonymous) {
-      await u.linkWithPopup(provider);
-      return auth.currentUser;
-    }
-    // # 否則直接以 Popup 方式登入
-    var res = await auth.signInWithPopup(provider);
-    return res.user;
+    const { data, error } = await supabaseClient.auth.signInWithOAuth({
+      provider: 'yahoo',
+      options: { redirectTo: window.location.href }
+    });
+    if (error) { throw error; }
+    return data && data.user ? data.user : null;
   } catch (e) {
     console.warn('Yahoo 登入失敗', e);
     throw e;
@@ -3114,16 +3108,14 @@ async function signInWithYahooKeepData() {
 
 // # 升級登入（Facebook）保留匿名資料
 async function signInWithFacebookKeepData() {
-  if (!FIREBASE_ONLINE_ENABLED || !auth) return null;
+  if (!ONLINE_ENABLED || !supabaseClient) return null;
   try {
-    var provider = new firebase.auth.FacebookAuthProvider();
-    var u = auth.currentUser;
-    if (u && u.isAnonymous) {
-      await u.linkWithPopup(provider);
-      return auth.currentUser;
-    }
-    var res = await auth.signInWithPopup(provider);
-    return res.user;
+    const { data, error } = await supabaseClient.auth.signInWithOAuth({
+      provider: 'facebook',
+      options: { redirectTo: window.location.href }
+    });
+    if (error) { throw error; }
+    return data && data.user ? data.user : null;
   } catch (e) {
     console.warn('Facebook 登入失敗', e);
     throw e;
@@ -3132,15 +3124,29 @@ async function signInWithFacebookKeepData() {
 
 // # 升級登入（Email/Password）保留匿名資料
 async function upgradeToEmailPassword(email, password) {
-  if (!FIREBASE_ONLINE_ENABLED || !auth) return null;
-  var u = auth.currentUser;
-  var cred = firebase.auth.EmailAuthProvider.credential(email, password);
-  if (u && u.isAnonymous) { await u.linkWithCredential(cred); return auth.currentUser; }
-  var res = await auth.createUserWithEmailAndPassword(email, password);
-  return res.user;
+  // Email/密碼註冊或登入（Supabase）
+  if (!ONLINE_ENABLED || !supabaseClient) return null;
+  try {
+    // 嘗試以密碼登入，若失敗則註冊新帳號
+    let { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+    if (error) {
+      let { data: signUpData, error: signUpError } = await supabaseClient.auth.signUp({ email, password });
+      if (signUpError) { console.warn('註冊失敗：', signUpError); return null; }
+      return signUpData.user;
+    }
+    return data.user;
+  } catch (e) {
+    console.warn('Email/密碼登入失敗', e);
+    return null;
+  }
 }
 
-function signOutOnline() { if (auth) return auth.signOut(); }
+function signOutOnline() {
+  // 登出 Supabase
+  if (supabaseClient) {
+    return supabaseClient.auth.signOut();
+  }
+}
 
 // # 雲端資料模型與寫入
 async function saveRunRecord(rec) {
@@ -3235,6 +3241,184 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 <!-- ==================== /Firebase 線上版整合區 ==================== -->
+<!-- ==================== Supabase 整合區 ==================== -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+// ===== Supabase 設定 =====
+const SUPABASE_URL = 'YOUR_SUPABASE_URL';
+const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
+
+// 停用 Firebase 相關變數以避免程式碼錯誤
+window.FIREBASE_ONLINE_ENABLED = false;
+window.db = null;
+window.auth = null;
+
+// 控制是否啟用雲端模式
+window.ONLINE_ENABLED = true;
+
+// 初始化 Supabase Client
+var supabaseClient = null;
+try {
+  if (ONLINE_ENABLED) {
+    supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  }
+} catch (e) {
+  console.warn('初始化 Supabase 失敗：', e);
+  ONLINE_ENABLED = false;
+}
+
+async function ensureSignedIn() {
+  if (!ONLINE_ENABLED || !supabaseClient) return null;
+  try {
+    const { data, error } = await supabaseClient.auth.getUser();
+    if (error) { console.warn('取得 Supabase 使用者失敗：', error); return null; }
+    return data.user || null;
+  } catch (e) {
+    console.warn('ensureSignedIn 發生錯誤：', e);
+    return null;
+  }
+}
+
+async function upgradeToEmailPassword(email, password) {
+  if (!ONLINE_ENABLED || !supabaseClient) return null;
+  try {
+    let { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+    if (error) {
+      let { data: signUpData, error: signUpError } = await supabaseClient.auth.signUp({ email, password });
+      if (signUpError) { console.warn('註冊失敗：', signUpError); return null; }
+      return signUpData.user;
+    }
+    return data.user;
+  } catch (e) {
+    console.warn('Email/密碼登入失敗', e);
+    return null;
+  }
+}
+
+function signOutOnline() {
+  if (supabaseClient) {
+    return supabaseClient.auth.signOut();
+  }
+}
+
+async function loadMyStats() {
+  if (!ONLINE_ENABLED || !supabaseClient) return { totalRuns: 0, bestScore: 0 };
+  const user = await ensureSignedIn();
+  if (!user) return { totalRuns: 0, bestScore: 0 };
+  try {
+    const { data, error } = await supabaseClient
+      .from('user_stats')
+      .select()
+      .eq('id', user.id)
+      .single();
+    if (error && error.code !== 'PGRST116') {
+      console.warn('讀取 user_stats 失敗：', error);
+      return { totalRuns: 0, bestScore: 0 };
+    }
+    return data || { totalRuns: 0, bestScore: 0 };
+  } catch (e) {
+    console.warn('loadMyStats 發生錯誤：', e);
+    return { totalRuns: 0, bestScore: 0 };
+  }
+}
+
+async function loadLeaderboardTopN(n) {
+  if (!ONLINE_ENABLED || !supabaseClient) return [];
+  try {
+    const { data, error } = await supabaseClient
+      .from('leaderboard_public')
+      .select()
+      .order('bestScore', { ascending: false })
+      .limit(n || 100);
+    if (error) { console.warn('讀取排行榜失敗：', error); return []; }
+    return (data || []).map(function(row) {
+      return Object.assign({ id: row.id }, row);
+    });
+  } catch (e) {
+    console.warn('loadLeaderboardTopN 發生錯誤：', e);
+    return [];
+  }
+}
+
+async function getOrInitUserProfile() {
+  if (!ONLINE_ENABLED || !supabaseClient) return { displayName: '無名修士', country: 'TW' };
+  const user = await ensureSignedIn();
+  if (!user) return { displayName: '無名修士', country: 'TW' };
+  const meta = user.user_metadata || {};
+  return {
+    displayName: meta.full_name || meta.displayName || user.email || '無名修士',
+    country: meta.country || 'TW'
+  };
+}
+
+async function saveRunRecord(rec) {
+  if (!ONLINE_ENABLED || !supabaseClient) return;
+  const user = await ensureSignedIn();
+  if (!user) return;
+  const uid = user.id;
+  try {
+    // 儲存遊戲紀錄到 runs 表；若不存在可忽略
+    try {
+      await supabaseClient.from('runs').insert([Object.assign({}, rec, {
+        user_id: uid,
+        createdAt: new Date().toISOString(),
+        clientAt: new Date().toISOString(),
+        appVersion: 'web-1.0.0'
+      })]);
+    } catch (_) {
+      // runs 表可能不存在，忽略錯誤
+    }
+    // 更新 user_stats
+    let totalRuns = 0;
+    let bestScore = rec.score || 0;
+    try {
+      const { data: statsRow, error } = await supabaseClient
+        .from('user_stats')
+        .select('totalRuns, bestScore')
+        .eq('id', uid)
+        .single();
+      if (!error && statsRow) {
+        totalRuns = (statsRow.totalRuns || 0) + 1;
+        bestScore = Math.max(statsRow.bestScore || -1, rec.score || 0);
+      } else {
+        totalRuns = 1;
+        bestScore = rec.score || 0;
+      }
+    } catch (_) {
+      totalRuns = 1;
+      bestScore = rec.score || 0;
+    }
+    await supabaseClient.from('user_stats').upsert({
+      id: uid,
+      totalRuns: totalRuns,
+      bestScore: bestScore,
+      lastPlayedAt: new Date().toISOString()
+    });
+    // 發布到排行榜
+    if (rec.publishToLeaderboard) {
+      const prof = await getOrInitUserProfile();
+      await supabaseClient.from('leaderboard_public').upsert({
+        id: uid,
+        bestScore: rec.score,
+        displayName: prof.displayName || '無名修士',
+        country: prof.country || 'TW',
+        updatedAt: new Date().toISOString()
+      });
+    }
+  } catch (e) {
+    console.warn('saveRunRecord 發生錯誤：', e);
+  }
+}
+
+async function migrateLocalToCloud() {
+  // 暫不實作；如需遷移本機資料，請於此調用 saveRunRecord()。
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  ensureSignedIn().then(function(){ try { migrateLocalToCloud(); } catch(e){} });
+});
+</script>
+<!-- ==================== /Supabase 整合區 ==================== -->
 
 </body>
 </html>
