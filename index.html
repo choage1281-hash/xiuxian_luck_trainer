@@ -3257,6 +3257,12 @@ document.addEventListener('DOMContentLoaded', function() {
 const SUPABASE_URL = 'https://twwvcgcbmupsvtnixzmj.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR3d3ZjZ2NibXVwc3Z0bml4em1qIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA1MDAwNzgsImV4cCI6MjA3NjA3NjA3OH0.lCH_ht6jHJ7nf2yqOmLmoz441tMWv7b5Q6YRVDNkn_A';
 
+const SUPABASE_URL = "https://twwvcgcbmupsvtnixzmj.supabase.co"
+const supabase = createClient(SUPABASE_URL, process.env.SUPABASE_KEY);
+
+const SUPABASE_URL = "https://twwvcgcbmupsvtnixzmj.supabase.co"
+const supabase = createClient(SUPABASE_URL, process.env.SERVICE_KEY);
+
 // 停用 Firebase 相關變數以避免程式碼錯誤
 window.FIREBASE_ONLINE_ENABLED = false;
 window.db = null;
