@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>運氣訓練工具 V2-13S-2（修仙網頁線上版）</title>
+    <title>運氣訓練工具 V2-13-S3（修仙網頁線上版）</title>
     <style>
         :root {
             --bg-color: #f0f2f5;
@@ -790,7 +790,10 @@ function renderMainMenu() {
     
     let html = `
         <h1>🎯 運氣訓練工具</h1>
-        <h2>V2-13S-2（修仙網頁線上版）</h2>
+        <h2>V2-13-S3（修仙網頁線上版）</h2>
+        <!-- 顯示目前線上人數：透過 Supabase Presence 計算
+             此段在 initPresence() 中會更新其文字內容 -->
+        <p id="onlineUsersCount" style="text-align:center;">👥 目前線上人數：${onlineUsersCount}</p>
         <p style="text-align:center;">請選擇訓練難度（1 最簡單～10 最困難）</p>
     `;
 
@@ -3237,7 +3240,12 @@ async function migrateLocalToCloud() {
 
 // # 啟動時嘗試登入；若雲端未啟用則安靜略過
 document.addEventListener('DOMContentLoaded', function() {
-  ensureSignedIn().then(function(){ try { migrateLocalToCloud(); } catch(e){} });
+  // 頁面載入後先確認登入狀態，再進行資料遷移與 presence 初始化
+  ensureSignedIn().then(function() {
+    try { migrateLocalToCloud(); } catch(e){}
+    // 初始化 presence 以統計線上人數
+    try { initPresence(); } catch(e){}
+  });
 });
 </script>
 <!-- ==================== /Firebase 線上版整合區 ==================== -->
@@ -3245,8 +3253,9 @@ document.addEventListener('DOMContentLoaded', function() {
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 // ===== Supabase 設定 =====
-const SUPABASE_URL = 'https://choage1281@gmail.com's Project.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR3d3ZjZ2NibXVwc3Z0bml4em1qIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA1MDAwNzgsImV4cCI6MjA3NjA3NjA3OH0.lCH_ht6jHJ7nf2yqOmLmoz441tMWv7b5Q6YRVDNkn_A';
+// 🚨 請將以下兩個常數替換為您在 Supabase 專案設定頁取得的 URL 與 ANON 金鑰
+const SUPABASE_URL = 'https://YOUR-PROJECT.supabase.co';
+const SUPABASE_ANON_KEY = 'YOUR-ANON-KEY';
 
 // 停用 Firebase 相關變數以避免程式碼錯誤
 window.FIREBASE_ONLINE_ENABLED = false;
@@ -3258,6 +3267,8 @@ window.ONLINE_ENABLED = true;
 
 // 初始化 Supabase Client
 var supabaseClient = null;
+// # 用於追蹤目前線上人數的全域變數；將在 presence 事件觸發時更新
+var onlineUsersCount = 0;
 try {
   if (ONLINE_ENABLED) {
     supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -3337,6 +3348,49 @@ async function loadLeaderboardTopN(n) {
   } catch (e) {
     console.warn('loadLeaderboardTopN 發生錯誤：', e);
     return [];
+  }
+}
+
+// ==================== Presence 初始化 ====================
+// 使用 Supabase Realtime Presence 功能來追蹤當前線上人數。
+// 進入 main menu 時會在 initPresence() 中訂閱 presence 事件。
+async function initPresence() {
+  // 只有在啟用雲端模式且 supabaseClient 初始化成功時才啟動 presence。
+  if (!ONLINE_ENABLED || !supabaseClient) return;
+  try {
+    // 確保使用者登入狀態；若未登入則會回傳 null
+    const user = await ensureSignedIn();
+    // 使用者身份 ID 作為 presence key；若未登入則隨機產生 anon- 開頭的 key
+    const presenceKey = (user && user.id) ? user.id : ('anon-' + Math.random().toString(36).substring(2, 10));
+    // 建立實時頻道，啟用 presence 設定
+    const channel = supabaseClient.channel('online_users', {
+      config: {
+        presence: { key: presenceKey }
+      }
+    });
+    // 在 sync 事件時更新線上人數統計
+    channel.on('presence', { event: 'sync' }, () => {
+      try {
+        const state = channel.presenceState();
+        // presenceState 以 key 為索引；線上人數即為鍵的數量
+        onlineUsersCount = Object.keys(state).length;
+        const countEl = document.getElementById('onlineUsersCount');
+        if (countEl) {
+          countEl.textContent = `👥 目前線上人數：${onlineUsersCount}`;
+        }
+      } catch (err) {
+        console.warn('更新線上人數失敗', err);
+      }
+    });
+    // 訂閱頻道並在成功訂閱後追蹤自己的 presence
+    await channel.subscribe((status) => {
+      if (status === 'SUBSCRIBED') {
+        // track() 的 payload 可包含自訂資料，此處不需要額外資訊
+        channel.track({});
+      }
+    });
+  } catch (e) {
+    console.warn('初始化 presence 發生錯誤：', e);
   }
 }
 
