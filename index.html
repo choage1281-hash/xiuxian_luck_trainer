@@ -2195,11 +2195,6 @@ function showLoginMenu() {
     });
 }
 
-
-let { data, error } = await supabase.auth.signInWithOAuth({
-  provider: 'github'
-})
-
 // # Google 登入
 function loginGoogle() {
     if (!ONLINE_ENABLED || !supabaseClient) return;
