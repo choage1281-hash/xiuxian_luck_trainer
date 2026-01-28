@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>運氣訓練工具 V2-13-S3（修仙網頁線上版）</title>
+    <title>運氣訓練工具 V2-22（修仙網頁離線版）</title>
     <style>
         :root {
             --bg-color: #f0f2f5;
@@ -84,6 +84,165 @@
         .btn-secondary { background-color: var(--secondary-color); }
         .btn-secondary:hover { background-color: var(--secondary-hover); }
 
+        /*
+         * 自定義功能按鈕顏色區隔
+         * 普通訓練使用主色系（primary），秘境試煉使用紫色系，其餘功能使用青色系。
+         * 對應 hover 狀態也額外設置，避免被通用 button:hover 覆蓋。
+         */
+        .btn-training {
+            background-color: var(--primary-color);
+            color: white;
+        }
+        .btn-training:hover {
+            background-color: var(--primary-hover);
+        }
+        .btn-trial {
+            background-color: var(--purple-color);
+            color: white;
+        }
+        .btn-trial:hover {
+            /* 稍微加深紫色作為 hover 效果 */
+            background-color: #5a379a;
+        }
+        .btn-other {
+            background-color: var(--teal-color);
+            color: white;
+        }
+        .btn-other:hover {
+            /* 稍微加深青色作為 hover 效果 */
+            background-color: #1aa179;
+        }
+
+        /*
+         * 道具類別底色區隔
+         * 兵器、功法、陣法、仙丹、靈器、靈符分別對應不同背景色，以利視覺區分。
+         */
+        .cat-weapon { background-color: #e9e6ff; }
+        /*
+         * 功法與陣法底色調整：提升區分度
+         * 功法採用淡綠色，陣法採用淡橙色。
+         */
+        /* 功法（technique）：採用更為明顯的淡綠色，避免與其他類別混淆 */
+        .cat-technique { background-color: #d5f7d8; }
+        /* 陣法（formation）：採用更為明顯的淡橙色，以便與功法區分 */
+        .cat-formation { background-color: #ffe9cc; }
+        .cat-elixir { background-color: #fff8e1; }
+        .cat-artifact { background-color: #e0f7fa; }
+        .cat-charm { background-color: #fce4ec; }
+
+        /*
+         * 道具品階字體顏色區隔
+         * 對應各品階設定不同顏色，從入品至天品依次遞增。
+         */
+        .grade-in { color: #8a4b00; }
+        .grade-low { color: #006400; }
+        .grade-mid { color: #0000ff; }
+        .grade-high { color: #800080; }
+        .grade-excellent { color: #ff4500; }
+        .grade-ultra { color: #C71585; }
+        .grade-ultimate { color: #DAA520; }
+        .grade-treasure { color: #B8860B; }
+        .grade-earth { color: #2E8B57; }
+        .grade-heaven { color: #8B0000; }
+
+        /*
+         * 訓練結果顯示顏色區分
+         * 訓練次數增加 (+1) 使用成功色，未增加 (+0) 使用危險色。
+         */
+        .train-add {
+            color: var(--success-color);
+            font-weight: bold;
+        }
+        .train-none {
+            color: var(--danger-color);
+            font-weight: bold;
+        }
+
+        /*
+         * 秘境試煉模式背景色
+         * 讓秘境試煉畫面底色與主選單秘境試煉按鈕顏色相呼應，採用淡紫色以保留閱讀性。
+         */
+        .trial-mode {
+            background-color: #f3e8fd;
+        }
+
+        /*
+         * 回頂部按鈕固定位置設定
+         * 在主選單時顯示，其他介面隱藏，由 JS 控制 display 屬性。
+         */
+        #back-to-top {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 1000;
+            display: none;
+            width: auto;
+            padding: 10px 16px;
+        }
+
+        /*
+         * 回頂部按鈕專用樣式：使用獨立顏色區隔於其他功能按鈕。
+         * 採用 info 色系作為背景，並於 hover 時稍微加深。
+         */
+        .btn-back-top {
+            /* 使用深色配色，與其他按鈕區隔開來 */
+            background-color: #343a40;
+            color: #fff;
+        }
+        .btn-back-top:hover {
+            background-color: #23272b;
+        }
+
+        /*
+         * 戰鬥道具分類過濾按鈕樣式
+         * 在使用道具對話框中顯示的分類切換按鈕，採用次要色系，當前選中時使用主色系。
+         */
+        .btn-filter {
+            display: inline-block;
+            margin: 4px;
+            padding: 6px 12px;
+            font-size: 14px;
+            border-radius: var(--border-radius);
+            border: 1px solid transparent;
+            background-color: var(--secondary-color);
+            color: white;
+            cursor: pointer;
+        }
+        .btn-filter.active {
+            background-color: var(--primary-color);
+        }
+        .btn-filter:disabled {
+            background-color: var(--secondary-color);
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        .btn-filter:not(:disabled):hover {
+            background-color: var(--secondary-hover);
+        }
+
+        /*
+         * 簽到日曆表格樣式
+         * 使用簡易表格顯示當月日期，已簽到日期使用成功色標示，今天使用主要色框線。
+         */
+        .calendar-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        .calendar-table th, .calendar-table td {
+            border: 1px solid #dee2e6;
+            padding: 4px;
+            text-align: center;
+        }
+        .calendar-cell-signed {
+            background-color: var(--success-color);
+            color: #fff;
+        }
+        .calendar-cell-today {
+            border: 2px solid var(--primary-color);
+            font-weight: bold;
+        }
+
 
         .info-section {
             background-color: #f8f9fa;
@@ -151,6 +310,12 @@
             background-color: #d1ecf1;
             border-color: var(--info-color);
         }
+
+        /*
+         * 在秘境試煉模式下，將題目按鈕（grid-btn）底色改為紫色系，以與秘境試煉按鈕一致。
+         * 因為秘境試煉會在容器元素上套用 trial-mode class，故在此使用該 class 做父層選擇。
+         */
+        /* 秘境試煉的題目按鈕顏色回復與一般訓練一致，讓道具提示與正確/錯誤高亮顯示正常。故不再覆寫 .grid-btn 樣式。 */
 
 
         .feedback {
@@ -268,6 +433,9 @@
         </div>
     </div>
 
+    <!-- 固定於右下角的回頂部按鈕，在主選單時顯示，其餘時隱藏 -->
+    <button id="back-to-top" class="btn-back-top">⬆️ 回頂部</button>
+
 <script>
 // =================================================================================
 // 運氣訓練工具 V9-0 - JavaScript 離線網頁版
@@ -287,10 +455,43 @@ const TRIAL_SCORE_FILE = "max_trial_scores";
 let maxTrialScores = {};
 
 const DIFFICULTY_WIN_RATE = {1:90, 2:80, 3:65, 4:50, 5:35, 6:25, 7:15, 8:10, 9:7, 10:5};
+
+// 秘境試煉各難度獲得訓練次數的最低答對題數門檻
+// 難度 1：至少答對 17 題；難度 2：15 題；難度 3：12 題；難度 4：9 題；
+// 難度 5：6 題；難度 6：4 題；難度 7：2 題；難度 8：1 題；
+// 難度 9：1 題；難度 10：0 題（答錯也可獲得訓練次數）。
+const TRIAL_TRAINING_REQUIREMENTS = {1: 17, 2: 15, 3: 12, 4: 9, 5: 6, 6: 4, 7: 2, 8: 1, 9: 1, 10: 0};
+
+// 每日任務模板：隨機生成每日任務的候選清單
+// 任務類型分為普通訓練(training)與秘境試煉(secretTrial)，包含指定難度與完成次數目標。
+// 完成普通訓練任務時需要分數 >= 難度勝率門檻；完成秘境任務需至少答對對應題數。
+const DAILY_TASK_TEMPLATES = [
+    { type: 'training', difficulty: 1, target: 10 },
+    { type: 'training', difficulty: 2, target: 9 },
+    { type: 'training', difficulty: 3, target: 8 },
+    { type: 'training', difficulty: 4, target: 7 },
+    { type: 'training', difficulty: 5, target: 6 },
+    { type: 'training', difficulty: 6, target: 5 },
+    { type: 'training', difficulty: 7, target: 4 },
+    { type: 'training', difficulty: 8, target: 3 },
+    { type: 'training', difficulty: 9, target: 2 },
+    { type: 'training', difficulty: 10, target: 1 },    
+    { type: 'secretTrial', difficulty: 1, target: 5 },
+    { type: 'secretTrial', difficulty: 2, target: 5 },
+    { type: 'secretTrial', difficulty: 3, target: 4 },
+    { type: 'secretTrial', difficulty: 4, target: 4 },
+    { type: 'secretTrial', difficulty: 5, target: 3 },
+    { type: 'secretTrial', difficulty: 6, target: 3 },
+    { type: 'secretTrial', difficulty: 7, target: 2 },
+    { type: 'secretTrial', difficulty: 8, target: 2 },
+    { type: 'secretTrial', difficulty: 9, target: 1 },
+    { type: 'secretTrial', difficulty: 10, target: 1 }
+];
 const REDEEM_1_COST = 50;
 const REDEEM_10_COST = 500;
 const REDEEM_100_COST = 5000;
 const REDEEM_1000_COST = 50000;
+const REDEEM_1000000_COST = 50000000;
 const STONE_EXCHANGE_COST = 100;
 const STONE_100_EXCHANGE_COST = 10000;
 const STONE_1000_EXCHANGE_COST = 100000;
@@ -458,6 +659,15 @@ const JINYONG_BOOKS = ["飛","雪","連","天","射","白","鹿","笑","書","�
 // # 新增：中文數字（大寫）
 const CHINESE_BIG_NUMERALS = ["壹","貳","參","肆","伍","陸","柒","捌","玖","拾","佰","仟","萬","億","兆","圓","角","分","零","整"];
 
+// # 新增：二十四節氣列表
+// 包含春夏秋冬四季的二十四節氣，用於節氣訓練遊戲。
+const SOLAR_TERMS = [
+    "立春","雨水","驚蟄","春分","清明","穀雨",
+    "立夏","小滿","芒種","夏至","小暑","大暑",
+    "立秋","處暑","白露","秋分","寒露","霜降",
+    "立冬","小雪","大雪","冬至","小寒","大寒"
+];
+
 // # 新增：將日文和韓文符號拆分為 A、B 兩部分
 const HIRAGANA_A = HIRAGANA.slice(0, Math.ceil(HIRAGANA.length / 2));
 const HIRAGANA_B = HIRAGANA.slice(Math.ceil(HIRAGANA.length / 2));
@@ -465,6 +675,20 @@ const KATAKANA_A = KATAKANA.slice(0, Math.ceil(KATAKANA.length / 2));
 const KATAKANA_B = KATAKANA.slice(Math.ceil(KATAKANA.length / 2));
 const KOREAN_JAMO_A = KOREAN_JAMO.slice(0, Math.ceil(KOREAN_JAMO.length / 2));
 const KOREAN_JAMO_B = KOREAN_JAMO.slice(Math.ceil(KOREAN_JAMO.length / 2));
+
+// ===================== 新增十天干、十二地支及六十干支組合 =====================
+// 十天干列表
+const TIANGAN = ["甲","乙","丙","丁","戊","己","庚","辛","壬","癸"];
+// 十二地支列表
+const DIZHI = ["子","丑","寅","卯","辰","巳","午","未","申","酉","戌","亥"];
+// 六十干支組合：十天干與十二地支依序循環組成，共 60 組
+const GANZHI = (() => {
+    const arr = [];
+    for (let i = 0; i < 60; i++) {
+        arr.push(TIANGAN[i % TIANGAN.length] + DIZHI[i % DIZHI.length]);
+    }
+    return arr;
+})();
 
 
 const ALL_GAMES = [
@@ -481,6 +705,12 @@ let timers = {
     nextRound: null,
 };
 
+// 道具分類過濾器：用於戰鬥道具使用介面
+// 預設為 null，當開啟使用道具對話框時會自動設定
+let currentItemFilter = null;
+// 背包分類過濾器：用於背包清單的分類按鈕
+let currentBackpackFilter = null;
+
 // 預設遊戲狀態
 const defaultStats = {
     total: 0, exp: 0, bonus: 0, luck_tests_total: 0,
@@ -492,6 +722,19 @@ const defaultStats = {
     , gender: ""
     , createDate: ""
     , linggen: null
+    // 快捷道具列表：用於戰鬥道具篩選
+    , quickItems: []
+    // 每日簽到：最後簽到日期以及連續簽到天數
+    , signInLastDate: ""
+    , signInStreak: 0
+    // 每日任務：存放今日任務資料（日期、任務類型、難度、目標、進度、是否接受、是否完成、是否已領取）
+    , dailyTask: {}
+    // 簽到歷史：記錄簽到過的日期列表，用於簽到日曆顯示
+    , signInHistory: []
+    // 天命挑戰：本日產生的隨機任務列表
+    , heavenChallenges: []
+    // 天命挑戰產生日期：用於每日刷新任務
+    , heavenChallengeDate: ""
 };
 
 function saveToLocalStorage(key, data) {
@@ -532,6 +775,35 @@ function loadGameState() {
     }
     gameState.inventory = newInv;
     gameState.stage_idx = getStageIndex(gameState.exp);
+
+    // 若 quickItems 尚未定義，初始化為空陣列（兼容舊版存檔）
+    if (!Array.isArray(gameState.quickItems)) {
+        gameState.quickItems = [];
+    }
+
+    // 若每日簽到相關欄位不存在，初始化為預設值（兼容舊版存檔）
+    if (typeof gameState.signInLastDate !== 'string') {
+        gameState.signInLastDate = "";
+    }
+    if (typeof gameState.signInStreak !== 'number') {
+        gameState.signInStreak = 0;
+    }
+    // 若每日任務不存在或非物件，初始化為空物件
+    if (!gameState.dailyTask || typeof gameState.dailyTask !== 'object') {
+        gameState.dailyTask = {};
+    }
+    // 若簽到歷史不存在或不是陣列，初始化為空陣列（兼容舊版存檔）
+    if (!Array.isArray(gameState.signInHistory)) {
+        gameState.signInHistory = [];
+    }
+
+    // 若天命挑戰資料不存在，初始化為空陣列與空日期（兼容舊版存檔）
+    if (!Array.isArray(gameState.heavenChallenges)) {
+        gameState.heavenChallenges = [];
+    }
+    if (typeof gameState.heavenChallengeDate !== 'string') {
+        gameState.heavenChallengeDate = "";
+    }
 }
 
 
@@ -608,6 +880,75 @@ function getItemSortKey(itemName) {
     const gradeIndex = GRADE_NAMES.includes(itemGrade) ? GRADE_NAMES.indexOf(itemGrade) : GRADE_NAMES.length;
     return [typeIndex, gradeIndex, itemName];
 }
+
+// === 道具分類及品階輔助函式 ===
+// 將中文品階映射為英文 class 名稱，便於 CSS 指定樣式
+const GRADE_CLASS_MAP = {
+    '入品': 'in',
+    '下品': 'low',
+    '中品': 'mid',
+    '上品': 'high',
+    '極品': 'excellent',
+    '超品': 'ultra',
+    '絕品': 'ultimate',
+    '寶品': 'treasure',
+    '地品': 'earth',
+    '天品': 'heaven',
+};
+
+// 根據道具名稱判斷其類別，回傳對應的 class 字串。
+function getItemCategoryClass(itemName) {
+    let itemType = '未知';
+    // 類型判斷邏輯與 getItemSortKey 相同
+    // 依類型關鍵字判斷道具類別。
+    // 兵器：名稱包含劍、刀、槍。
+    // 功法：名稱包含「功法」或常見的功法結尾字「訣」、「經」。
+    // 陣法：名稱包含「陣法」或「陣」。
+    // 其他類型直接包含對應的關鍵字（例如 仙丹、靈器、靈符）。
+    for (const t of ITEM_TYPE_ORDER) {
+        if (t === '兵器') {
+            if (itemName.includes('劍') || itemName.includes('刀') || itemName.includes('槍')) {
+                itemType = t;
+                break;
+            }
+        } else if (t === '功法') {
+            // 功法類：包含「功法」或常見功法結尾字「訣」「經」「藏」，
+            // 以及修煉方法常用詞「行氣」「吐納」「煉」。
+            if (itemName.includes('功法') || itemName.includes('訣') || itemName.includes('經') || itemName.includes('藏')
+                || itemName.includes('行氣') || itemName.includes('吐納') || itemName.includes('煉')) {
+                itemType = t;
+                break;
+            }
+        } else if (t === '陣法') {
+            if (itemName.includes('陣法') || itemName.includes('陣')) {
+                itemType = t;
+                break;
+            }
+        } else if (itemName.includes(t)) {
+            itemType = t;
+            break;
+        }
+    }
+    switch (itemType) {
+        case '兵器': return 'weapon';
+        case '功法': return 'technique';
+        case '陣法': return 'formation';
+        case '仙丹': return 'elixir';
+        case '靈器': return 'artifact';
+        case '靈符': return 'charm';
+        default: return 'unknown';
+    }
+}
+
+// 根據道具名稱判斷品階，回傳對應的 class 字串。
+function getItemGradeClass(itemName) {
+    for (const [cn, cls] of Object.entries(GRADE_CLASS_MAP)) {
+        if (itemName.includes(cn)) {
+            return cls;
+        }
+    }
+    return '';
+}
 // 比較道具名稱的函式：依照類型索引、品階索引、最後以名稱（字典序）排序。
 // 與 8-8 版 Python get_item_sort_key 配合，避免使用 join 比對造成排序錯亂。
 function compareItemNames(nameA, nameB) {
@@ -634,6 +975,12 @@ let temporaryMessages = []; // 用於顯示臨時訊息，例如每日獎勵
 function clearApp() {
     app.innerHTML = '';
     Object.values(timers).forEach(timer => clearTimeout(timer));
+
+    // 在進入新畫面時隱藏回頂部按鈕
+    try {
+        const backBtn = document.getElementById('back-to-top');
+        if (backBtn) backBtn.style.display = 'none';
+    } catch (e) { /* ignore */ }
 }
 
 function addTemporaryMessage(html, type) {
@@ -745,20 +1092,31 @@ function startLinggenTest() {
 
 // # 對雲端使用者檔案進行合併更新
 async function updateUserProfile(fields) {
-    // 將使用者檔案資訊寫入 Supabase。當雲端未啟用時直接跳出。
-    if (!ONLINE_ENABLED || !supabaseClient) return;
+    if (!FIREBASE_ONLINE_ENABLED || !db) return;
     try {
-        const user = await ensureSignedIn();
-        if (!user) return;
-        // upsert 到 user_stats 表或其他表；此處假定 id 為主鍵
-        await supabaseClient.from('user_stats').upsert(Object.assign({ id: user.id }, fields));
+        await ensureSignedIn();
+        const u = auth && auth.currentUser;
+        if (!u) return;
+        await db.collection('users').doc(u.uid).set(fields, { merge: true });
     } catch (e) {
         console.warn('更新使用者資料失敗', e);
     }
 }
 function renderMainMenu() {
     clearApp();
+    // 返回主選單時移除秘境試煉背景樣式，並顯示回頂部按鈕
+    try {
+        const containerEl = document.getElementById('app-container');
+        if (containerEl) containerEl.classList.remove('trial-mode');
+        const backBtn = document.getElementById('back-to-top');
+        if (backBtn) backBtn.style.display = 'inline-block';
+    } catch (e) { /* ignore */ }
     grantDailyTicketIfNeeded();
+    // 初始化每日任務：若當日任務不存在或已過期則生成新任務
+    try { initDailyTask(); } catch (e) {}
+
+    // 初始化天命挑戰：若當日任務不存在或已過期則生成新任務
+    try { initHeavenChallenges(); } catch (e) {}
     // # 若尚未設定姓名或尚未測試靈根，進入初始化流程
     if (!gameState.personalName || gameState.personalName === "" || gameState.linggen === null || gameState.linggen === undefined) {
         if (typeof showInitialSetup === 'function') {
@@ -790,21 +1148,21 @@ function renderMainMenu() {
     
     let html = `
         <h1>🎯 運氣訓練工具</h1>
-        <h2>V2-13-S3（修仙網頁線上版）</h2>
-        <!-- 顯示目前線上人數：透過 Supabase Presence 計算
-             此段在 initPresence() 中會更新其文字內容 -->
-        <p id="onlineUsersCount" style="text-align:center;">👥 目前線上人數：${onlineUsersCount}</p>
+        <h2>V2-22（修仙網頁離線版）</h2>
         <p style="text-align:center;">請選擇訓練難度（1 最簡單～10 最困難）</p>
     `;
 
     for (let i = 1; i <= 10; i++) {
         const score = maxScores[i] || 0;
-        html += `<button data-action="start-training" data-level="${i}">難度 ${i}（最高分：${score}） 勝率：約 ${DIFFICULTY_WIN_RATE[i]}%</button>`;
+        // 使用 btn-training 分類按鈕顏色區隔
+        html += `<button class="btn-training" data-action="start-training" data-level="${i}">難度 ${i}（最高分：${score}） 勝率：約 ${DIFFICULTY_WIN_RATE[i]}%</button>`;
     }
 
     // # 新增秘境試煉選項與排行榜：放置於難度 1~10 按鈕之後
-    html += `<button data-action="render-secret-trial-menu">🌌 秘境試煉</button>`;
-    html += `<button data-action="show-trial-leaderboard">🏆 秘境排行榜</button>`;
+    html += `<button class="btn-trial" data-action="render-secret-trial-menu">🌌 秘境試煉</button>`;
+    html += `<button class="btn-trial" data-action="show-trial-leaderboard">🏆 秘境排行榜</button>`;
+    // 新增修仙排行榜：依修為高低排名（離線顯示個人修為）
+    html += `<button class="btn-other" data-action="show-cultivation-leaderboard">🌄 修仙排行榜</button>`;
 
 
     html += `
@@ -818,17 +1176,30 @@ function renderMainMenu() {
             <p>💎 靈石：${gameState.stones}</p>
             <p>👤 姓名：${gameState.personalName || '未設定'} | 性別：${gameState.gender || '未設定'} | 🌱 靈根：${(gameState.linggen === undefined || gameState.linggen === null) ? '未測' : ((gameState.linggen <= 0) ? '無靈根' : gameState.linggen + ' 靈根')}</p>
         </div>
-        <button data-action="show-stage-list">📜 查看修仙等級一覽</button>
-        <button data-action="show-game-rules">📖 遊戲規則說明</button>
-        <button data-action="show-rank-list">👑 查看仙門位階封號</button>
-        <button data-action="show-backpack">🎒 背包</button>
-        <button data-action="show-shop">🛒 商店</button>
-        <button data-action="render-test-luck-menu">🔍 測試運氣</button>
-        <button data-action="test-sfx">🔊 測試音效</button>
-        <button data-action="show-login-menu">👤 帳號</button>
+        <button class="btn-other" data-action="show-stage-list">📜 查看修仙等級一覽</button>
+        <button class="btn-other" data-action="show-game-rules">📖 遊戲規則說明</button>
+        <button class="btn-other" data-action="show-rank-list">👑 查看仙門位階封號</button>
+        <button class="btn-other" data-action="show-backpack">🎒 背包</button>
+        <button class="btn-other" data-action="show-shop">🛒 商店</button>
+        <button class="btn-other" data-action="render-test-luck-menu">🔍 測試運氣</button>
+        <button class="btn-other" data-action="handle-daily-signin">📅 每日簽到</button>
+        <!-- 新增簽到日曆按鈕：供玩家查看本月簽到情況 -->
+        <button class="btn-other" data-action="show-signin-calendar">📆 簽到日曆</button>
+        <button class="btn-other" data-action="show-daily-task">🗒️ 每日任務</button>
+        <!-- 新增天命挑戰按鈕：可查看並接受隨機任務 -->
+        <button class="btn-other" data-action="show-heaven-challenges">🌠 天命挑戰</button>
+        <button class="btn-other" data-action="test-sfx">🔊 測試音效</button>
+        <button class="btn-other" data-action="show-login-menu">👤 帳號</button>
         <button class="btn-secondary" data-action="exchange-stones" data-count="1">🪙 兌換 1 靈石 (-${STONE_EXCHANGE_COST} EXP)</button>
         <button class="btn-secondary" data-action="exchange-stones" data-count="100">🪙 兌換 100 靈石 (-${STONE_100_EXCHANGE_COST} EXP)</button>
         <button class="btn-secondary" data-action="exchange-stones" data-count="1000">🪙 兌換 1000 靈石 (-${STONE_1000_EXCHANGE_COST} EXP)</button>
+        <!-- # 新增全部兌換靈石：依照當前 EXP 計算可兌換數量並顯示所需 EXP -->
+        ${(() => {
+            const maxStones = Math.floor(gameState.exp / STONE_EXCHANGE_COST);
+            const costAll = maxStones * STONE_EXCHANGE_COST;
+            const disabled = maxStones < 1 ? 'disabled' : '';
+            return `<button class="btn-secondary" data-action="exchange-stones" data-count="${maxStones}" ${disabled}>🪙 全部兌換 (-${costAll} EXP)</button>`;
+        })()}
         <hr>
         <button class="btn-warning" data-action="reset-stats">歸零訓練/經驗統計</button>
         <button class="btn-danger" data-action="clear-scores">🗑️ 清除所有最高分紀錄</button>
@@ -1064,6 +1435,28 @@ function checkAnswerMulti() {
 
 function finalizeRound() {
     updateGameInfo();
+
+    // # 題目結算後，無論答對與否，都將正確答案與錯誤答案高亮顯示。
+    // # 遍歷所有按鈕，將答案屬於正確列表者加上 hint-correct，其他則加上 hint-wrong
+    try {
+        const buttons = trainingState.gameGridButtons || [];
+        if (Array.isArray(buttons)) {
+            buttons.forEach(b => {
+                const choice = b.dataset.choice;
+                if (trainingState.correctAnswers && trainingState.correctAnswers.includes(choice)) {
+                    // # 為正確答案添加標記
+                    if (!b.classList.contains('hint-correct')) {
+                        b.classList.add('hint-correct');
+                    }
+                } else {
+                    // # 為錯誤答案添加標記
+                    if (!b.classList.contains('hint-wrong')) {
+                        b.classList.add('hint-wrong');
+                    }
+                }
+            });
+        }
+    } catch (e) { /* # ignore */ }
     // 結算回合後清除本題加時，避免延續到下一題（雙重保障）
     trainingState.roundExtraTime = 0;
     // 清除倒數剩餘時間狀態
@@ -1136,12 +1529,34 @@ function showTrainingResult() {
     }
     
     const required = DIFFICULTY_WIN_RATE[trainingState.difficulty] || 0;
+    // 更新每日任務進度：普通訓練需要達到該難度勝率門檻才計入
+    try {
+        const isPass = (score >= required);
+        updateDailyTaskProgressTraining(isPass, trainingState.difficulty);
+    } catch (e) { /* ignore */ }
+    // 先計算經驗獲取，再根據增量更新任務進度
     const [bonusExp, bonusMsg] = getCultivationBonusExp(score, required);
-    const prevExp = gameState.exp;
     const baseExp = 1;
     const totalGain = baseExp + Math.max(0, bonusExp);
+    const prevExp = gameState.exp;
     gameState.exp += totalGain;
     if (bonusExp > 0) gameState.bonus = (gameState.bonus || 0) + bonusExp;
+    // == 天命挑戰進度更新 ==
+    // 在訓練結束後，根據答對題數、總題數、勝率與獲得經驗更新天命挑戰進度
+    try {
+        const diffLevel = trainingState.difficulty || 1;
+        const correctCount = trainingState.success || 0;
+        const totalRounds = trainingState.totalRounds || 20;
+        const winRate = score; // 0-100
+        const expGainForTraining = totalGain;
+        if (typeof updateHeavenChallengeProgressTraining === 'function') {
+            updateHeavenChallengeProgressTraining(diffLevel, correctCount, totalRounds, winRate, expGainForTraining);
+        }
+        // 累積經驗類任務：也將修煉經驗增量傳遞
+        if (typeof updateHeavenChallengeProgressExp === 'function') {
+            updateHeavenChallengeProgressExp(expGainForTraining);
+        }
+    } catch (e) { /* ignore */ }
 
     // === 新增處罰機制 ===
     // 若得分低於該難度的勝率門檻，依差距扣減修煉值
@@ -1162,10 +1577,13 @@ function showTrainingResult() {
     // 在扣除處罰後進行升級判定
     const levelupMsg = handleLevelUp(prevExp, gameState.exp);
     
+    // 計算本次訓練次數增量，用於顯示＋1 或 ＋0 文字
+    const trainingAdded = gameState.total - prevTotalTrainCount;
     let resultHTML = `
         <h2>🏁 訓練完成</h2>
         <div class="feedback success">得分：${score} / 100</div>
         <p style="text-align:center;">💡 基本修煉經驗 +${baseExp}</p>
+        <p class="${trainingAdded > 0 ? 'train-add' : 'train-none'}" style="text-align:center;">訓練次數+${trainingAdded > 0 ? trainingAdded : 0}</p>
     `;
     if (bonusMsg) resultHTML += `<p style="text-align:center; color:green;">🎉 ${bonusMsg}</p>`;
     if (penaltyMsg) resultHTML += `<p style="text-align:center; color:red;">${penaltyMsg}</p>`;
@@ -1412,6 +1830,21 @@ window.game_katakana_b = () => { game_template("日文片假名B", KATAKANA_B, K
 window.game_korean_jamo_a = () => { game_template("韓文字符號A", KOREAN_JAMO_A, KOREAN_JAMO_A.length, 9, 48); };
 window.game_korean_jamo_b = () => { game_template("韓文字符號B", KOREAN_JAMO_B, KOREAN_JAMO_B.length, 9, 48); };
 
+// # 新增：十天干、十二地支以及六十干支組合遊戲函式
+// # 十天干：10 個干，5 列顯示
+window.game_tiangan = () => { game_template("十天干", TIANGAN, TIANGAN.length, 5); };
+// # 十二地支：12 個支，6 列顯示
+window.game_dizhi = () => { game_template("十二地支", DIZHI, DIZHI.length, 6); };
+// # 六十干支組合：60 個干支，6 列顯示，較小按鈕尺寸方便顯示
+// # 六十干支訓練：由於每個選項含兩個字元，在手機瀏覽時容易被裁切，因此將按鈕高度提高至 60px
+window.game_ganzhi = () => { game_template("六十干支組合", GANZHI, GANZHI.length, 6, 72); };
+
+// # 新增：二十四節氣遊戲函式
+// 24 節氣共有二十四個節氣，採用 6 列顯示，每行 4 欄，由 game_template 處理顯示。
+window.game_solar_terms = () => {
+    game_template("二十四節氣", SOLAR_TERMS, SOLAR_TERMS.length, 6, 72);
+};
+
 // # 調整遊戲列表：刪除原本的日文平假名、片假名、韓文元音輔音項目，並加入拆分版與新增的符號遊戲
 (function() {
     try {
@@ -1455,6 +1888,7 @@ function renderTestLuckMenu() {
         <button data-action="run-luck-draw" data-draws="10" data-mode="幸運抽卡10連抽" ${tickets < 10 ? 'disabled' : ''}>🃏 十連抽 (消耗 10 票)</button>
         <button data-action="run-luck-draw" data-draws="100" data-mode="幸運抽卡100連抽" ${tickets < 100 ? 'disabled' : ''}>🃏 百連抽 (消耗 100 票)</button>
         <button data-action="run-luck-draw" data-draws="1000" data-mode="幸運抽卡1000連抽" ${tickets < 1000 ? 'disabled' : ''}>🃏 千連抽 (消耗 1000 票)</button>
+        <button data-action="run-luck-draw" data-draws="100000" data-mode="幸運抽卡100000連抽" ${tickets < 100000 ? 'disabled' : ''}>🃏 十萬連抽 (消耗 100000 票)</button>
         <button data-action="run-luck-draw" data-draws="${tickets}" data-mode="幸運抽卡全部抽" ${tickets < 1 ? 'disabled' : ''}>🃏 全部抽 (消耗 ${tickets} 票)</button>
         <button data-action="run-today-luck">📅 今日運勢 (每日一次｜免費)</button>
         <hr>
@@ -1462,6 +1896,14 @@ function renderTestLuckMenu() {
         <button class="btn-secondary" data-action="redeem-tickets" data-pieces="10" data-cost="${REDEEM_10_COST}">🎫 兌換 10 張 (-${REDEEM_10_COST} EXP)</button>
         <button class="btn-secondary" data-action="redeem-tickets" data-pieces="100" data-cost="${REDEEM_100_COST}">🎫 兌換 100 張 (-${REDEEM_100_COST} EXP)</button>
         <button class="btn-secondary" data-action="redeem-tickets" data-pieces="1000" data-cost="${REDEEM_1000_COST}">🎫 兌換 1000 張 (-${REDEEM_1000_COST} EXP)</button>
+        <button class="btn-secondary" data-action="redeem-tickets" data-pieces="1000000" data-cost="${REDEEM_1000000_COST}">🎫 兌換 1000000 張 (-${REDEEM_1000000_COST} EXP)</button>
+        <!-- # 新增全部兌換票券：依照當前 EXP 計算可兌換的票券數量並顯示所需 EXP -->
+        ${(() => {
+            const maxTickets = Math.floor(gameState.exp / REDEEM_1_COST);
+            const costAll = maxTickets * REDEEM_1_COST;
+            const disabled = maxTickets < 1 ? 'disabled' : '';
+            return `<button class="btn-secondary" data-action="redeem-tickets" data-pieces="${maxTickets}" data-cost="${costAll}" ${disabled}>🎫 全部兌換 (-${costAll} EXP)</button>`;
+        })()}
         <hr>
         <button data-action="show-luck-history">📈 查看歷史與統計</button>
         <button data-action="render-main-menu">🔙 返回主選單</button>
@@ -1550,15 +1992,15 @@ function grantRandomRewards(count) {
         else rewardType = "item";
 
         if (rewardType === 'exp') {
-            const amount = getScaledRandomAmount(1, 1000);
+            const amount = getScaledRandomAmount(0, 200);
             totals.exp += amount;
             rewardsList.push(`獲得 修煉經驗 +${amount}`);
         } else if (rewardType === 'stones') {
-            const amount = getScaledRandomAmount(1, 100);
+            const amount = getScaledRandomAmount(0, 20);
             totals.stones += amount;
             rewardsList.push(`獲得 靈石 +${amount}`);
         } else if (rewardType === 'tickets') {
-            const amount = getScaledRandomAmount(1, 5);
+            const amount = getScaledRandomAmount(0, 5);
             totals.tickets += amount;
             rewardsList.push(`獲得 票券 +${amount}`);
         } else if (rewardType === 'item') {
@@ -1572,7 +2014,7 @@ function grantRandomRewards(count) {
                 }
                 randWeight -= weights[j];
             }
-            const amount = getScaledRandomAmount(1, 10);
+            const amount = getScaledRandomAmount(0, 5);
             totals.items[itemName] = (totals.items[itemName] || 0) + amount;
             rewardsList.push(`獲得 道具 [${itemName}] ×${amount}`);
         }
@@ -1786,6 +2228,39 @@ function showGameRules() {
             <p>在普通訓練中，若在 20 題中取得 100 分滿分，將根據挑戰難度額外獲得隨機獎勵：難度 1 時額外 1 份獎勵，難度 2 時 2 份，以此類推。</p>
             <p>在秘境試煉中，若本次連續答對題數超越既往最高紀錄，將獲得額外獎勵，新紀錄越高獎勵越豐厚。每突破 100 題將額外增加 2 份獎勵，超越 500 題以上可獲得更多倍獎勵。</p>
             <p>進入秘境試煉需要消耗靈石：秘境難度 1 消耗 10 顆靈石，之後每提高 1 級所需消耗翻倍。例如難度 2 消耗 20 顆，難度 3 消耗 40 顆。</p>
+            <!-- # 新規則：秘境試煉訓練次數加成條件說明 -->
+            <h3>6. 秘境試煉訓練次數規則</h3>
+            <p>秘境試煉不同難度獲得訓練次數的門檻如下：</p>
+            <ul>
+                <li>難度 1：至少答對 17 題</li>
+                <li>難度 2：至少答對 15 題</li>
+                <li>難度 3：至少答對 12 題</li>
+                <li>難度 4：至少答對 9 題</li>
+                <li>難度 5：至少答對 6 題</li>
+                <li>難度 6：至少答對 4 題</li>
+                <li>難度 7：至少答對 2 題</li>
+                <li>難度 8：至少答對 1 題</li>
+                <li>難度 9：至少答對 1 題</li>
+                <li>難度 10：不限題數（答對 0 題也可）</li>
+            </ul>
+            <p>只有達到上述要求，秘境試煉結束時才會增加一次訓練次數。</p>
+            <h3>7. 每日簽到</h3>
+            <p>每天凌晨 00:00 會刷新簽到，當日首次簽到即可依照當前修為階層獲得修煉經驗與靈石獎勵。連續簽到天數越多，獎勵倍率越高；中斷簽到後，連續天數將重新計算。</p>
+            <h3>8. 每日隨機任務</h3>
+            <p>每天將生成一個隨機任務，例如完成指定難度的普通訓練或秘境試煉多次。接受任務後，在訓練或試煉結算時若符合條件則會累計進度；達到指定次數即可完成任務並領取獎勵。任務僅當日有效，未完成或未接受的任務隔日會重新生成。</p>
+
+            <h3>9. 天命挑戰（隨機任務系統）</h3>
+            <p>天命挑戰是以日為單位產生的隨機任務，每種任務類型都會提供 10 個項目可供選擇，任務內容會根據你的修為與挑戰難度自動生成。任務類型包含：<b>普通訓練任務</b>、<b>秘境試煉任務</b>、<b>道具使用任務</b>、<b>修為／成就任務</b>等。例如：</p>
+            <ul>
+                <li>完成指定難度的普通訓練多次並達到特定勝率，例如「完成難度 3 普通訓練 10 次並達到勝率 50% 以上」。</li>
+                <li>於普通訓練累積正確回答一定題數，例如「於難度 2 訓練累積正確回答 30 題」。</li>
+                <li>挑戰秘境試煉多次並每次達到最少答對題數，例如「挑戰秘境試煉難度 4 並至少答對 12 題 3 次」。</li>
+                <li>在秘境試煉中使用功法多次，例如「在秘境試煉中使用功法成功提示 15 次」。</li>
+                <li>於任務期間內使用指定類型道具，例如「在任務期間內使用 5 次兵器類道具」或「使用靈符排除 10 個錯誤答案」。</li>
+                <li>累積獲得一定修煉經驗或達成連續成功訓練次數，例如「累積獲得 5000 修煉經驗」或「連續成功完成訓練 7 次」。</li>
+            </ul>
+            <p>這些任務需要先點擊「接受」才能開始累計進度；接受後可隨時取消，取消會重置進度。每人同時最多接受 3 個天命挑戰。完成任務後可領取獨立獎勵，包括修煉經驗、靈石或稀有道具，任務越難獎勵越豐厚，且任務可設定期限（無期限、1 日、3 日、5 日），期限越長則獎勵倍率越高。</p>
+            <p>任務進度會在訓練或秘境試煉結算，以及使用道具或獲得修煉經驗時自動更新。每個任務項目可以隨時按下「刷新」按鈕重新生成，但刷新後需等待 10 分鐘才會顯示新的任務內容。完成任務並領取獎勵後，系統會自動填補新的任務。若天命挑戰與每日任務目標重疊，進度會共享，但獎勵需分別領取。天命挑戰每日重新整理，過期或冷卻結束會自動替換為新任務。</p>
         </div>
     `;
     showModal("📜 遊戲規則說明", content, `<button data-action="close-modal">關閉</button>`);
@@ -1807,9 +2282,10 @@ function renderSecretTrialMenu() {
         // # 每個秘境難度的消耗：難度 1 為 10 顆靈石，之後每一級翻倍
         const cost = 10 * Math.pow(2, i - 1);
         // # 將所需靈石與最高答對題數標註在按鈕文字中
-        html += `<button data-action="start-trial" data-level="${i}">秘境難度 ${i}（${cost}靈石）(最高答對：${best} 題)</button>`;
+        html += `<button class="btn-trial" data-action="start-trial" data-level="${i}">秘境難度 ${i}（${cost}靈石）(最高答對：${best} 題)</button>`;
     }
-    html += `<button data-action="render-main-menu">🔙 返回主選單</button>`;
+    // 使用 btn-trial 風格讓秘境試煉的返回按鈕與其他按鈕底色一致
+    html += `<button class="btn-trial" data-action="render-main-menu">🔙 返回主選單</button>`;
     app.innerHTML = html;
 }
 
@@ -1851,6 +2327,12 @@ function startTrial(level) {
         trainingState.startedAt = Date.now();
         trainingState.usedItems = [];
     } catch (e) {}
+
+    // 進入秘境試煉時，將畫面容器套用 trial-mode 以改變背景色
+    try {
+        const containerEl = document.getElementById('app-container');
+        if (containerEl) containerEl.classList.add('trial-mode');
+    } catch (e) { /* ignore */ }
     trialNext();
 }
 
@@ -1875,6 +2357,10 @@ function showTrialResult() {
     const correctCount = trainingState.success || 0;
     // 記錄最高紀錄
     const diff = trainingState.difficulty;
+    // 更新每日任務進度：秘境試煉達到要求題數才計入
+    try {
+        updateDailyTaskProgressTrial(correctCount, diff);
+    } catch (e) { /* ignore */ }
     const prevBestTrial = maxTrialScores[diff] || 0;
     if (!maxTrialScores[diff] || correctCount > maxTrialScores[diff]) {
         maxTrialScores[diff] = correctCount;
@@ -1882,7 +2368,17 @@ function showTrialResult() {
         try { saveToLocalStorage(TRIAL_SCORE_FILE, maxTrialScores); } catch (e) {}
     }
     const prevTotalTrainCount = gameState.total;
-    gameState.total++;
+    // # 秘境試煉：根據難度設定的答對題數門檻，決定是否增加 1 次訓練次數
+    try {
+        const diff = trainingState.difficulty || 1;
+        const threshold = (TRIAL_TRAINING_REQUIREMENTS && TRIAL_TRAINING_REQUIREMENTS[diff] !== undefined) ? TRIAL_TRAINING_REQUIREMENTS[diff] : 1;
+        if (correctCount >= threshold) {
+            gameState.total++;
+        }
+    } catch (e) {
+        // 若出現錯誤回退至原本邏輯（至少答對 1 題）
+        if (correctCount >= 1) gameState.total++;
+    }
     // 基礎經驗
     const baseExp = 1;
     // 額外經驗：每 10 題 +1
@@ -1907,6 +2403,18 @@ function showTrialResult() {
             recordRewardHTML = `<div class="message msg-reward">🏅 超越歷史紀錄！獲得 ${rewardCountRecord} 個額外獎勵：<br>${recordRewards.join('<br>')}</div>`;
         }
     } catch (e) { console.warn('紀錄獎勵計算錯誤', e); }
+
+    // 天命挑戰進度更新（秘境試煉）
+    try {
+        const diffLevelTrial = trainingState.difficulty || 1;
+        const expGainTrial = baseExp + bonusExp;
+        if (typeof updateHeavenChallengeProgressTrial === 'function') {
+            updateHeavenChallengeProgressTrial(correctCount, diffLevelTrial, expGainTrial);
+        }
+        if (typeof updateHeavenChallengeProgressExp === 'function') {
+            updateHeavenChallengeProgressExp(expGainTrial);
+        }
+    } catch (e) { /* ignore */ }
 
     // 發放靈石：每 30 題 1 顆
     const stonesAward = Math.floor(correctCount / 30);
@@ -1941,9 +2449,13 @@ function showTrialResult() {
 
     // 升級判定
     const levelupMsg = handleLevelUp(prevExp, gameState.exp);
+    // 計算本次訓練次數增量，用於顯示＋1 或 ＋0 文字
+    const trainingAdded = gameState.total - prevTotalTrainCount;
     let resultHTML = `<h2>🌌 秘境試煉完成</h2>`;
     resultHTML += `<div class="feedback success">連續答對題數：${correctCount}</div>`;
     resultHTML += `<p style="text-align:center;">💡 修煉經驗 +${baseExp + bonusExp}</p>`;
+    // 顯示訓練次數加減，根據本次答對題數判斷是否增加
+    resultHTML += `<p class="${trainingAdded > 0 ? 'train-add' : 'train-none'}" style="text-align:center;">訓練次數+${trainingAdded > 0 ? trainingAdded : 0}</p>`;
     if (levelupMsg) resultHTML += `<p class="message msg-levelup">${levelupMsg}</p>`;
     resultHTML += rewardsHTML;
     // 顯示回主選單按鈕
@@ -1952,12 +2464,12 @@ function showTrialResult() {
         const diff = trainingState.difficulty || 1;
         const cost = 10 * Math.pow(2, diff - 1);
         const disabledAttr = (typeof gameState !== 'undefined' && gameState.stones < cost) ? 'disabled' : '';
-        resultHTML += `<button data-action="retry-trial" data-level="${diff}" ${disabledAttr}>🔄 再次挑戰</button>`;
+        resultHTML += `<button class="btn-trial" data-action="retry-trial" data-level="${diff}" ${disabledAttr}>🔄 再次挑戰</button>`;
     } catch (e) {
         // 若出現錯誤仍顯示可再次挑戰
-        resultHTML += `<button data-action="retry-trial">🔄 再次挑戰</button>`;
+        resultHTML += `<button class="btn-trial" data-action="retry-trial">🔄 再次挑戰</button>`;
     }
-    resultHTML += `<button data-action="render-main-menu">🔁 回主選單</button>`;
+    resultHTML += `<button class="btn-trial" data-action="render-main-menu">🔁 回主選單</button>`;
     app.innerHTML = resultHTML;
     saveGameState();
     // # 上傳秘境紀錄至雲端 (Firestore)
@@ -2026,8 +2538,6 @@ async function saveTrialRecord(rec) {
                     // # 構建更新資料
                     var updateData = {
                         bestScores: bestScores,
-                        // # 同步一份到 bestByLevel 供舊版讀取
-                        bestByLevel: bestScores,
                         bestScore: bestScoreOverall,
                         displayName: (prof.personalName && prof.personalName !== '') ? prof.personalName : (prof.displayName || '無名修士'),
                         gender: prof.gender || '',
@@ -2060,8 +2570,7 @@ async function loadTrialLeaderboardGrouped() {
         var result = {};
         qs.docs.forEach(function(doc) {
             var d = doc.data() || {};
-        // # 取得各難度最佳紀錄；兼容舊版屬性 bestByLevel
-        var bestScores = d.bestScores || d.bestByLevel || {};
+            var bestScores = d.bestScores || {};
             // # 遍歷 1~10 難度
             for (var i = 1; i <= 10; i++) {
                 var s = bestScores[i];
@@ -2169,37 +2678,57 @@ async function showTrialLeaderboard() {
     showModal('秘境排行榜', content, `<button data-action="close-modal">關閉</button>`);
 }
 
+// === 顯示修仙排行榜（離線版）===
+// 依玩家當前修為顯示個人修為排行榜。由於離線模式沒有其他玩家資料，僅顯示自己的修為。
+function showCultivationLeaderboard() {
+    try {
+        const stageName = getCultivationStage(gameState.exp);
+        const title = '修仙排行榜 (離線)';
+        let content = '';
+        if (!gameState.personalName || gameState.personalName === '') {
+            // 未設定姓名時僅顯示修為等級
+            content = `<p>您的修為：${stageName}</p><p>目前僅提供個人修為顯示。</p>`;
+        } else {
+            content = `<p>修士：${gameState.personalName}</p><p>修為：${stageName}</p><p>目前僅提供個人修為顯示。</p>`;
+        }
+        showModal(title, content, `<button data-action="close-modal">關閉</button>`);
+    } catch (e) {
+        console.warn('顯示修仙排行榜失敗', e);
+        showModal('修仙排行榜 (離線)', '無法顯示修仙排行榜。', `<button data-action="close-modal">關閉</button>`);
+    }
+}
+
 // # 顯示登入/帳號管理介面
 function showLoginMenu() {
     // 若雲端未啟用則顯示提示
-    if (!ONLINE_ENABLED || !supabaseClient) {
+    if (!FIREBASE_ONLINE_ENABLED || !auth) {
         showModal('帳號', '雲端未啟用，無法登入。', `<button data-action="close-modal">關閉</button>`);
         return;
     }
-    // 透過 ensureSignedIn() 取得目前使用者後再動態產生內容
-    ensureSignedIn().then(function(user) {
-        let content = '';
-        if (user) {
-            const meta = user.user_metadata || {};
-            const name = meta.full_name || meta.displayName || user.email || '已登入';
-            content += `<p>已登入為：${name}</p>`;
-            content += `<button data-action="logout">登出</button>`;
-        } else {
-            // 尚未登入：提供登入選項。Supabase 不支援匿名登入。
-            content += `<button data-action="login-google">以 Google 登入</button>`;
-            content += `<button data-action="login-yahoo">以 Yahoo 登入</button>`;
-            content += `<button data-action="login-facebook">以 Facebook 登入</button>`;
-            content += `<button data-action="login-email">以 Email/密碼註冊登入</button>`;
-        }
-        showModal('登入 / 帳號', content, `<button data-action="close-modal">關閉</button>`);
-    });
+    const u = auth.currentUser;
+    let content = '';
+    if (u && !u.isAnonymous) {
+        // 已登入
+        const name = u.displayName || u.email || '已登入';
+        content += `<p>已登入為：${name}</p>`;
+        content += `<button data-action="logout">登出</button>`;
+    } else {
+        // # 如果尚未登入或為匿名使用者，提供匿名登入和其他登入方式
+        content += `<button data-action="login-anonymous">匿名登入</button>`;
+        content += `<button data-action="login-google">以 Google 登入</button>`;
+        content += `<button data-action="login-yahoo">以 Yahoo 登入</button>`;
+        content += `<button data-action="login-facebook">以 Facebook 登入</button>`;
+        content += `<button data-action="login-email">以 Email/密碼註冊登入</button>`;
+    }
+    showModal('登入 / 帳號', content, `<button data-action="close-modal">關閉</button>`);
 }
 
 // # Google 登入
 function loginGoogle() {
-    if (!ONLINE_ENABLED || !supabaseClient) return;
+    if (!FIREBASE_ONLINE_ENABLED || !auth) return;
     signInWithGoogleKeepData().then(function(){
-        try { modal.style.display = 'none'; } catch (_) {}
+        modal.style.display = 'none';
+        // 重新渲染主選單以更新登入狀態顯示
         if (typeof renderMainMenu === 'function') renderMainMenu();
     }).catch(function(e){
         console.warn('Google 登入失敗', e);
@@ -2209,18 +2738,25 @@ function loginGoogle() {
 
 // # 匿名登入：手動呼叫 signInAnonymously（通常自動，但提供顯式操作）
 function loginAnonymous() {
-    // Supabase 不支援匿名登入
-    alert('此平台不支援匿名登入，請使用其他方式登入');
+    if (!FIREBASE_ONLINE_ENABLED || !auth) return;
+    auth.signInAnonymously().then(function(res){
+        // # 關閉彈窗並重新渲染主選單
+        try { modal.style.display = 'none'; } catch (_) {}
+        if (typeof renderMainMenu === 'function') renderMainMenu();
+    }).catch(function(e){
+        console.warn('匿名登入失敗', e);
+        alert('匿名登入失敗');
+    });
 }
 // # Email/密碼 登入或註冊（簡易 prompt）
 function loginEmail() {
-    if (!ONLINE_ENABLED || !supabaseClient) return;
+    if (!FIREBASE_ONLINE_ENABLED || !auth) return;
     const email = prompt('請輸入 Email');
     if (!email) return;
     const password = prompt('請輸入密碼 (至少 6 字)');
     if (!password) return;
     upgradeToEmailPassword(email, password).then(function(){
-        try { modal.style.display = 'none'; } catch (_) {}
+        modal.style.display = 'none';
         if (typeof renderMainMenu === 'function') renderMainMenu();
     }).catch(function(e){
         console.warn('Email 登入或註冊失敗', e);
@@ -2230,8 +2766,9 @@ function loginEmail() {
 
 // # Yahoo 登入
 function loginYahoo() {
-    if (!ONLINE_ENABLED || !supabaseClient) return;
+    if (!FIREBASE_ONLINE_ENABLED || !auth) return;
     signInWithYahooKeepData().then(function(){
+        // # 登入成功關閉彈窗並刷新主選單
         try { modal.style.display = 'none'; } catch (_) {}
         if (typeof renderMainMenu === 'function') renderMainMenu();
     }).catch(function(e){
@@ -2242,7 +2779,7 @@ function loginYahoo() {
 
 // # Facebook 登入
 function loginFacebook() {
-    if (!ONLINE_ENABLED || !supabaseClient) return;
+    if (!FIREBASE_ONLINE_ENABLED || !auth) return;
     signInWithFacebookKeepData().then(function(){
         try { modal.style.display = 'none'; } catch (_) {}
         if (typeof renderMainMenu === 'function') renderMainMenu();
@@ -2254,9 +2791,9 @@ function loginFacebook() {
 
 // # 登出
 function logout() {
-    if (!ONLINE_ENABLED || !supabaseClient) return;
+    if (!FIREBASE_ONLINE_ENABLED || !auth) return;
     signOutOnline().then(function(){
-        try { modal.style.display = 'none'; } catch (_) {}
+        modal.style.display = 'none';
         if (typeof renderMainMenu === 'function') renderMainMenu();
     }).catch(function(e){
         console.warn('登出失敗', e);
@@ -2313,21 +2850,75 @@ function updateMainMenuInfo() {
 }
 
 function showBackpack() {
+    // 將庫存依名稱排序
     const sortedInventory = Object.entries(gameState.inventory)
       .filter(([, qty]) => qty > 0)
-      // 使用 compareItemNames 確保依類型與品階排序
       .sort(([a], [b]) => compareItemNames(a, b));
-    let content = '';
-    if (sortedInventory.length === 0) {
-      content = "<p>背包空空如也</p>";
+    // 初始化背包篩選器：預設為兵器類
+    if (!currentBackpackFilter) {
+      currentBackpackFilter = 'weapon';
+    }
+    // 定義分類列表：仙丹、兵器、功法、陣法、靈器、靈符、快捷道具
+    const backpackFilterDefs = [
+      { id: 'elixir', label: '仙丹' },
+      { id: 'weapon', label: '兵器' },
+      { id: 'technique', label: '功法' },
+      { id: 'formation', label: '陣法' },
+      { id: 'artifact', label: '靈器' },
+      { id: 'charm', label: '靈符' },
+      { id: 'quick', label: '快捷道具' }
+    ];
+    // 建立分類按鈕列
+    const filterBar = backpackFilterDefs.map(f => {
+      const isActive = (currentBackpackFilter === f.id);
+      // 快捷道具若沒有內容則禁用
+      const isDisabled = (f.id === 'quick' && (!Array.isArray(gameState.quickItems) || gameState.quickItems.length === 0));
+      const activeCls = isActive ? 'active' : '';
+      const disableAttr = isDisabled ? 'disabled' : '';
+      return `<button data-action="switch-backpack-filter" data-filter="${f.id}" class="btn-filter ${activeCls}" ${disableAttr}>${f.label}</button>`;
+    }).join('');
+    // 根據當前篩選類型篩選道具
+    const filteredInventory = sortedInventory.filter(([name, qty]) => {
+      const effType = ITEM_EFFECTS[name]?.type;
+      switch (currentBackpackFilter) {
+        case 'elixir':
+          return effType === 'exp';
+        case 'weapon':
+          return effType === 'multi_choice';
+        case 'technique':
+          return effType === 'reveal_wrong';
+        case 'formation':
+          return effType === 'add_time';
+        case 'artifact':
+          return effType === 'correct';
+        case 'charm':
+          return effType === 'wrong';
+        case 'quick':
+          return Array.isArray(gameState.quickItems) &&
+            gameState.quickItems.includes(name) &&
+            effType !== 'exp';
+        default:
+          return true;
+      }
+    });
+    let listHtml = '';
+    if (filteredInventory.length === 0) {
+      listHtml = "<p>該分類下沒有道具</p>";
     } else {
-      content = '<ul style="padding-left: 20px;">' +
-        sortedInventory.map(([name, qty]) => `<li>${name} ×${qty}</li>`).join('') +
+      listHtml = '<ul style="padding-left: 20px; list-style-position: inside;">' +
+        filteredInventory.map(([name, qty]) => {
+          const catCls = getItemCategoryClass(name);
+          const gradeCls = getItemGradeClass(name);
+          return `<li class="cat-${catCls}"><span class="grade-${gradeCls}">${name}</span> ×${qty}</li>`;
+        }).join('') +
         '</ul>';
     }
+    // 組合內容：分類按鈕列 + 道具列表
+    const content = `<div>${filterBar}</div>${listHtml}`;
     const footer = `
       <button data-action="use-exp-items">🍵 使用仙丹</button>
-      <button class="btn-danger" data-action="delete-items">🗑️ 刪除道具</button>`;
+      <button class="btn-danger" data-action="delete-items">🗑️ 刪除道具</button>
+      <button data-action="manage-quick-items">⚡ 快捷道具設定</button>`;
     showModal("🎒 背包", content, footer);
 }
 
@@ -2344,9 +2935,12 @@ function showUseExpDialog() {
     content = expItems.map(([name, qty]) => {
       const eff = ITEM_EFFECTS[name] || {};
       const addExp = eff.n || 0;
+      // 加入分類與品階樣式
+      const catCls = getItemCategoryClass(name);
+      const gradeCls = getItemGradeClass(name);
       return `
-        <div class="modal-item-row">
-          <label for="useexp-${name}">${name}（持有 ${qty}）→ 每顆 +${addExp} EXP</label>
+        <div class="modal-item-row cat-${catCls}">
+          <label for="useexp-${name}"><span class="grade-${gradeCls}">${name}</span>（持有 ${qty}）→ 每顆 +${addExp} EXP</label>
           <input type="number" id="useexp-${name}" min="0" max="${qty}" value="0" />
         </div>`;
     }).join('');
@@ -2361,6 +2955,7 @@ function showUseExpDialog() {
 function confirmUseExp() {
   const inputs = modalBody.querySelectorAll('input[type="number"]');
   let totalGain = 0;
+  let totalUsed = 0;
   const inv = gameState.inventory;
   inputs.forEach(input => {
     const qty = Math.max(0, parseInt(input.value || '0', 10));
@@ -2371,6 +2966,7 @@ function confirmUseExp() {
     const cur = inv[name] || 0;
     inv[name] = Math.max(0, cur - qty);
     totalGain += add;
+    totalUsed += qty;
   });
   if (totalGain > 0) {
     const prevExp = gameState.exp;
@@ -2380,6 +2976,12 @@ function confirmUseExp() {
     showModal("🍵 使用結果",
       `<p>共獲得 +${totalGain} EXP</p>${levelupMsg ? `<p class="msg-levelup">${levelupMsg}</p>` : ''}`,
       `<button data-action="close-modal">關閉</button>`);
+    // 更新天命挑戰 - 仙丹類道具使用
+    try {
+      if (typeof updateHeavenChallengeProgressItemUse === 'function' && totalUsed > 0) {
+        updateHeavenChallengeProgressItemUse('elixir', totalUsed);
+      }
+    } catch (e) { /* ignore */ }
   } else {
     showModal("🍵 使用結果", "<p>未選擇任何仙丹。</p>", `<button data-action="close-modal">關閉</button>`);
   }
@@ -2397,12 +2999,14 @@ function fillAllExpInputs() {
 function confirmUseExpAll() {
   const inv = gameState.inventory;
   let totalGain = 0;
+  let totalUsed = 0;
   Object.entries(inv).forEach(([name, qty]) => {
     if (qty > 0 && (ITEM_EFFECTS[name]?.type === 'exp')) {
       const eff = ITEM_EFFECTS[name];
       const add = (eff.n || 0) * qty;
       inv[name] = 0;
       totalGain += add;
+      totalUsed += qty;
     }
   });
   if (totalGain > 0) {
@@ -2413,6 +3017,12 @@ function confirmUseExpAll() {
     showModal("🍵 使用結果",
       `<p>共獲得 +${totalGain} EXP（全部使用）</p>${levelupMsg ? `<p class="msg-levelup">${levelupMsg}</p>` : ''}`,
       `<button data-action="close-modal">關閉</button>`);
+    // 更新天命挑戰 - 仙丹類道具使用
+    try {
+      if (typeof updateHeavenChallengeProgressItemUse === 'function' && totalUsed > 0) {
+        updateHeavenChallengeProgressItemUse('elixir', totalUsed);
+      }
+    } catch (e) { /* ignore */ }
   } else {
     showModal("🍵 使用結果", "<p>沒有可用的仙丹。</p>", `<button data-action="close-modal">關閉</button>`);
   }
@@ -2428,11 +3038,16 @@ function showDeleteItemsDialog() {
   if (deletables.length === 0) {
     content = "<p>背包沒有可以刪除的道具</p>";
   } else {
-    content = deletables.map(([name, qty]) => `
-      <div class="modal-item-row">
-        <label for="del-${name}">${name}（持有 ${qty}）</label>
+    content = deletables.map(([name, qty]) => {
+      // 道具刪除列表中加入分類與品階樣式
+      const catCls = getItemCategoryClass(name);
+      const gradeCls = getItemGradeClass(name);
+      return `
+      <div class="modal-item-row cat-${catCls}">
+        <label for="del-${name}"><span class="grade-${gradeCls}">${name}</span>（持有 ${qty}）</label>
         <input type="number" id="del-${name}" min="0" max="${qty}" value="0" />
-      </div>`).join('');
+      </div>`;
+    }).join('');
   }
   const footer = `<button data-action="confirm-delete-items">確認刪除</button>`;
   showModal("🗑️ 刪除道具", content, footer);
@@ -2471,8 +3086,12 @@ function showShop() {
     let content = `<p style="text-align:center;"><b>當前靈石：${gameState.stones}</b></p>`;
     content += sortedItems.map(([item, cost]) => {
         const desc = ITEM_EFFECTS[item]?.desc || '';
-        return `<div class="modal-item-row">
-            <label for="shop-${item}">${item} - ${cost} 靈石 (${desc})</label>
+        // 計算分類與品階的 class
+        const catCls = getItemCategoryClass(item);
+        const gradeCls = getItemGradeClass(item);
+        const labelHtml = `<span class="grade-${gradeCls}">${item}</span> - ${cost} 靈石 (${desc})`;
+        return `<div class="modal-item-row cat-${catCls}">
+            <label for="shop-${item}">${labelHtml}</label>
             <input type="number" id="shop-${item}" min="0" value="0" placeholder="0">
         </div>`;
     }).join('');
@@ -2533,8 +3152,12 @@ function showUpgradeDialog() {
         content += upgradable.map(item => {
             const nextItem = UPGRADE_PATHS[item];
             const cost = ITEM_EFFECTS[item].upgrade_cost || 0;
-            return `<div class="modal-item-row">
-                <span>升級 ${item} → ${nextItem}</span>
+            // 升級對話框：為當前道具列加入分類與品階樣式；分別對當前道具與下一道具加上品階顏色
+            const catCls = getItemCategoryClass(item);
+            const gradeClsCurrent = getItemGradeClass(item);
+            const gradeClsNext = getItemGradeClass(nextItem);
+            return `<div class="modal-item-row cat-${catCls}">
+                <span>升級 <span class="grade-${gradeClsCurrent}">${item}</span> → <span class="grade-${gradeClsNext}">${nextItem}</span></span>
                 <button data-action="upgrade-item" data-current="${item}" data-next="${nextItem}" data-cost="${cost}" ${gameState.stones < cost ? 'disabled' : ''}>${cost} 靈石</button>
             </div>`;
         }).join('');
@@ -2566,32 +3189,70 @@ function upgradeItem(currentItem, nextItem, cost) {
 // ===================== 遊戲中道具使用 =====================
 
 function showUseItemDialog() {
-    const usableItems = Object.entries(gameState.inventory)
+    // 取得所有可用的戰鬥道具（含兵器、功法、陣法、靈器、靈符）並依類型與品階排序
+    const allUsableItems = Object.entries(gameState.inventory)
       .filter(([, qty]) => qty > 0)
       .map(([name]) => name)
       .filter(name => {
         const type = ITEM_EFFECTS[name]?.type;
+        // 僅限正確答案、錯誤答案、多選、標記錯誤、增加時間類型
         return ["correct", "wrong", "multi_choice", "reveal_wrong", "add_time"].includes(type);
       })
-      // 依類型與品階排序
       .sort((a, b) => compareItemNames(a, b));
+    // 如果尚未設定過濾器，預設為快捷道具（若有設定）或兵器類
+    if (!currentItemFilter) {
+      if (Array.isArray(gameState.quickItems) && gameState.quickItems.length > 0) {
+        currentItemFilter = 'quick';
+      } else {
+        currentItemFilter = 'weapon';
+      }
+    }
+    // 道具分類列表
+    const filterDefs = [
+      { id: 'weapon', label: '兵器' },
+      { id: 'technique', label: '功法' },
+      { id: 'formation', label: '陣法' },
+      { id: 'artifact', label: '靈器' },
+      { id: 'charm', label: '靈符' },
+      { id: 'quick', label: '快捷道具' }
+    ];
+    // 建立分類按鈕列
+    const filterBar = filterDefs.map(f => {
+      const isActive = (currentItemFilter === f.id);
+      // 快捷道具若沒有內容則禁用
+      const isDisabled = (f.id === 'quick' && (!Array.isArray(gameState.quickItems) || gameState.quickItems.length === 0));
+      const activeCls = isActive ? 'active' : '';
+      const disableAttr = isDisabled ? 'disabled' : '';
+      return `<button data-action="switch-use-item-filter" data-filter="${f.id}" class="btn-filter ${activeCls}" ${disableAttr}>${f.label}</button>`;
+    }).join('');
+    // 根據當前選擇過濾項目
+    let filteredItems;
+    if (currentItemFilter === 'quick') {
+      // 快捷道具：僅顯示玩家設定的快捷道具且存在於背包中
+      filteredItems = allUsableItems.filter(name => Array.isArray(gameState.quickItems) && gameState.quickItems.includes(name));
+    } else {
+      filteredItems = allUsableItems.filter(name => getItemCategoryClass(name) === currentItemFilter);
+    }
     let content = '';
-    if (usableItems.length === 0) {
+    if (!filteredItems || filteredItems.length === 0) {
       content = '<p>沒有可用的戰鬥道具</p>';
     } else {
-      content = usableItems.map(item => {
+      content = filteredItems.map(item => {
         const eff = ITEM_EFFECTS[item];
         const cost = eff.exp_cost || 0;
         let disabled = '';
         let tooltip = '';
+        // 根據消耗 EXP 判斷是否禁用
         if (gameState.exp < cost) {
           disabled = 'disabled';
           tooltip = ` (修煉經驗不足: ${cost})`;
         }
+        // 單次道具使用限制
         if (['correct', 'wrong', 'multi_choice'].includes(eff.type) && trainingState.hasUsedSingleUseItem) {
           disabled = 'disabled';
           tooltip = ' (本題已用過此類道具)';
         }
+        // 難度限制：正確與錯誤類道具需符合品階
         if (['correct', 'wrong'].includes(eff.type)) {
           const allowedGrade = getGradeByDifficulty(trainingState.difficulty);
           if (!item.startsWith(allowedGrade)) {
@@ -2599,13 +3260,18 @@ function showUseItemDialog() {
             tooltip = ` (此難度需用 ${allowedGrade} 道具)`;
           }
         }
-        return `<button data-action="use-item" data-item-name="${item}" ${disabled}>
-          ${item} ×${gameState.inventory[item]}
+        // 加入道具分類與品階樣式
+        const catCls = getItemCategoryClass(item);
+        const gradeCls = getItemGradeClass(item);
+        return `<button data-action="use-item" data-item-name="${item}" class="cat-${catCls}" ${disabled}>
+          <span class="grade-${gradeCls}">${item}</span> ×${gameState.inventory[item]}
           <br><small>${eff.desc || ''}${cost > 0 ? ` (消耗${cost} EXP)` : ''}${tooltip}</small>
         </button>`;
       }).join('');
     }
-    showModal('🎒 使用道具', content);
+    // 組合分類按鈕列與內容
+    const fullContent = `<div class="item-filter-bar" style="text-align:center; margin-bottom:8px;">${filterBar}</div>` + content;
+    showModal('🎒 使用道具', fullContent);
 }
 
 function useItem(itemName) {
@@ -2640,16 +3306,14 @@ function useItem(itemName) {
       msg = `⚔️ 兵器效果：本題可選答案數增加 ${eff.n}（總共 ${trainingState.allowedChoices} 次）`;
     } else if (eff.type === 'reveal_wrong') {
       const buttons = trainingState.gameGridButtons || [];
-      let remain = eff.n || 1;
-      for (const b of buttons) {
-        if (remain <= 0) break;
-        const choice = b.dataset.choice;
-        if (!trainingState.correctAnswers.includes(choice) && !b.classList.contains('hint-wrong')) {
-          b.classList.add('hint-wrong');
-          remain--;
-        }
-      }
-      msg = `📜 功法效果：已標示 ${eff.n} 個錯誤答案`;
+      // 取得所有尚未標示且為錯誤的按鈕
+      const wrongButtons = buttons.filter(b => !trainingState.correctAnswers.includes(b.dataset.choice) && !b.classList.contains('hint-wrong'));
+      // 隨機打亂順序，避免固定順序顯示錯誤選項
+      const shuffled = wrongButtons.sort(() => Math.random() - 0.5);
+      const nReveal = eff.n || 1;
+      const toReveal = shuffled.slice(0, nReveal);
+      toReveal.forEach(b => b.classList.add('hint-wrong'));
+      msg = `📜 功法效果：已標示 ${toReveal.length} 個錯誤答案`;
     } else if (eff.type === 'add_time') {
       // 陣法增加作答時間僅限本題有效：中途可以疊加並即時生效
       const inc = eff.n || 0;
@@ -2683,17 +3347,47 @@ toReveal.forEach(b => b.classList.add('hint-correct'));
 msg = `🪬 靈器效果：已標示 ${eff.n <= 0 ? '全部' : toReveal.length} 個正確答案`;
     } else if (eff.type === 'wrong') {
       const buttons = trainingState.gameGridButtons || [];
-      let remain = eff.n || 1;
-      for (const b of buttons) {
-        if (remain <= 0) break;
-        const choice = b.dataset.choice;
-        if (!trainingState.correctAnswers.includes(choice) && !b.classList.contains('hint-wrong')) {
-          b.classList.add('hint-wrong');
-          remain--;
-        }
-      }
-      msg = `🧿 靈符效果：已排除 ${eff.n} 個錯誤答案`;
+      // 取得所有尚未標示的錯誤按鈕
+      const wrongButtons = buttons.filter(b => !trainingState.correctAnswers.includes(b.dataset.choice) && !b.classList.contains('hint-wrong'));
+      // 隨機打亂順序，以避免固定順序顯示錯誤選項
+      const shuffled = wrongButtons.sort(() => Math.random() - 0.5);
+      const nReveal = eff.n || 1;
+      const toReveal = shuffled.slice(0, nReveal);
+      toReveal.forEach(b => b.classList.add('hint-wrong'));
+      msg = `🧿 靈符效果：已排除 ${toReveal.length} 個錯誤答案`;
     }
+    // === 更新天命挑戰的道具使用進度 ===
+    try {
+        if (typeof updateHeavenChallengeProgressItemUse === 'function') {
+            let typeMapping = null;
+            switch (eff.type) {
+                case 'multi_choice':
+                    typeMapping = 'weapon';
+                    break;
+                case 'reveal_wrong':
+                    typeMapping = 'technique';
+                    break;
+                case 'add_time':
+                    typeMapping = 'formation';
+                    break;
+                case 'correct':
+                    typeMapping = 'artifact';
+                    break;
+                case 'wrong':
+                    typeMapping = 'charm';
+                    break;
+                // EXP 類代表仙丹，對應 elixir 任務
+                case 'exp':
+                    typeMapping = 'elixir';
+                    break;
+                default:
+                    typeMapping = null;
+            }
+            if (typeMapping) {
+                updateHeavenChallengeProgressItemUse(typeMapping, 1);
+            }
+        }
+    } catch (e) { /* ignore */ }
     if (fb) { fb.textContent = msg; fb.className = "feedback info"; }
     modal.style.display = 'none';
 }
@@ -2712,9 +3406,12 @@ function showSellDialog() {
   } else {
     content = sellable.map(([name, qty]) => {
       const sellPriceSingle = Math.floor((ITEM_STONE_PRICES[name] || 0) / 2);
+      // 加入分類及品階樣式：底色依分類、文字顏色依品階
+      const catCls = getItemCategoryClass(name);
+      const gradeCls = getItemGradeClass(name);
       return `
-        <div class="modal-item-row">
-          <label for="sell-${name}">${name}（持有 ${qty}） - 賣價: ${sellPriceSingle} 靈石/個</label>
+        <div class="modal-item-row cat-${catCls}">
+          <label for="sell-${name}"><span class="grade-${gradeCls}">${name}</span>（持有 ${qty}） - 賣價: ${sellPriceSingle} 靈石/個</label>
           <input type="number" id="sell-${name}" min="0" max="${qty}" value="0" />
         </div>`;
     }).join('');
@@ -2780,6 +3477,938 @@ function confirmSellItems() {
   showModal("💰 販賣結果", `<p>已販賣：${soldItemsDesc.join('、')}</p><p>獲得 ${sellValue} 靈石</p>`, `<button data-action="close-modal">關閉</button>`);
 }
 
+// === 快捷道具設定 ===
+function showQuickItemsManager() {
+  // 取出背包中可用於快捷欄的道具（武器、功法、陣法、靈器、靈符），按類型與品階排序
+  const items = Object.entries(gameState.inventory)
+    .filter(([name, qty]) => qty > 0)
+    .filter(([name]) => {
+      const cat = getItemCategoryClass(name);
+      return ['weapon','technique','formation','artifact','charm'].includes(cat);
+    })
+    .sort(([a],[b]) => compareItemNames(a,b));
+  let content = '';
+  if (items.length === 0) {
+    content = '<p>沒有可加入快捷道具的項目。</p>';
+  } else {
+    content = '<form id="quick-items-form">' + items.map(([name, qty]) => {
+      const catCls = getItemCategoryClass(name);
+      const gradeCls = getItemGradeClass(name);
+      const checked = (Array.isArray(gameState.quickItems) && gameState.quickItems.includes(name)) ? 'checked' : '';
+      return `<div class="modal-item-row cat-${catCls}">
+        <label><input type="checkbox" name="quickitem" value="${name}" ${checked}/> <span class="grade-${gradeCls}">${name}</span>（持有 ${qty}）</label>
+      </div>`;
+    }).join('') + '</form>';
+  }
+  const footer = `<button data-action="confirm-set-quick-items">確認設定</button>`;
+  showModal('⚡ 快捷道具設定', content, footer);
+}
+
+function confirmSetQuickItems() {
+  // 讀取表單中的勾選項目並更新 gameState.quickItems
+  const form = modalBody.querySelector('#quick-items-form');
+  if (!form) {
+    modal.style.display = 'none';
+    return;
+  }
+  const selected = [];
+  form.querySelectorAll('input[name="quickitem"]').forEach(cb => {
+    if (cb.checked) selected.push(cb.value);
+  });
+  gameState.quickItems = selected;
+  saveGameState();
+  showModal('⚡ 快捷道具設定', `<p>已設定 ${selected.length} 個快捷道具。</p>`, `<button data-action="close-modal">關閉</button>`);
+}
+
+// ===================== 每日簽到與每日任務系統 =====================
+
+// 取得亞洲台北時區的今日日期字串（格式：YYYY-MM-DD）
+function getTodayDateStr() {
+    try {
+        const now = new Date();
+        const tzDate = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Taipei' }));
+        const y = tzDate.getFullYear();
+        const m = String(tzDate.getMonth() + 1).padStart(2, '0');
+        const d = String(tzDate.getDate()).padStart(2, '0');
+        return `${y}-${m}-${d}`;
+    } catch (e) {
+        // fallback: 使用本地時間
+        return new Date().toISOString().slice(0, 10);
+    }
+}
+
+// 初始化每日任務：若當天尚未生成任務或任務日期已過，從模板中隨機挑選一個任務
+function initDailyTask() {
+    const todayStr = getTodayDateStr();
+    if (!gameState.dailyTask || gameState.dailyTask.date !== todayStr) {
+        // 從任務模板中隨機選擇一項
+        const tpl = DAILY_TASK_TEMPLATES[Math.floor(Math.random() * DAILY_TASK_TEMPLATES.length)];
+        gameState.dailyTask = {
+            date: todayStr,
+            type: tpl.type,
+            difficulty: tpl.difficulty,
+            target: tpl.target,
+            progress: 0,
+            accepted: false,
+            completed: false,
+            claimed: false
+        };
+        // 重置連續任務接受狀態
+        saveGameState();
+    }
+}
+
+// 處理每日簽到：檢查是否已簽到，並發放獎勵
+function handleDailySignIn() {
+    const todayStr = getTodayDateStr();
+    // 若今日已簽到
+    if (gameState.signInLastDate === todayStr) {
+        showModal('📅 每日簽到', '<p>你今天已經簽到，明天再來吧！</p>', '<button data-action="close-modal">關閉</button>');
+        return;
+    }
+    // 計算連續簽到天數：若前一簽到日期是昨天，則連續天數+1；否則重置為1
+    const yesterday = new Date(new Date(todayStr).getTime() - 86400000);
+    const yStr = `${yesterday.getFullYear()}-${String(yesterday.getMonth() + 1).padStart(2,'0')}-${String(yesterday.getDate()).padStart(2,'0')}`;
+    let streak = 1;
+    if (gameState.signInLastDate === yStr) {
+        streak = (gameState.signInStreak || 0) + 1;
+    }
+    gameState.signInStreak = streak;
+    gameState.signInLastDate = todayStr;
+    // 紀錄簽到日期到簽到歷史中
+    if (!Array.isArray(gameState.signInHistory)) {
+        gameState.signInHistory = [];
+    }
+    if (!gameState.signInHistory.includes(todayStr)) {
+        gameState.signInHistory.push(todayStr);
+    }
+    // 根據修為階層計算基礎獎勵：階層越高基礎值越大
+    const stageIdx = getStageIndex(gameState.exp);
+    let baseExp = 50 * (stageIdx + 1);
+    // 簽到連續天數越多，獎勵倍率越高
+    const expReward = Math.floor(baseExp * (1 + 0.1 * streak) + Math.random() * baseExp * 0.5);
+    const stonesReward = 2 + Math.floor(streak / 2);
+    gameState.exp += expReward;
+    gameState.stones += stonesReward;
+    saveGameState();
+    // 訊息內容
+    const msg = `<p>✅ 簽到成功！已連續簽到 ${streak} 天。</p><p>獲得 ${expReward} 修煉經驗與 ${stonesReward} 靈石！</p>`;
+    showModal('📅 簽到獎勵', msg, '<button data-action="close-modal">關閉</button>');
+    // 更新主畫面資訊
+    if (typeof updateMainMenuInfo === 'function') {
+        try { updateMainMenuInfo(); } catch (e) {}
+    }
+}
+
+// 顯示每日任務對話框
+function showDailyTask() {
+    initDailyTask();
+    const task = gameState.dailyTask || {};
+    // 任務描述
+    let desc = '';
+    if (task.type === 'training') {
+        // 需要勝率門檻達標
+        const reqRate = DIFFICULTY_WIN_RATE[task.difficulty] || 0;
+        desc = `完成普通訓練難度 ${task.difficulty}（分數 ≥ ${reqRate}%）${task.target} 次`;
+    } else if (task.type === 'secretTrial') {
+        const threshold = TRIAL_TRAINING_REQUIREMENTS[task.difficulty] || 1;
+        desc = `完成秘境試煉難度 ${task.difficulty}（至少答對 ${threshold} 題）${task.target} 次`;
+    } else {
+        desc = '今日沒有任務。';
+    }
+    let body = `<p>🎯 今日任務：${desc}</p>`;
+    // 根據任務接受與完成狀態決定顯示內容
+    if (!task.accepted) {
+        body += '<p>是否接受這項任務？</p>';
+        const footer = `<button data-action="accept-daily-task">接受任務</button><button data-action="close-modal">關閉</button>`;
+        showModal('🗒️ 每日任務', body, footer);
+    } else {
+        body += `<p>進度：${task.progress || 0}/${task.target}</p>`;
+        if (task.completed) {
+            if (task.claimed) {
+                body += '<p>🎉 任務完成且獎勵已領取！</p>';
+                showModal('🗒️ 每日任務', body, '<button data-action="close-modal">關閉</button>');
+            } else {
+                body += '<p>🎉 任務完成！請領取獎勵。</p>';
+                showModal('🗒️ 每日任務', body, '<button data-action="claim-daily-task">領取獎勵</button>');
+            }
+        } else {
+            showModal('🗒️ 每日任務', body, '<button data-action="close-modal">關閉</button>');
+        }
+    }
+}
+
+// 接受每日任務
+function acceptDailyTask() {
+    initDailyTask();
+    const task = gameState.dailyTask;
+    if (!task) {
+        showModal('🗒️ 每日任務', '<p>今日沒有任務可以接受。</p>', '<button data-action="close-modal">關閉</button>');
+        return;
+    }
+    if (task.accepted) {
+        showModal('🗒️ 每日任務', '<p>你已接受今日任務，請完成後再來。</p>', '<button data-action="close-modal">關閉</button>');
+        return;
+    }
+    task.accepted = true;
+    task.progress = 0;
+    task.completed = false;
+    task.claimed = false;
+    saveGameState();
+    showModal('🗒️ 每日任務', '<p>已接受任務，加油！</p>', '<button data-action="close-modal">關閉</button>');
+}
+
+// 領取每日任務獎勵
+function claimDailyTaskReward() {
+    initDailyTask();
+    const task = gameState.dailyTask;
+    if (!task || !task.completed) {
+        showModal('🗒️ 任務獎勵', '<p>任務尚未完成，無法領取獎勵。</p>', '<button data-action="close-modal">關閉</button>');
+        return;
+    }
+    if (task.claimed) {
+        showModal('🗒️ 任務獎勵', '<p>獎勵已領取。</p>', '<button data-action="close-modal">關閉</button>');
+        return;
+    }
+    // 根據任務難度與目標給予獎勵：難度越高與目標次數越多獎勵越大
+    const baseExp = 200 * task.difficulty * task.target;
+    const randExp = Math.floor(Math.random() * baseExp * 2);
+    const expReward = baseExp + randExp;
+    const stonesReward = 50 * task.difficulty;
+    gameState.exp += expReward;
+    gameState.stones += stonesReward;
+    task.claimed = true;
+    saveGameState();
+    const msg = `<p>🎁 任務完成！獲得 ${expReward} EXP 與 ${stonesReward} 靈石。</p>`;
+    showModal('🗒️ 任務獎勵', msg, '<button data-action="close-modal">關閉</button>');
+    if (typeof updateMainMenuInfo === 'function') {
+        try { updateMainMenuInfo(); } catch (e) {}
+    }
+}
+
+// 更新每日任務進度（普通訓練）：isPass 為是否達到該難度勝率門檻
+function updateDailyTaskProgressTraining(isPass, difficulty) {
+    const task = gameState.dailyTask;
+    if (!task || !task.accepted || task.completed) return;
+    if (task.type !== 'training') return;
+    if (task.difficulty !== difficulty) return;
+    if (!isPass) return;
+    task.progress = (task.progress || 0) + 1;
+    if (task.progress >= task.target) {
+        task.completed = true;
+    }
+    saveGameState();
+}
+
+// 更新每日任務進度（秘境試煉）：根據答對題數判斷是否達標
+function updateDailyTaskProgressTrial(correctCount, difficulty) {
+    const task = gameState.dailyTask;
+    if (!task || !task.accepted || task.completed) return;
+    if (task.type !== 'secretTrial') return;
+    if (task.difficulty !== difficulty) return;
+    const threshold = TRIAL_TRAINING_REQUIREMENTS[difficulty] !== undefined ? TRIAL_TRAINING_REQUIREMENTS[difficulty] : 1;
+    if (correctCount < threshold) return;
+    task.progress = (task.progress || 0) + 1;
+    if (task.progress >= task.target) {
+        task.completed = true;
+    }
+    saveGameState();
+}
+
+// 顯示簽到日曆：產生當月日曆表，標示已簽到的日期及今天
+function showSignInCalendar() {
+    try {
+        // 取得台北時區的年、月
+        const now = new Date();
+        const tzDate = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Taipei' }));
+        const year = tzDate.getFullYear();
+        const month = tzDate.getMonth(); // 0-based
+        // 當月天數
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+        // 首日星期幾（0=週日）
+        const firstDay = new Date(year, month, 1).getDay();
+        // 今日日期字串
+        const todayStr = getTodayDateStr();
+        // 產生表頭
+        let table = '<table class="calendar-table"><thead><tr>';
+        const weekLabels = ['日','一','二','三','四','五','六'];
+        weekLabels.forEach(w => { table += '<th>' + w + '</th>'; });
+        table += '</tr></thead><tbody>';
+        let day = 1;
+        // 產生最多 6 行的日曆
+        for (let i = 0; i < 6 && day <= daysInMonth; i++) {
+            table += '<tr>';
+            for (let j = 0; j < 7; j++) {
+                if (i === 0 && j < firstDay || day > daysInMonth) {
+                    table += '<td></td>';
+                } else {
+                    const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                    let cls = '';
+                    if (Array.isArray(gameState.signInHistory) && gameState.signInHistory.includes(dateStr)) {
+                        cls += ' calendar-cell-signed';
+                    }
+                    if (dateStr === todayStr) {
+                        cls += ' calendar-cell-today';
+                    }
+                    table += `<td class="${cls.trim()}">${day}</td>`;
+                    day++;
+                }
+            }
+            table += '</tr>';
+        }
+        table += '</tbody></table>';
+        const content = `<p>當前月份：${year}年${month + 1}月</p>` + table;
+        showModal('📅 簽到日曆', content, '<button data-action="close-modal">關閉</button>');
+    } catch (e) {
+        console.warn('顯示簽到日曆失敗', e);
+        showModal('📅 簽到日曆', '<p>無法顯示簽到日曆。</p>', '<button data-action="close-modal">關閉</button>');
+    }
+}
+
+// ===================== 天命挑戰系統 =====================
+// 隨機任務名稱：天命挑戰
+// 用於每日產生數個隨機挑戰任務，玩家可選擇接受，完成後領取獎勵。
+
+// 初始化天命挑戰：若當日未生成，則根據規則生成新的挑戰任務
+function initHeavenChallenges() {
+    try {
+        const today = getTodayDateStr();
+        // 若今日尚未產生任務或日期不同，重新生成
+        if (!gameState.heavenChallengeDate || gameState.heavenChallengeDate !== today || !Array.isArray(gameState.heavenChallenges) || gameState.heavenChallenges.length === 0) {
+            // 每日重新生成一批任務
+            gameState.heavenChallenges = generateRandomHeavenTasks();
+            gameState.heavenChallengeDate = today;
+            saveGameState();
+        }
+        // 每次初始化時進行清理，處理冷卻與過期並補充缺口
+        cleanupHeavenChallenges();
+    } catch (e) {
+        console.warn('初始化天命挑戰失敗', e);
+    }
+}
+
+// 產生隨機的天命挑戰任務列表
+// 取得天命挑戰獎勵倍數：依據任務期限天數，回傳對應倍率。
+function getHeavenRewardMultiplier(durationDays) {
+    // 採用等比級數：期限越長，倍率越高。自訂常數：0 天 = 100, 1 天 = 200, 3 天 = 400, 5 天 = 800
+    switch (durationDays) {
+        case 1: return 200;
+        case 3: return 400;
+        case 5: return 800;
+        default: return 100;
+    }
+}
+
+// 隨機產生單一天命挑戰任務
+function generateHeavenTask(type) {
+    // 輔助亂數函式
+    const randInt = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
+    // 隨機期限：0、1、3、5 天
+    const durations = [0, 1, 3, 5];
+    const durationDays = durations[randInt(0, durations.length - 1)];
+    const now = Date.now();
+    const expireAt = durationDays > 0 ? now + durationDays * 24 * 60 * 60 * 1000 : null;
+    const multiplier = getHeavenRewardMultiplier(durationDays);
+    // 根據類型產生不同任務
+    if (type === 'training') {
+        // 可選子類：sessions、correct、streak
+        const subTypes = ['sessions', 'correct', 'streak'];
+        const subType = subTypes[randInt(0, subTypes.length - 1)];
+        const difficulty = randInt(1, 5);
+        if (subType === 'sessions') {
+            const targetSessions = [5, 10, 15, 20][randInt(0, 3)];
+            const winRate = [50, 60, 70][randInt(0, 2)];
+            const baseExp = targetSessions * difficulty;
+            const baseStones = Math.max(1, Math.floor(targetSessions / 5));
+            return {
+                id: 'training_sessions_' + Date.now() + '_' + Math.random(),
+                type: 'training', subType: 'sessions', difficulty: difficulty,
+                targetSessions: targetSessions, winRate: winRate,
+                progress: { sessions: 0 }, accepted: false, completed: false, claimed: false,
+                reward: { exp: Math.floor(baseExp * multiplier), stones: Math.floor(baseStones * multiplier) },
+                description: `完成普通訓練難度 ${difficulty} ${targetSessions} 次並達到勝率 ${winRate}% 以上`,
+                durationDays: durationDays, expireAt: expireAt, cooldownUntil: null
+            };
+        } else if (subType === 'correct') {
+            const targetCorrect = [20, 30, 40, 50][randInt(0, 3)];
+            const baseExp = targetCorrect; // 每題對應 1 經驗
+            const baseStones = Math.max(1, Math.floor(targetCorrect / 10));
+            return {
+                id: 'training_correct_' + Date.now() + '_' + Math.random(),
+                type: 'training', subType: 'correct', difficulty: difficulty,
+                targetCorrect: targetCorrect,
+                progress: { correct: 0 }, accepted: false, completed: false, claimed: false,
+                reward: { exp: Math.floor(baseExp * multiplier), stones: Math.floor(baseStones * multiplier) },
+                description: `於普通訓練難度 ${difficulty} 累積正確回答 ${targetCorrect} 題`,
+                durationDays: durationDays, expireAt: expireAt, cooldownUntil: null
+            };
+        } else {
+            // streak 任務
+            const targetStreak = [5, 7, 10][randInt(0, 2)];
+            const winRate = [50, 60, 70][randInt(0, 2)];
+            const baseExp = targetStreak * difficulty * 2;
+            const baseStones = Math.max(1, Math.floor(targetStreak / 2));
+            return {
+                id: 'training_streak_' + Date.now() + '_' + Math.random(),
+                type: 'training', subType: 'streak', difficulty: difficulty,
+                targetStreak: targetStreak, winRate: winRate,
+                progress: { streak: 0 }, accepted: false, completed: false, claimed: false,
+                reward: { exp: Math.floor(baseExp * multiplier), stones: Math.floor(baseStones * multiplier) },
+                description: `連續成功完成難度 ${difficulty} 訓練 ${targetStreak} 次並達到勝率 ${winRate}% 以上`,
+                durationDays: durationDays, expireAt: expireAt, cooldownUntil: null
+            };
+        }
+    } else if (type === 'trial') {
+        const difficulty = randInt(1, 5);
+        const targetSessions = [2, 3, 4, 5][randInt(0, 3)];
+        // 使用全局秘境訓練閾值表以決定每次至少答對幾題
+        const threshold = (TRIAL_TRAINING_REQUIREMENTS && TRIAL_TRAINING_REQUIREMENTS[difficulty] !== undefined) ? TRIAL_TRAINING_REQUIREMENTS[difficulty] : 1;
+        const baseExp = targetSessions * (difficulty + 1);
+        const baseStones = Math.max(1, targetSessions);
+        return {
+            id: 'trial_sessions_' + Date.now() + '_' + Math.random(),
+            type: 'trial', subType: 'sessions', difficulty: difficulty,
+            targetSessions: targetSessions, correctThreshold: threshold,
+            progress: { sessions: 0 }, accepted: false, completed: false, claimed: false,
+            reward: { exp: Math.floor(baseExp * multiplier), stones: Math.floor(baseStones * multiplier) },
+            description: `挑戰秘境試煉難度 ${difficulty} 並至少答對 ${threshold} 題 ${targetSessions} 次`,
+            durationDays: durationDays, expireAt: expireAt, cooldownUntil: null
+        };
+    } else if (type === 'item') {
+        // 可使用的道具類型列表
+        const itemTypes = ['weapon', 'charm', 'technique', 'formation', 'artifact', 'elixir'];
+        const itemType = itemTypes[randInt(0, itemTypes.length - 1)];
+        const labelMap = {
+            weapon: '兵器類道具', charm: '靈符類道具',
+            technique: '功法類道具', formation: '陣法類道具',
+            artifact: '靈器類道具', elixir: '仙丹類道具'
+        };
+        const targetUses = [3, 5, 8, 10, 15][randInt(0, 4)];
+        const baseExp = targetUses * 2;
+        const baseStones = Math.max(1, Math.floor(targetUses / 2));
+        return {
+            id: 'item_usage_' + itemType + '_' + Date.now() + '_' + Math.random(),
+            type: 'item', itemType: itemType,
+            targetItemUse: targetUses,
+            progress: { uses: 0 }, accepted: false, completed: false, claimed: false,
+            reward: { exp: Math.floor(baseExp * multiplier), stones: Math.floor(baseStones * multiplier) },
+            description: `在任務期間內使用 ${labelMap[itemType]} ${targetUses} 次`,
+            durationDays: durationDays, expireAt: expireAt, cooldownUntil: null
+        };
+    } else if (type === 'achievement') {
+        // 可選子類：exp 或 streak
+        const subTypes = ['exp', 'streak'];
+        const subType = subTypes[randInt(0, subTypes.length - 1)];
+        if (subType === 'exp') {
+            const targetExp = [3000, 5000, 7000, 10000][randInt(0, 3)];
+            const baseStones = Math.max(1, Math.floor(targetExp / 1000));
+            return {
+                id: 'achievement_exp_' + Date.now() + '_' + Math.random(),
+                type: 'achievement', subType: 'exp',
+                targetExp: targetExp,
+                progress: { exp: 0 }, accepted: false, completed: false, claimed: false,
+                reward: { exp: 0, stones: Math.floor(baseStones * multiplier) },
+                description: `累積獲得 ${targetExp} 修煉經驗`,
+                durationDays: durationDays, expireAt: expireAt, cooldownUntil: null
+            };
+        } else {
+            // achievement streak 任務
+            const difficulty = randInt(1, 5);
+            const targetStreak = [5, 7, 10][randInt(0, 2)];
+            const winRate = [50, 60, 70][randInt(0, 2)];
+            const baseExp = targetStreak * difficulty * 2;
+            const baseStones = Math.max(1, Math.floor(targetStreak / 2));
+            return {
+                id: 'achievement_streak_' + Date.now() + '_' + Math.random(),
+                type: 'achievement', subType: 'streak', difficulty: difficulty,
+                targetStreak: targetStreak, winRate: winRate,
+                progress: { streak: 0 }, accepted: false, completed: false, claimed: false,
+                reward: { exp: Math.floor(baseExp * multiplier), stones: Math.floor(baseStones * multiplier) },
+                description: `連續成功完成難度 ${difficulty} 訓練 ${targetStreak} 次並達到勝率 ${winRate}% 以上`,
+                durationDays: durationDays, expireAt: expireAt, cooldownUntil: null
+            };
+        }
+    }
+    // 預設傳回空任務（不應發生）
+    return {
+        id: 'invalid_' + Date.now() + '_' + Math.random(), type: type, subType: '',
+        progress: {}, accepted: false, completed: false, claimed: false,
+        reward: { exp: 0, stones: 0 }, description: '無效任務', durationDays: 0, expireAt: null, cooldownUntil: null
+    };
+}
+
+// 產生隨機的天命挑戰任務列表（每種類型各 10 項）
+function generateRandomHeavenTasks() {
+    const tasks = [];
+    const types = ['training', 'trial', 'item', 'achievement'];
+    types.forEach((t) => {
+        for (let i = 0; i < 10; i++) {
+            tasks.push(generateHeavenTask(t));
+        }
+    });
+    return tasks;
+}
+
+// 清理天命挑戰任務：
+// - 移除或替換已過期任務
+// - 處理冷卻任務：若冷卻時間已到，產生新的任務
+// - 確保每種類型均維持 10 個任務
+function cleanupHeavenChallenges() {
+    try {
+        const now = Date.now();
+        if (!Array.isArray(gameState.heavenChallenges)) {
+            gameState.heavenChallenges = [];
+        }
+        // 處理每個任務
+        for (let i = 0; i < gameState.heavenChallenges.length; i++) {
+            const task = gameState.heavenChallenges[i];
+            // 冷卻結束：替換為新任務（保持原類型）
+            if (task && task.cooldownUntil && now >= task.cooldownUntil) {
+                gameState.heavenChallenges[i] = generateHeavenTask(task.type);
+            }
+            // 過期任務：若設有期限且已過期，且尚未領獎，則直接替換為新任務
+            const expired = task && task.expireAt && now >= task.expireAt;
+            if (task && expired) {
+                gameState.heavenChallenges[i] = generateHeavenTask(task.type);
+            }
+        }
+        // 確保每類型任務至少 10 個
+        const counts = { training: 0, trial: 0, item: 0, achievement: 0 };
+        gameState.heavenChallenges.forEach((t) => {
+            if (t && t.type && counts.hasOwnProperty(t.type)) counts[t.type]++;
+        });
+        ['training','trial','item','achievement'].forEach((tp) => {
+            while (counts[tp] < 10) {
+                gameState.heavenChallenges.push(generateHeavenTask(tp));
+                counts[tp]++;
+            }
+        });
+        // 若有多餘任務，也不做移除，只維持生成。可依需要裁剪。
+        saveGameState();
+    } catch (e) {
+        console.warn('清理天命挑戰任務失敗', e);
+    }
+}
+
+// 替換單一天命挑戰任務為新任務（保持原類型）
+function replaceHeavenTask(index) {
+    try {
+        const tasks = gameState.heavenChallenges || [];
+        if (index < 0 || index >= tasks.length) return;
+        const oldTask = tasks[index];
+        const type = (oldTask && oldTask.type) || 'training';
+        tasks[index] = generateHeavenTask(type);
+        saveGameState();
+    } catch (e) {
+        console.warn('替換天命挑戰任務失敗', e);
+    }
+}
+
+// 刷新天命挑戰任務：將該任務設置為冷卻狀態並重置進度，待時間到自動更新
+function refreshHeavenChallenge(index) {
+    try {
+        initHeavenChallenges();
+        const tasks = gameState.heavenChallenges || [];
+        if (index < 0 || index >= tasks.length) return;
+        const task = tasks[index];
+        // 設定冷卻 10 分鐘
+        const cooldownMs = 10 * 60 * 1000;
+        const now = Date.now();
+        // 重置任務狀態（取消接受、未完成、未領獎）
+        task.accepted = false;
+        task.completed = false;
+        task.claimed = false;
+        task.cooldownUntil = now + cooldownMs;
+        // 清空進度
+        if (task.subType === 'sessions') {
+            task.progress.sessions = 0;
+        } else if (task.subType === 'correct') {
+            task.progress.correct = 0;
+        } else if (task.subType === 'streak') {
+            task.progress.streak = 0;
+        } else if (task.type === 'item') {
+            task.progress.uses = 0;
+        } else if (task.type === 'achievement') {
+            if (task.subType === 'exp') task.progress.exp = 0;
+            if (task.subType === 'streak') task.progress.streak = 0;
+        }
+        saveGameState();
+        showHeavenChallenges();
+    } catch (e) {
+        console.warn('刷新天命挑戰失敗', e);
+    }
+}
+
+// 顯示天命挑戰任務列表
+function showHeavenChallenges() {
+    try {
+        // 初始化並清理任務，再展示清單
+        initHeavenChallenges();
+        cleanupHeavenChallenges();
+        const tasks = gameState.heavenChallenges || [];
+        let html = '';
+        if (!tasks || tasks.length === 0) {
+            html = '<p>目前沒有任何天命挑戰任務。</p>';
+        } else {
+            html = '<ul style="list-style:none; padding-left:0;">';
+            const now = Date.now();
+            // 將已接受且未領獎的任務置頂顯示
+            const displayTasks = tasks.map((t,i) => ({task: t, index: i})).sort((a,b) => {
+                const aAccepted = a.task && a.task.accepted && !a.task.claimed;
+                const bAccepted = b.task && b.task.accepted && !b.task.claimed;
+                if (aAccepted && !bAccepted) return -1;
+                if (!aAccepted && bAccepted) return 1;
+                return 0;
+            });
+            displayTasks.forEach(({task, index}) => {
+                // 冷卻中：顯示剩餘時間
+                if (task.cooldownUntil && now < task.cooldownUntil) {
+                    const remainMs = task.cooldownUntil - now;
+                    const remainMin = Math.floor(remainMs / 60000);
+                    const remainSec = Math.floor((remainMs % 60000) / 1000);
+                    html += '<li style="margin-bottom: 12px; padding: 8px; border: 1px solid #ccc; border-radius: 6px; background:#f8f9fa;">';
+                    html += `<p>任務刷新中，請稍候 (${remainMin} 分 ${remainSec} 秒)</p>`;
+                    html += '</li>';
+                    return;
+                }
+                // 計算進度描述
+                let progressText = '';
+                if (task.type === 'training') {
+                    if (task.subType === 'sessions') {
+                        const current = (task.progress && task.progress.sessions) || 0;
+                        progressText = `${current} / ${task.targetSessions} 次`;
+                    } else if (task.subType === 'correct') {
+                        const current = (task.progress && task.progress.correct) || 0;
+                        progressText = `${current} / ${task.targetCorrect} 題`;
+                    } else if (task.subType === 'streak') {
+                        const current = (task.progress && task.progress.streak) || 0;
+                        progressText = `${current} / ${task.targetStreak} 連勝`;
+                    }
+                } else if (task.type === 'trial') {
+                    const current = (task.progress && task.progress.sessions) || 0;
+                    progressText = `${current} / ${task.targetSessions} 次`;
+                } else if (task.type === 'item') {
+                    const current = (task.progress && task.progress.uses) || 0;
+                    progressText = `${current} / ${task.targetItemUse} 次`;
+                } else if (task.type === 'achievement') {
+                    if (task.subType === 'exp') {
+                        const current = (task.progress && task.progress.exp) || 0;
+                        progressText = `${current} / ${task.targetExp} EXP`;
+                    } else if (task.subType === 'streak') {
+                        const current = (task.progress && task.progress.streak) || 0;
+                        progressText = `${current} / ${task.targetStreak} 連勝`;
+                    }
+                }
+                // 計算期限
+                let expireLabel = '無期限';
+                let remainingLabel = '';
+                if (task.durationDays && task.durationDays > 0) {
+                    expireLabel = `${task.durationDays} 日`;
+                    if (task.expireAt) {
+                        const diffMs = task.expireAt - now;
+                        if (diffMs > 0) {
+                            const diffDays = Math.floor(diffMs / (24 * 3600 * 1000));
+                            const diffHours = Math.floor((diffMs % (24 * 3600 * 1000)) / (3600 * 1000));
+                            const diffMins = Math.floor((diffMs % (3600 * 1000)) / (60 * 1000));
+                            remainingLabel = `剩餘 ${diffDays} 天 ${diffHours} 時 ${diffMins} 分`;
+                        } else {
+                            remainingLabel = '任務已過期';
+                        }
+                    }
+                }
+                // 奖励描述
+                const rewardParts = [];
+                if (task.reward && task.reward.exp) rewardParts.push(`${task.reward.exp} EXP`);
+                if (task.reward && task.reward.stones) rewardParts.push(`${task.reward.stones} 靈石`);
+                // 構建元素
+                html += '<li style="margin-bottom: 12px; padding: 8px; border: 1px solid #ccc; border-radius: 6px;">';
+                html += `<p>${task.description}</p>`;
+                html += `<p>進度：${progressText}</p>`;
+                html += `<p>期限：${expireLabel}` + (remainingLabel ? `（${remainingLabel}）` : '') + '</p>';
+                if (rewardParts.length > 0) {
+                    html += `<p>獎勵：${rewardParts.join('、')}</p>`;
+                }
+                // 顯示刷新按鈕
+                html += `<button data-action="refresh-heaven-challenge" data-index="${index}">🔄 刷新</button>`;
+                // 按鈕：未接受 -> 接受；接受未完成 -> 放棄；完成未領獎 -> 領取；已領獎 -> 已完成
+                if (!task.accepted) {
+                    html += `<button data-action="accept-heaven-challenge" data-index="${index}">✅ 接受</button>`;
+                } else if (task.accepted && !task.completed) {
+                    html += `<button data-action="cancel-heaven-challenge" data-index="${index}">❌ 放棄</button>`;
+                } else if (task.accepted && task.completed && !task.claimed) {
+                    html += `<button data-action="claim-heaven-challenge" data-index="${index}">🎁 領取獎勵</button>`;
+                } else {
+                    html += `<span style="color: var(--success-color); font-weight: bold;">已完成</span>`;
+                }
+                html += '</li>';
+            });
+            html += '</ul>';
+        }
+        showModal('🌠 天命挑戰', html, '<button data-action="close-modal">關閉</button>');
+    } catch (e) {
+        console.warn('顯示天命挑戰失敗', e);
+        showModal('🌠 天命挑戰', '<p>無法顯示天命挑戰。</p>', '<button data-action="close-modal">關閉</button>');
+    }
+}
+
+// 接受天命挑戰任務
+function acceptHeavenChallenge(index) {
+    try {
+        initHeavenChallenges();
+        const tasks = gameState.heavenChallenges || [];
+        if (index < 0 || index >= tasks.length) return;
+        const task = tasks[index];
+        // 不可在冷卻或過期時接受
+        const nowTime = Date.now();
+        if (task.cooldownUntil && nowTime < task.cooldownUntil) return;
+        if (task.expireAt && nowTime > task.expireAt) return;
+        if (task.accepted) return;
+        // 檢查已接受任務數量：基礎上限為 3，每累積 5000 次普通訓練可額外多接受 1 個
+        const acceptedCount = tasks.filter(t => t.accepted && !t.claimed).length;
+        const baseLimit = 3;
+        // 若 gameState.total 尚未定義則視為 0
+        const totalTrainings = gameState.total || 0;
+        const extra = Math.floor(totalTrainings / 5000);
+        const acceptedLimit = baseLimit + extra;
+        if (acceptedCount >= acceptedLimit) {
+            showModal('🌠 天命挑戰', `<p>你已接受 ${acceptedLimit} 個天命挑戰，完成後才能接受新的任務。</p>`, '<button data-action="close-modal">關閉</button>');
+            return;
+        }
+        task.accepted = true;
+        task.progress = task.progress || {};
+        // 重置進度
+        if (task.subType === 'sessions') {
+            task.progress.sessions = 0;
+        } else if (task.subType === 'correct') {
+            task.progress.correct = 0;
+        } else if (task.subType === 'streak') {
+            task.progress.streak = 0;
+        } else if (task.type === 'item') {
+            task.progress.uses = 0;
+        } else if (task.type === 'achievement' && task.subType === 'exp') {
+            task.progress.exp = 0;
+        }
+        saveGameState();
+        showHeavenChallenges();
+    } catch (e) {
+        console.warn('接受天命挑戰失敗', e);
+    }
+}
+
+// 放棄天命挑戰任務
+function cancelHeavenChallenge(index) {
+    try {
+        initHeavenChallenges();
+        const tasks = gameState.heavenChallenges || [];
+        if (index < 0 || index >= tasks.length) return;
+        const task = tasks[index];
+        if (!task.accepted || task.claimed) return;
+        // 放棄後重置任務狀態及進度
+        task.accepted = false;
+        task.completed = false;
+        task.claimed = false;
+        if (task.subType === 'sessions') {
+            task.progress.sessions = 0;
+        } else if (task.subType === 'correct') {
+            task.progress.correct = 0;
+        } else if (task.subType === 'streak') {
+            task.progress.streak = 0;
+        } else if (task.type === 'item') {
+            task.progress.uses = 0;
+        } else if (task.type === 'achievement' && task.subType === 'exp') {
+            task.progress.exp = 0;
+        }
+        saveGameState();
+        showHeavenChallenges();
+    } catch (e) {
+        console.warn('放棄天命挑戰失敗', e);
+    }
+}
+
+// 領取天命挑戰獎勵
+function claimHeavenChallengeReward(index) {
+    try {
+        initHeavenChallenges();
+        const tasks = gameState.heavenChallenges || [];
+        if (index < 0 || index >= tasks.length) return;
+        const task = tasks[index];
+        if (!task.accepted || !task.completed || task.claimed) return;
+        // 發放獎勵
+        const rExp = (task.reward && task.reward.exp) || 0;
+        const rStones = (task.reward && task.reward.stones) || 0;
+        if (rExp > 0) gameState.exp += rExp;
+        if (rStones > 0) gameState.stones += rStones;
+        task.claimed = true;
+        saveGameState();
+        // 給予提示
+        let rewardMsgParts = [];
+        if (rExp > 0) rewardMsgParts.push(`${rExp} 修煉經驗`);
+        if (rStones > 0) rewardMsgParts.push(`${rStones} 靈石`);
+        const msg = rewardMsgParts.length > 0 ? rewardMsgParts.join('、') : '完成任務，獎勵已發放';
+        showModal('🎁 天命挑戰完成', `<p>${msg}</p>`, '<button data-action="close-modal">關閉</button>');
+        // 任務領取後，自動產生新任務（保持同類型）
+        replaceHeavenTask(index);
+        showHeavenChallenges();
+    } catch (e) {
+        console.warn('領取天命挑戰獎勵失敗', e);
+    }
+}
+
+// 更新天命挑戰進度（普通訓練）：根據答對題數及勝率更新
+function updateHeavenChallengeProgressTraining(difficulty, correctCount, totalRounds, winRate, expGain) {
+    // 確保任務生成
+    initHeavenChallenges();
+    const tasks = gameState.heavenChallenges || [];
+    let changed = false;
+    tasks.forEach((task) => {
+        // 任務必須已接受且未完成；且未過期或冷卻
+        if (!task.accepted || task.completed) return;
+        const nowTime = Date.now();
+        if ((task.cooldownUntil && nowTime < task.cooldownUntil) || (task.expireAt && nowTime > task.expireAt)) {
+            return;
+        }
+        try {
+            if (task.type === 'training') {
+                if (task.difficulty === difficulty) {
+                    if (task.subType === 'sessions') {
+                        // 需要達到指定勝率
+                        if (winRate >= task.winRate) {
+                            task.progress.sessions = (task.progress.sessions || 0) + 1;
+                            if (task.progress.sessions >= task.targetSessions) {
+                                task.completed = true;
+                            }
+                            changed = true;
+                        }
+                    } else if (task.subType === 'correct') {
+                        task.progress.correct = (task.progress.correct || 0) + correctCount;
+                        if (task.progress.correct >= task.targetCorrect) {
+                            task.completed = true;
+                        }
+                        changed = true;
+                    } else if (task.subType === 'streak') {
+                        // streak 任務：若本次達標則連續+1，否則歸零
+                        if (winRate >= task.winRate) {
+                            task.progress.streak = (task.progress.streak || 0) + 1;
+                        } else {
+                            task.progress.streak = 0;
+                        }
+                        if (task.progress.streak >= task.targetStreak) {
+                            task.completed = true;
+                        }
+                        changed = true;
+                    }
+                }
+            }
+            if (task.type === 'achievement') {
+                if (task.subType === 'exp') {
+                    // 累積經驗任務
+                    task.progress.exp = (task.progress.exp || 0) + (expGain || 0);
+                    if (task.progress.exp >= task.targetExp) {
+                        task.completed = true;
+                    }
+                    changed = true;
+                } else if (task.subType === 'streak' && task.difficulty === difficulty) {
+                    // 成就類連勝任務：與 training streak 方式相同
+                    if (winRate >= task.winRate) {
+                        task.progress.streak = (task.progress.streak || 0) + 1;
+                    } else {
+                        task.progress.streak = 0;
+                    }
+                    if (task.progress.streak >= task.targetStreak) {
+                        task.completed = true;
+                    }
+                    changed = true;
+                }
+            }
+        } catch (e) { console.warn('更新天命挑戰進度（訓練）失敗', e); }
+    });
+    if (changed) saveGameState();
+}
+
+// 更新天命挑戰進度（秘境試煉）：根據答對題數判定
+function updateHeavenChallengeProgressTrial(correctCount, difficulty, expGain) {
+    initHeavenChallenges();
+    const tasks = gameState.heavenChallenges || [];
+    let changed = false;
+    tasks.forEach((task) => {
+        if (!task.accepted || task.completed) return;
+        const nowTime = Date.now();
+        if ((task.cooldownUntil && nowTime < task.cooldownUntil) || (task.expireAt && nowTime > task.expireAt)) {
+            return;
+        }
+        try {
+            if (task.type === 'trial' && task.subType === 'sessions') {
+                if (task.difficulty === difficulty) {
+                    const threshold = task.correctThreshold || 1;
+                    if (correctCount >= threshold) {
+                        task.progress.sessions = (task.progress.sessions || 0) + 1;
+                        if (task.progress.sessions >= task.targetSessions) {
+                            task.completed = true;
+                        }
+                        changed = true;
+                    }
+                }
+            }
+            if (task.type === 'achievement' && task.subType === 'exp') {
+                task.progress.exp = (task.progress.exp || 0) + (expGain || 0);
+                if (task.progress.exp >= task.targetExp) {
+                    task.completed = true;
+                }
+                changed = true;
+            }
+        } catch (e) { console.warn('更新天命挑戰進度（秘境）失敗', e); }
+    });
+    if (changed) saveGameState();
+}
+
+// 更新天命挑戰進度（道具使用）：使用道具時調用
+function updateHeavenChallengeProgressItemUse(itemType, count) {
+    initHeavenChallenges();
+    const tasks = gameState.heavenChallenges || [];
+    let changed = false;
+    tasks.forEach((task) => {
+        if (!task.accepted || task.completed) return;
+        const nowTime = Date.now();
+        if ((task.cooldownUntil && nowTime < task.cooldownUntil) || (task.expireAt && nowTime > task.expireAt)) {
+            return;
+        }
+        try {
+            if (task.type === 'item' && task.itemType === itemType) {
+                task.progress.uses = (task.progress.uses || 0) + (count || 1);
+                if (task.progress.uses >= task.targetItemUse) {
+                    task.completed = true;
+                }
+                changed = true;
+            }
+        } catch (e) { console.warn('更新天命挑戰進度（道具）失敗', e); }
+    });
+    if (changed) saveGameState();
+}
+
+// 更新天命挑戰進度（累積經驗）：傳入獲得的經驗值
+function updateHeavenChallengeProgressExp(expGain) {
+    initHeavenChallenges();
+    const tasks = gameState.heavenChallenges || [];
+    let changed = false;
+    tasks.forEach((task) => {
+        if (!task.accepted || task.completed) return;
+        const nowTime = Date.now();
+        if ((task.cooldownUntil && nowTime < task.cooldownUntil) || (task.expireAt && nowTime > task.expireAt)) {
+            return;
+        }
+        try {
+            if (task.type === 'achievement' && task.subType === 'exp') {
+                task.progress.exp = (task.progress.exp || 0) + (expGain || 0);
+                if (task.progress.exp >= task.targetExp) {
+                    task.completed = true;
+                }
+                changed = true;
+            }
+        } catch (e) { console.warn('更新天命挑戰進度（經驗）失敗', e); }
+    });
+    if (changed) saveGameState();
+}
+
 
 // ===================== 全域事件處理 =====================
 document.body.addEventListener('click', (event) => {
@@ -2828,6 +4457,19 @@ document.body.addEventListener('click', (event) => {
         'login-facebook': loginFacebook,
         'logout': logout,
         'login-anonymous': loginAnonymous,
+        // 快捷道具設定與修仙排行榜
+        'manage-quick-items': showQuickItemsManager,
+        'confirm-set-quick-items': confirmSetQuickItems,
+        'show-cultivation-leaderboard': showCultivationLeaderboard,
+        // 每日簽到與任務
+        'handle-daily-signin': handleDailySignIn,
+        'show-daily-task': showDailyTask,
+        'accept-daily-task': acceptDailyTask,
+        'claim-daily-task': claimDailyTaskReward,
+        // 天命挑戰相關：顯示清單、接受、放棄、領獎
+        'show-heaven-challenges': showHeavenChallenges,
+        // 簽到日曆：顯示當月簽到狀態
+        'show-signin-calendar': showSignInCalendar,
         // # 開始靈根測試：於初始化階段點擊按鈕
         'start-linggen-test': startLinggenTest,
         // # 新增再次挑戰動作：重新開始上一場訓練或秘境試煉
@@ -2869,6 +4511,19 @@ document.body.addEventListener('click', (event) => {
         case 'upgrade-item':
             upgradeItem(target.dataset.current, target.dataset.next, parseInt(target.dataset.cost, 10));
             break;
+        // 天命挑戰任務處理：接受、取消、領獎
+        case 'accept-heaven-challenge':
+            acceptHeavenChallenge(parseInt(target.dataset.index || '0', 10));
+            break;
+        case 'cancel-heaven-challenge':
+            cancelHeavenChallenge(parseInt(target.dataset.index || '0', 10));
+            break;
+        case 'claim-heaven-challenge':
+            claimHeavenChallengeReward(parseInt(target.dataset.index || '0', 10));
+            break;
+        case 'refresh-heaven-challenge':
+            refreshHeavenChallenge(parseInt(target.dataset.index || '0', 10));
+            break;
         case 'use-item':
             useItem(target.dataset.itemName);
             break;
@@ -2878,12 +4533,42 @@ document.body.addEventListener('click', (event) => {
         case 'start-trial':
             startTrial(parseInt(target.dataset.level, 10));
             break;
+        case 'switch-use-item-filter':
+            // 切換戰鬥道具分類過濾器，再重新渲染使用道具對話框
+            currentItemFilter = target.dataset.filter;
+            showUseItemDialog();
+            break;
+        case 'switch-backpack-filter':
+            // 切換背包道具分類過濾器，再重新顯示背包
+            currentBackpackFilter = target.dataset.filter;
+            showBackpack();
+            break;
     }
 });
 
 
 // ===================== 啟動遊戲 =====================
 loadGameState();
+    // 設定回頂部按鈕功能：點擊後平滑捲動回頁面頂部
+    try {
+        const backBtnEl = document.getElementById('back-to-top');
+        if (backBtnEl) {
+            backBtnEl.addEventListener('click', () => {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            });
+        }
+    } catch (e) { console.warn('無法綁定回頂部按鈕', e); }
+    // 將新增的天干、地支與干支組合遊戲加入遊戲列表
+    try {
+        if (Array.isArray(ALL_GAMES)) {
+            ALL_GAMES.push(
+                { name: "十天干", func: "game_tiangan" },
+                { name: "十二地支", func: "game_dizhi" },
+                { name: "六十干支組合", func: "game_ganzhi" },
+                { name: "二十四節氣", func: "game_solar_terms" }
+            );
+        }
+    } catch (e) { console.warn('無法加入新增天干地支遊戲', e); }
 renderMainMenu();
 
 }); // ▲▲▲ End of DOMContentLoaded listener ▲▲▲
@@ -3031,78 +4716,41 @@ var auth = null;
 try { if (FIREBASE_ONLINE_ENABLED) { auth = firebase.auth(); } } catch (e) {}
 
 function ensureSignedIn() {
-  return new Promise(function (resolve) {
-    if (!FIREBASE_ONLINE_ENABLED || !auth) return resolve(null);
-
-    var off = auth.onAuthStateChanged(async function (u) {
+  return new Promise(function(resolve) {
+    if (!FIREBASE_ONLINE_ENABLED || !auth) return resolve(null);  // # 雲端關閉時直接略過
+    var off = auth.onAuthStateChanged(async function(u) {
       if (u) { off(); return resolve(u); }
-
-      try {
-        var cred = await auth.signInAnonymously();  // # 匿名登入
-        off();
-        return resolve(cred.user);
-      } catch (e) {
-        off();
-        console.warn('匿名登入失敗（改為離線模式）：', e);
-        FIREBASE_ONLINE_ENABLED = false;
-
-        var code = (e && e.code) || '';
-        var host = (location && location.hostname) ? location.hostname : '';
-        var msg = '雲端連線未啟用，已切換為本機模式。';
-
-        if (code === 'auth/unauthorized-domain') {
-          msg = '目前網域未加入 Firebase 授權網域。請到 Firebase Console > Authentication > Settings > Authorized domains，加入：' + host;
-        } else if (code === 'auth/operation-not-allowed') {
-          msg = '匿名登入尚未啟用。請到 Firebase Console > Authentication > Sign-in method，開啟「匿名」。';
-        } else if (code === 'auth/network-request-failed') {
-          msg = '網路請求失敗，可能被瀏覽器阻擋第三方 Cookie 或網路中斷。';
-        }
-
-        // # 建立右下角離線提示
-        try {
-          var badge = document.getElementById('onlineStatusBadge');
-          if (!badge) {
-            badge = document.createElement('div');
-            badge.id = 'onlineStatusBadge';
-            badge.style.cssText = 'position:fixed;right:8px;bottom:8px;background:#222;color:#fff;padding:8px 10px;border-radius:8px;font-size:12px;opacity:.9;z-index:10000;';
-            document.body.appendChild(badge);
-          }
-          badge.textContent = '雲端：離線（' + host + '）';
-          badge.title = msg;
-        } catch (_) {}
-
-        return resolve(null);
-      }
+      try { var cred = await auth.signInAnonymously(); off(); resolve(cred.user); }
+      catch (e) { off(); resolve(null); }
     });
   });
 }
 
 // # 升級登入（Google）保留匿名資料
 async function signInWithGoogleKeepData() {
-  if (!ONLINE_ENABLED || !supabaseClient) return null;
-  try {
-    const { data, error } = await supabaseClient.auth.signInWithOAuth({
-      provider: 'google',
-      options: { redirectTo: window.location.href }
-    });
-    if (error) { throw error; }
-    return data && data.user ? data.user : null;
-  } catch (e) {
-    console.warn('Google 登入失敗', e);
-    throw e;
-  }
+  if (!FIREBASE_ONLINE_ENABLED || !auth) return null;
+  var provider = new firebase.auth.GoogleAuthProvider();
+  var u = auth.currentUser;
+  if (u && u.isAnonymous) { await u.linkWithPopup(provider); return auth.currentUser; }
+  var res = await auth.signInWithPopup(provider);
+  return res.user;
 }
 
 // # 升級登入（Yahoo）保留匿名資料
 async function signInWithYahooKeepData() {
-  if (!ONLINE_ENABLED || !supabaseClient) return null;
+  // # 若雲端未啟用則略過
+  if (!FIREBASE_ONLINE_ENABLED || !auth) return null;
   try {
-    const { data, error } = await supabaseClient.auth.signInWithOAuth({
-      provider: 'yahoo',
-      options: { redirectTo: window.location.href }
-    });
-    if (error) { throw error; }
-    return data && data.user ? data.user : null;
+    var provider = new firebase.auth.OAuthProvider('yahoo.com');
+    var u = auth.currentUser;
+    // # 若目前為匿名用戶，使用 linkWithPopup 保留既有資料
+    if (u && u.isAnonymous) {
+      await u.linkWithPopup(provider);
+      return auth.currentUser;
+    }
+    // # 否則直接以 Popup 方式登入
+    var res = await auth.signInWithPopup(provider);
+    return res.user;
   } catch (e) {
     console.warn('Yahoo 登入失敗', e);
     throw e;
@@ -3111,14 +4759,16 @@ async function signInWithYahooKeepData() {
 
 // # 升級登入（Facebook）保留匿名資料
 async function signInWithFacebookKeepData() {
-  if (!ONLINE_ENABLED || !supabaseClient) return null;
+  if (!FIREBASE_ONLINE_ENABLED || !auth) return null;
   try {
-    const { data, error } = await supabaseClient.auth.signInWithOAuth({
-      provider: 'facebook',
-      options: { redirectTo: window.location.href }
-    });
-    if (error) { throw error; }
-    return data && data.user ? data.user : null;
+    var provider = new firebase.auth.FacebookAuthProvider();
+    var u = auth.currentUser;
+    if (u && u.isAnonymous) {
+      await u.linkWithPopup(provider);
+      return auth.currentUser;
+    }
+    var res = await auth.signInWithPopup(provider);
+    return res.user;
   } catch (e) {
     console.warn('Facebook 登入失敗', e);
     throw e;
@@ -3127,29 +4777,15 @@ async function signInWithFacebookKeepData() {
 
 // # 升級登入（Email/Password）保留匿名資料
 async function upgradeToEmailPassword(email, password) {
-  // Email/密碼註冊或登入（Supabase）
-  if (!ONLINE_ENABLED || !supabaseClient) return null;
-  try {
-    // 嘗試以密碼登入，若失敗則註冊新帳號
-    let { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
-    if (error) {
-      let { data: signUpData, error: signUpError } = await supabaseClient.auth.signUp({ email, password });
-      if (signUpError) { console.warn('註冊失敗：', signUpError); return null; }
-      return signUpData.user;
-    }
-    return data.user;
-  } catch (e) {
-    console.warn('Email/密碼登入失敗', e);
-    return null;
-  }
+  if (!FIREBASE_ONLINE_ENABLED || !auth) return null;
+  var u = auth.currentUser;
+  var cred = firebase.auth.EmailAuthProvider.credential(email, password);
+  if (u && u.isAnonymous) { await u.linkWithCredential(cred); return auth.currentUser; }
+  var res = await auth.createUserWithEmailAndPassword(email, password);
+  return res.user;
 }
 
-function signOutOnline() {
-  // 登出 Supabase
-  if (supabaseClient) {
-    return supabaseClient.auth.signOut();
-  }
-}
+function signOutOnline() { if (auth) return auth.signOut(); }
 
 // # 雲端資料模型與寫入
 async function saveRunRecord(rec) {
@@ -3240,239 +4876,10 @@ async function migrateLocalToCloud() {
 
 // # 啟動時嘗試登入；若雲端未啟用則安靜略過
 document.addEventListener('DOMContentLoaded', function() {
-  // 頁面載入後先確認登入狀態，再進行資料遷移與 presence 初始化
-  ensureSignedIn().then(function() {
-    try { migrateLocalToCloud(); } catch(e){}
-    // 初始化 presence 以統計線上人數
-    try { initPresence(); } catch(e){}
-  });
-});
-</script>
-<!-- ==================== /Firebase 線上版整合區 ==================== -->
-<!-- ==================== Supabase 整合區 ==================== -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script>
-// ===== Supabase 設定 =====
-// 🚨 請將以下兩個常數替換為您在 Supabase 專案設定頁取得的 URL 與 ANON 金鑰
-const SUPABASE_URL = 'https://twwvcgcbmupsvtnixzmj.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR3d3ZjZ2NibXVwc3Z0bml4em1qIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA1MDAwNzgsImV4cCI6MjA3NjA3NjA3OH0.lCH_ht6jHJ7nf2yqOmLmoz441tMWv7b5Q6YRVDNkn_A';
-
-// 停用 Firebase 相關變數以避免程式碼錯誤
-window.FIREBASE_ONLINE_ENABLED = false;
-window.db = null;
-window.auth = null;
-
-// 控制是否啟用雲端模式
-window.ONLINE_ENABLED = true;
-
-// 初始化 Supabase Client
-var supabaseClient = null;
-// # 用於追蹤目前線上人數的全域變數；將在 presence 事件觸發時更新
-var onlineUsersCount = 0;
-try {
-  if (ONLINE_ENABLED) {
-    supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-  }
-} catch (e) {
-  console.warn('初始化 Supabase 失敗：', e);
-  ONLINE_ENABLED = false;
-}
-
-async function ensureSignedIn() {
-  if (!ONLINE_ENABLED || !supabaseClient) return null;
-  try {
-    const { data, error } = await supabaseClient.auth.getUser();
-    if (error) { console.warn('取得 Supabase 使用者失敗：', error); return null; }
-    return data.user || null;
-  } catch (e) {
-    console.warn('ensureSignedIn 發生錯誤：', e);
-    return null;
-  }
-}
-
-async function upgradeToEmailPassword(email, password) {
-  if (!ONLINE_ENABLED || !supabaseClient) return null;
-  try {
-    let { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
-    if (error) {
-      let { data: signUpData, error: signUpError } = await supabaseClient.auth.signUp({ email, password });
-      if (signUpError) { console.warn('註冊失敗：', signUpError); return null; }
-      return signUpData.user;
-    }
-    return data.user;
-  } catch (e) {
-    console.warn('Email/密碼登入失敗', e);
-    return null;
-  }
-}
-
-function signOutOnline() {
-  if (supabaseClient) {
-    return supabaseClient.auth.signOut();
-  }
-}
-
-async function loadMyStats() {
-  if (!ONLINE_ENABLED || !supabaseClient) return { totalRuns: 0, bestScore: 0 };
-  const user = await ensureSignedIn();
-  if (!user) return { totalRuns: 0, bestScore: 0 };
-  try {
-    const { data, error } = await supabaseClient
-      .from('user_stats')
-      .select()
-      .eq('id', user.id)
-      .single();
-    if (error && error.code !== 'PGRST116') {
-      console.warn('讀取 user_stats 失敗：', error);
-      return { totalRuns: 0, bestScore: 0 };
-    }
-    return data || { totalRuns: 0, bestScore: 0 };
-  } catch (e) {
-    console.warn('loadMyStats 發生錯誤：', e);
-    return { totalRuns: 0, bestScore: 0 };
-  }
-}
-
-async function loadLeaderboardTopN(n) {
-  if (!ONLINE_ENABLED || !supabaseClient) return [];
-  try {
-    const { data, error } = await supabaseClient
-      .from('leaderboard_public')
-      .select()
-      .order('bestScore', { ascending: false })
-      .limit(n || 100);
-    if (error) { console.warn('讀取排行榜失敗：', error); return []; }
-    return (data || []).map(function(row) {
-      return Object.assign({ id: row.id }, row);
-    });
-  } catch (e) {
-    console.warn('loadLeaderboardTopN 發生錯誤：', e);
-    return [];
-  }
-}
-
-// ==================== Presence 初始化 ====================
-// 使用 Supabase Realtime Presence 功能來追蹤當前線上人數。
-// 進入 main menu 時會在 initPresence() 中訂閱 presence 事件。
-async function initPresence() {
-  // 只有在啟用雲端模式且 supabaseClient 初始化成功時才啟動 presence。
-  if (!ONLINE_ENABLED || !supabaseClient) return;
-  try {
-    // 確保使用者登入狀態；若未登入則會回傳 null
-    const user = await ensureSignedIn();
-    // 使用者身份 ID 作為 presence key；若未登入則隨機產生 anon- 開頭的 key
-    const presenceKey = (user && user.id) ? user.id : ('anon-' + Math.random().toString(36).substring(2, 10));
-    // 建立實時頻道，啟用 presence 設定
-    const channel = supabaseClient.channel('online_users', {
-      config: {
-        presence: { key: presenceKey }
-      }
-    });
-    // 在 sync 事件時更新線上人數統計
-    channel.on('presence', { event: 'sync' }, () => {
-      try {
-        const state = channel.presenceState();
-        // presenceState 以 key 為索引；線上人數即為鍵的數量
-        onlineUsersCount = Object.keys(state).length;
-        const countEl = document.getElementById('onlineUsersCount');
-        if (countEl) {
-          countEl.textContent = `👥 目前線上人數：${onlineUsersCount}`;
-        }
-      } catch (err) {
-        console.warn('更新線上人數失敗', err);
-      }
-    });
-    // 訂閱頻道並在成功訂閱後追蹤自己的 presence
-    await channel.subscribe((status) => {
-      if (status === 'SUBSCRIBED') {
-        // track() 的 payload 可包含自訂資料，此處不需要額外資訊
-        channel.track({});
-      }
-    });
-  } catch (e) {
-    console.warn('初始化 presence 發生錯誤：', e);
-  }
-}
-
-async function getOrInitUserProfile() {
-  if (!ONLINE_ENABLED || !supabaseClient) return { displayName: '無名修士', country: 'TW' };
-  const user = await ensureSignedIn();
-  if (!user) return { displayName: '無名修士', country: 'TW' };
-  const meta = user.user_metadata || {};
-  return {
-    displayName: meta.full_name || meta.displayName || user.email || '無名修士',
-    country: meta.country || 'TW'
-  };
-}
-
-async function saveRunRecord(rec) {
-  if (!ONLINE_ENABLED || !supabaseClient) return;
-  const user = await ensureSignedIn();
-  if (!user) return;
-  const uid = user.id;
-  try {
-    // 儲存遊戲紀錄到 runs 表；若不存在可忽略
-    try {
-      await supabaseClient.from('runs').insert([Object.assign({}, rec, {
-        user_id: uid,
-        createdAt: new Date().toISOString(),
-        clientAt: new Date().toISOString(),
-        appVersion: 'web-1.0.0'
-      })]);
-    } catch (_) {
-      // runs 表可能不存在，忽略錯誤
-    }
-    // 更新 user_stats
-    let totalRuns = 0;
-    let bestScore = rec.score || 0;
-    try {
-      const { data: statsRow, error } = await supabaseClient
-        .from('user_stats')
-        .select('totalRuns, bestScore')
-        .eq('id', uid)
-        .single();
-      if (!error && statsRow) {
-        totalRuns = (statsRow.totalRuns || 0) + 1;
-        bestScore = Math.max(statsRow.bestScore || -1, rec.score || 0);
-      } else {
-        totalRuns = 1;
-        bestScore = rec.score || 0;
-      }
-    } catch (_) {
-      totalRuns = 1;
-      bestScore = rec.score || 0;
-    }
-    await supabaseClient.from('user_stats').upsert({
-      id: uid,
-      totalRuns: totalRuns,
-      bestScore: bestScore,
-      lastPlayedAt: new Date().toISOString()
-    });
-    // 發布到排行榜
-    if (rec.publishToLeaderboard) {
-      const prof = await getOrInitUserProfile();
-      await supabaseClient.from('leaderboard_public').upsert({
-        id: uid,
-        bestScore: rec.score,
-        displayName: prof.displayName || '無名修士',
-        country: prof.country || 'TW',
-        updatedAt: new Date().toISOString()
-      });
-    }
-  } catch (e) {
-    console.warn('saveRunRecord 發生錯誤：', e);
-  }
-}
-
-async function migrateLocalToCloud() {
-  // 暫不實作；如需遷移本機資料，請於此調用 saveRunRecord()。
-}
-
-document.addEventListener('DOMContentLoaded', function() {
   ensureSignedIn().then(function(){ try { migrateLocalToCloud(); } catch(e){} });
 });
 </script>
-<!-- ==================== /Supabase 整合區 ==================== -->
+<!-- ==================== /Firebase 線上版整合區 ==================== -->
 
 </body>
 </html>
