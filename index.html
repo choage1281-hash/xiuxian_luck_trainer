@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>運氣訓練工具 V2-22（修仙網頁離線版）</title>
+    <title>運氣訓練工具 V2-23（修仙網頁離線版）</title>
     <style>
         :root {
             --bg-color: #f0f2f5;
@@ -572,13 +572,15 @@ const ITEM_EFFECTS = {
     "入品仙丹": {"type": "exp", "n": 10, "desc": "增加 10 修煉經驗"}, "下品仙丹": {"type": "exp", "n": 30, "desc": "增加 30 修煉經驗"}, "中品仙丹": {"type": "exp", "n": 70, "desc": "增加 70 修煉經驗"}, "上品仙丹": {"type": "exp", "n": 150, "desc": "增加 150 修煉經驗"}, "極品仙丹": {"type": "exp", "n": 310, "desc": "增加 310 修煉經驗"}, "超品仙丹": {"type": "exp", "n": 630, "desc": "增加 630 修煉經驗"}, "絕品仙丹": {"type": "exp", "n": 1270, "desc": "增加 1270 修煉經驗"}, "寶品仙丹": {"type": "exp", "n": 2550, "desc": "增加 2550 修煉經驗"}, "地品仙丹": {"type": "exp", "n": 5110, "desc": "增加 5110 修煉經驗"}, "天品仙丹": {"type": "exp", "n": 10230, "desc": "增加 10230 修煉經驗"},
     "入品靈符": {"type": "wrong", "n": 1, "desc": "排除 1 個錯誤答案"}, "下品靈符": {"type": "wrong", "n": 2, "desc": "排除 2 個錯誤答案"}, "中品靈符": {"type": "wrong", "n": 3, "desc": "排除 3 個錯誤答案"}, "上品靈符": {"type": "wrong", "n": 4, "desc": "排除 4 個錯誤答案"}, "極品靈符": {"type": "wrong", "n": 5, "desc": "排除 5 個錯誤答案"}, "超品靈符": {"type": "wrong", "n": 6, "desc": "排除 6 個錯誤答案"}, "絕品靈符": {"type": "wrong", "n": 7, "desc": "排除 7 個錯誤答案"}, "寶品靈符": {"type": "wrong", "n": 8, "desc": "排除 8 個錯誤答案"}, "地品靈符": {"type": "wrong", "n": 9, "desc": "排除 9 個錯誤答案"}, "天品靈符": {"type": "wrong", "n": 10, "desc": "排除 10 個錯誤答案"},
     "入品靈器": {"type": "correct", "n": 0, "desc": "顯示全部正確答案"}, "下品靈器": {"type": "correct", "n": 0, "desc": "顯示全部正確答案"}, "中品靈器": {"type": "correct", "n": 0, "desc": "顯示全部正確答案"}, "上品靈器": {"type": "correct", "n": 0, "desc": "顯示全部正確答案"}, "極品靈器": {"type": "correct", "n": 0, "desc": "顯示全部正確答案"}, "超品靈器": {"type": "correct", "n": 0, "desc": "顯示全部正確答案"}, "絕品靈器": {"type": "correct", "n": 0, "desc": "顯示全部正確答案"}, "寶品靈器": {"type": "correct", "n": 0, "desc": "顯示全部正確答案"}, "地品靈器": {"type": "correct", "n": 0, "desc": "顯示全部正確答案"}, "天品靈器": {"type": "correct", "n": 0, "desc": "顯示全部正確答案"},
-    ...WEAPONS, ...TECHNIQUES, ...FORMATIONS
+    ...WEAPONS, ...TECHNIQUES, ...FORMATIONS,
+    "靈根重塑丹": {"type": "exp", "n": 0, "change_root": true, "desc": "重塑靈根：重新檢測靈根，若結果更高則更新"}
 };
 
 const ITEM_STONE_PRICES = {
     "入品仙丹": 3, "下品仙丹": 6, "中品仙丹": 12, "上品仙丹": 24, "極品仙丹": 48, "超品仙丹": 96, "絕品仙丹": 192, "寶品仙丹": 384, "地品仙丹": 768, "天品仙丹": 1536,
     "入品靈符": 1, "下品靈符": 2, "中品靈符": 4, "上品靈符": 8, "極品靈符": 16, "超品靈符": 32, "絕品靈符": 64, "寶品靈符": 128, "地品靈符": 256, "天品靈符": 512,
     "入品靈器": 5, "下品靈器": 10, "中品靈器": 20, "上品靈器": 40, "極品靈器": 80, "超品靈器": 160, "絕品靈器": 320, "寶品靈器": 640, "地品靈器": 1280, "天品靈器": 2560,
+    "靈根重塑丹": 1024,
 };
 
 const ITEM_RENAME_MAP = {
@@ -735,6 +737,8 @@ const defaultStats = {
     , heavenChallenges: []
     // 天命挑戰產生日期：用於每日刷新任務
     , heavenChallengeDate: ""
+    // 在線人數：離線版預設為 1，可在未來線上版由伺服器提供
+    , onlineCount: 1
 };
 
 function saveToLocalStorage(key, data) {
@@ -760,6 +764,16 @@ function saveGameState() {
     saveToLocalStorage(SCORE_FILE, maxScores);
     // # 同步秘境試煉最高紀錄到 localStorage
     saveToLocalStorage(TRIAL_SCORE_FILE, maxTrialScores);
+}
+
+// 取得當前在線人數。離線版固定返回 1，未來連線版可從伺服器更新此值。
+function getOnlineCount() {
+    try {
+        if (typeof gameState !== 'undefined' && typeof gameState.onlineCount === 'number') {
+            return gameState.onlineCount;
+        }
+    } catch (e) { /* ignore */ }
+    return 1;
 }
 
 function loadGameState() {
@@ -811,9 +825,13 @@ function loadGameState() {
 // 依據所需修煉經驗計算訓練次數門檻（十分之一，向上取整，至少為 1）。
 // 例如需要 10 EXP 的層級，需要 1 次訓練；需要 25 EXP 的層級，需要 3 次訓練。
 function getRequiredTrainingsForExp(needExp) {
-    // needExp 可能為 undefined 或 0，皆返回 1
+    // 依據所需修煉經驗與玩家靈根計算訓練次數門檻。
+    // 若尚未測得靈根，預設為 1。靈根越高，可減少所需訓練次數。
     if (!needExp || needExp <= 0) return 1;
-    return Math.max(1, Math.ceil(needExp / 10));
+    // 取得目前玩家靈根，若無則預設 1。
+    const root = (typeof gameState !== 'undefined' && gameState.linggen && gameState.linggen > 0) ? gameState.linggen : 1;
+    // 依據靈根等級計算所需訓練次數：需要的修煉經驗除以靈根並向上取整，至少為 1。
+    return Math.max(1, Math.ceil(needExp / root));
 }
 
 function getStageIndex(exp) {
@@ -1146,26 +1164,8 @@ function renderMainMenu() {
         }
     }
     
-    let html = `
-        <h1>🎯 運氣訓練工具</h1>
-        <h2>V2-22（修仙網頁離線版）</h2>
-        <p style="text-align:center;">請選擇訓練難度（1 最簡單～10 最困難）</p>
-    `;
-
-    for (let i = 1; i <= 10; i++) {
-        const score = maxScores[i] || 0;
-        // 使用 btn-training 分類按鈕顏色區隔
-        html += `<button class="btn-training" data-action="start-training" data-level="${i}">難度 ${i}（最高分：${score}） 勝率：約 ${DIFFICULTY_WIN_RATE[i]}%</button>`;
-    }
-
-    // # 新增秘境試煉選項與排行榜：放置於難度 1~10 按鈕之後
-    html += `<button class="btn-trial" data-action="render-secret-trial-menu">🌌 秘境試煉</button>`;
-    html += `<button class="btn-trial" data-action="show-trial-leaderboard">🏆 秘境排行榜</button>`;
-    // 新增修仙排行榜：依修為高低排名（離線顯示個人修為）
-    html += `<button class="btn-other" data-action="show-cultivation-leaderboard">🌄 修仙排行榜</button>`;
-
-
-    html += `
+    // 組裝資訊區塊，包含在線人數（離線版固定為 1）
+    const infoSection = `
         <div class="info-section">
             <p style="font-size: 1.2em; color: var(--teal-color);">🧘‍♂️ 目前修為：${currentStage}</p>
             <p style="font-size: 1.2em; color: var(--gold-color);">🎖️ 目前仙門位階：${gameState.current_title}</p>
@@ -1174,8 +1174,30 @@ function renderMainMenu() {
             <p>🏋️ 累積訓練次數：${gameState.total} | ⚔️ 修煉經驗：${gameState.exp} | ⭐ 最高分：${highestScore}</p>
             <p>🎟️ 測試機會：${gameState.luck_tickets} 次 (累積獲得：${gameState.luck_tickets_total})</p>
             <p>💎 靈石：${gameState.stones}</p>
+            <p>👥 在線人數：${typeof getOnlineCount === 'function' ? getOnlineCount() : 1}</p>
             <p>👤 姓名：${gameState.personalName || '未設定'} | 性別：${gameState.gender || '未設定'} | 🌱 靈根：${(gameState.linggen === undefined || gameState.linggen === null) ? '未測' : ((gameState.linggen <= 0) ? '無靈根' : gameState.linggen + ' 靈根')}</p>
         </div>
+    `;
+    // 計算全部兌換按鈕的數據
+    const maxStonesAll = Math.floor(gameState.exp / STONE_EXCHANGE_COST);
+    const costAllExp = maxStonesAll * STONE_EXCHANGE_COST;
+    const disabledAll = maxStonesAll < 1 ? 'disabled' : '';
+
+    // 重新建構主選單 HTML：將 infoSection 移至訓練按鈕之前，更新版本號
+    let html = `
+        <h1>🎯 運氣訓練工具</h1>
+        <h2>V2-23（修仙網頁離線版）</h2>
+        ${infoSection}
+        <p style="text-align:center;">請選擇訓練難度（1 最簡單～10 最困難）</p>
+    `;
+    for (let i = 1; i <= 10; i++) {
+        const score = maxScores[i] || 0;
+        html += `<button class="btn-training" data-action="start-training" data-level="${i}">難度 ${i}（最高分：${score}） 勝率：約 ${DIFFICULTY_WIN_RATE[i]}%</button>`;
+    }
+    html += `<button class="btn-trial" data-action="render-secret-trial-menu">🌌 秘境試煉</button>`;
+    html += `<button class="btn-trial" data-action="show-trial-leaderboard">🏆 秘境排行榜</button>`;
+    html += `<button class="btn-other" data-action="show-cultivation-leaderboard">🌄 修仙排行榜</button>`;
+    html += `
         <button class="btn-other" data-action="show-stage-list">📜 查看修仙等級一覽</button>
         <button class="btn-other" data-action="show-game-rules">📖 遊戲規則說明</button>
         <button class="btn-other" data-action="show-rank-list">👑 查看仙門位階封號</button>
@@ -1183,23 +1205,15 @@ function renderMainMenu() {
         <button class="btn-other" data-action="show-shop">🛒 商店</button>
         <button class="btn-other" data-action="render-test-luck-menu">🔍 測試運氣</button>
         <button class="btn-other" data-action="handle-daily-signin">📅 每日簽到</button>
-        <!-- 新增簽到日曆按鈕：供玩家查看本月簽到情況 -->
         <button class="btn-other" data-action="show-signin-calendar">📆 簽到日曆</button>
         <button class="btn-other" data-action="show-daily-task">🗒️ 每日任務</button>
-        <!-- 新增天命挑戰按鈕：可查看並接受隨機任務 -->
         <button class="btn-other" data-action="show-heaven-challenges">🌠 天命挑戰</button>
         <button class="btn-other" data-action="test-sfx">🔊 測試音效</button>
         <button class="btn-other" data-action="show-login-menu">👤 帳號</button>
         <button class="btn-secondary" data-action="exchange-stones" data-count="1">🪙 兌換 1 靈石 (-${STONE_EXCHANGE_COST} EXP)</button>
         <button class="btn-secondary" data-action="exchange-stones" data-count="100">🪙 兌換 100 靈石 (-${STONE_100_EXCHANGE_COST} EXP)</button>
         <button class="btn-secondary" data-action="exchange-stones" data-count="1000">🪙 兌換 1000 靈石 (-${STONE_1000_EXCHANGE_COST} EXP)</button>
-        <!-- # 新增全部兌換靈石：依照當前 EXP 計算可兌換數量並顯示所需 EXP -->
-        ${(() => {
-            const maxStones = Math.floor(gameState.exp / STONE_EXCHANGE_COST);
-            const costAll = maxStones * STONE_EXCHANGE_COST;
-            const disabled = maxStones < 1 ? 'disabled' : '';
-            return `<button class="btn-secondary" data-action="exchange-stones" data-count="${maxStones}" ${disabled}>🪙 全部兌換 (-${costAll} EXP)</button>`;
-        })()}
+        <button class="btn-secondary" data-action="exchange-stones" data-count="${maxStonesAll}" ${disabledAll}>🪙 全部兌換 (-${costAllExp} EXP)</button>
         <hr>
         <button class="btn-warning" data-action="reset-stats">歸零訓練/經驗統計</button>
         <button class="btn-danger" data-action="clear-scores">🗑️ 清除所有最高分紀錄</button>
@@ -1503,7 +1517,24 @@ function showTrainingResult() {
             // 測試結束，計算靈根
             let rootVal = wasCorrect ? currLv : (currLv - 1);
             if (rootVal < 0) rootVal = 0;
-            gameState.linggen = rootVal;
+            // 若為重新測靈根，僅當新靈根高於舊值時更新
+            let resultMsg;
+            if (trainingState && trainingState.isRetestLinggen) {
+                const oldRoot = (typeof gameState.linggen === 'number') ? gameState.linggen : 0;
+                if (rootVal > oldRoot) {
+                    gameState.linggen = rootVal;
+                    resultMsg = `✨ 靈根提升為 ${rootVal}（原為 ${oldRoot}）`;
+                } else {
+                    // 保留舊靈根
+                    resultMsg = `靈根測試結果為 ${rootVal}，未超過現有的 ${oldRoot}，故維持原靈根`; 
+                }
+                // 清除重新測旗標
+                trainingState.isRetestLinggen = false;
+            } else {
+                // 初次測靈根
+                gameState.linggen = rootVal;
+                resultMsg = (rootVal <= 0) ? '無靈根' : `${rootVal} 靈根`;
+            }
             // 若尚未記錄初始日期，補錄
             if (!gameState.createDate) {
                 gameState.createDate = new Date().toISOString().slice(0,10);
@@ -1514,8 +1545,7 @@ function showTrainingResult() {
                     updateUserProfile({ linggen: gameState.linggen, createDate: gameState.createDate, personalName: gameState.personalName, gender: gameState.gender });
                 }
             } catch (e) {}
-            const msg = (rootVal <= 0) ? '無靈根' : (rootVal + ' 靈根');
-            showModal('🌱 靈根測試結果', `<p>你的靈根為：${msg}</p>`, `<button data-action="render-main-menu">確認</button>`);
+            showModal('🌱 靈根測試結果', `<p>${resultMsg}</p>`, `<button data-action="render-main-menu">確認</button>`);
         }
         return;
     }
@@ -2261,6 +2291,14 @@ function showGameRules() {
             </ul>
             <p>這些任務需要先點擊「接受」才能開始累計進度；接受後可隨時取消，取消會重置進度。每人同時最多接受 3 個天命挑戰。完成任務後可領取獨立獎勵，包括修煉經驗、靈石或稀有道具，任務越難獎勵越豐厚，且任務可設定期限（無期限、1 日、3 日、5 日），期限越長則獎勵倍率越高。</p>
             <p>任務進度會在訓練或秘境試煉結算，以及使用道具或獲得修煉經驗時自動更新。每個任務項目可以隨時按下「刷新」按鈕重新生成，但刷新後需等待 10 分鐘才會顯示新的任務內容。完成任務並領取獎勵後，系統會自動填補新的任務。若天命挑戰與每日任務目標重疊，進度會共享，但獎勵需分別領取。天命挑戰每日重新整理，過期或冷卻結束會自動替換為新任務。</p>
+
+            <h3>10. 靈根與訓練次數</h3>
+            <p>你的靈根決定了升級所需的訓練次數。每個修為層級有固定的修煉經驗需求，所需的訓練次數 = 經驗需求 ÷ 靈根值，向上取整。例如：</p>
+            <ul>
+                <li>凡人 10 層需要 100 修煉經驗，若為 1 靈根則需要 100 次訓練才能突破；若為 10 靈根則只需 10 次訓練。</li>
+                <li>結丹 10 層需要 800 修煉經驗，1 靈根需訓練 800 次，而 10 靈根僅需 80 次。</li>
+            </ul>
+            <p>你可以透過購買並使用<strong>靈根重塑丹</strong>來重新檢測靈根。重新檢測後若新靈根高於原有靈根，將更新為新靈根；若相同或更低則維持原有靈根。</p>
         </div>
     `;
     showModal("📜 遊戲規則說明", content, `<button data-action="close-modal">關閉</button>`);
@@ -2956,18 +2994,57 @@ function confirmUseExp() {
   const inputs = modalBody.querySelectorAll('input[type="number"]');
   let totalGain = 0;
   let totalUsed = 0;
+  let rootItemCount = 0;
   const inv = gameState.inventory;
   inputs.forEach(input => {
     const qty = Math.max(0, parseInt(input.value || '0', 10));
     if (!qty) return;
     const name = input.id.replace('useexp-', '');
     const eff = ITEM_EFFECTS[name] || {};
+    // 若為靈根重塑丹，單獨處理：扣除道具數量並累計次數，但不增加經驗
+    if (eff && eff.change_root) {
+      const cur = inv[name] || 0;
+      inv[name] = Math.max(0, cur - qty);
+      rootItemCount += qty;
+      return;
+    }
+    // 一般仙丹道具：計算經驗增量
     const add = (eff.n || 0) * qty;
     const cur = inv[name] || 0;
     inv[name] = Math.max(0, cur - qty);
     totalGain += add;
     totalUsed += qty;
   });
+  // 若有使用靈根重塑丹：先處理經驗增加（若有），然後啟動靈根重測
+  if (rootItemCount > 0) {
+    // 更新經驗值
+    if (totalGain > 0) {
+      const prevExp = gameState.exp;
+      gameState.exp += totalGain;
+      saveGameState();
+      handleLevelUp(prevExp, gameState.exp);
+      // 更新天命挑戰 - 仙丹類任務進度（只計算一般仙丹使用次數）
+      try {
+        if (typeof updateHeavenChallengeProgressItemUse === 'function' && totalUsed > 0) {
+          updateHeavenChallengeProgressItemUse('elixir', totalUsed);
+        }
+      } catch (e) { /* ignore */ }
+    }
+    // 開始靈根重測：進入靈根測試流程
+    try {
+      startTraining(1);
+      if (trainingState) {
+        trainingState.isLinggenTest = true;
+        trainingState.isRetestLinggen = true;
+        trainingState.linggenLevel = 1;
+        trainingState.totalRounds = 1;
+      }
+    } catch (e) { console.warn('重新測試靈根失敗', e); }
+    // 關閉當前對話框
+    modal.style.display = 'none';
+    return;
+  }
+  // 無使用靈根重塑丹，僅處理經驗增加
   if (totalGain > 0) {
     const prevExp = gameState.exp;
     gameState.exp += totalGain;
@@ -3000,15 +3077,49 @@ function confirmUseExpAll() {
   const inv = gameState.inventory;
   let totalGain = 0;
   let totalUsed = 0;
+  let rootItemCount = 0;
   Object.entries(inv).forEach(([name, qty]) => {
     if (qty > 0 && (ITEM_EFFECTS[name]?.type === 'exp')) {
-      const eff = ITEM_EFFECTS[name];
-      const add = (eff.n || 0) * qty;
-      inv[name] = 0;
-      totalGain += add;
-      totalUsed += qty;
+      const eff = ITEM_EFFECTS[name] || {};
+      if (eff.change_root) {
+        // 使用靈根重塑丹：記錄使用數量並清空庫存
+        rootItemCount += qty;
+        inv[name] = 0;
+      } else {
+        const add = (eff.n || 0) * qty;
+        inv[name] = 0;
+        totalGain += add;
+        totalUsed += qty;
+      }
     }
   });
+  // 如果有使用靈根重塑丹：先處理經驗增加（若有），然後啟動靈根重測
+  if (rootItemCount > 0) {
+    if (totalGain > 0) {
+      const prevExp = gameState.exp;
+      gameState.exp += totalGain;
+      saveGameState();
+      handleLevelUp(prevExp, gameState.exp);
+      try {
+        if (typeof updateHeavenChallengeProgressItemUse === 'function' && totalUsed > 0) {
+          updateHeavenChallengeProgressItemUse('elixir', totalUsed);
+        }
+      } catch (e) { /* ignore */ }
+    }
+    // 開始靈根重測
+    try {
+      startTraining(1);
+      if (trainingState) {
+        trainingState.isLinggenTest = true;
+        trainingState.isRetestLinggen = true;
+        trainingState.linggenLevel = 1;
+        trainingState.totalRounds = 1;
+      }
+    } catch (e) { console.warn('重新測試靈根失敗', e); }
+    modal.style.display = 'none';
+    return;
+  }
+  // 沒有靈根重塑丹
   if (totalGain > 0) {
     const prevExp = gameState.exp;
     gameState.exp += totalGain;
@@ -3017,7 +3128,6 @@ function confirmUseExpAll() {
     showModal("🍵 使用結果",
       `<p>共獲得 +${totalGain} EXP（全部使用）</p>${levelupMsg ? `<p class="msg-levelup">${levelupMsg}</p>` : ''}`,
       `<button data-action="close-modal">關閉</button>`);
-    // 更新天命挑戰 - 仙丹類道具使用
     try {
       if (typeof updateHeavenChallengeProgressItemUse === 'function' && totalUsed > 0) {
         updateHeavenChallengeProgressItemUse('elixir', totalUsed);
