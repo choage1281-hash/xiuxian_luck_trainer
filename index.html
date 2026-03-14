@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>運氣訓練工具 V3-8（修仙網頁離線版）</title>
+    <title>運氣訓練工具 V3-10（修仙網頁離線版）</title>
     <style>
         :root {
             --bg-color: #f0f2f5;
@@ -499,6 +499,94 @@ const STONE_1000_EXCHANGE_COST = 100000;
 const TRAINING_MILESTONES = {
     5: {"rewards": 1, "title": "1.宗門的基石"}, 10: {"rewards": 1, "title": "2.見習弟子"}, 25: {"rewards": 2, "title": "3.外門雜役"}, 50: {"rewards": 2, "title": "4.外門弟子"}, 75: {"rewards": 3, "title": "5.外門師兄"}, 100: {"rewards": 5, "title": "6.外門菁英"}, 150: {"rewards": 3, "title": "7.內門候補"}, 200: {"rewards": 4, "title": "8.內門弟子"}, 300: {"rewards": 5, "title": "9.內門師兄"}, 400: {"rewards": 5, "title": "10.內門菁英"}, 500: {"rewards": 10, "title": "11.宗門執事"}, 600: {"rewards": 5, "title": "12.任務堂弟子"}, 700: {"rewards": 5, "title": "13.傳法堂弟子"}, 800: {"rewards": 5, "title": "14.煉丹閣弟子"}, 900: {"rewards": 5, "title": "15.煉器坊弟子"}, 1000: {"rewards": 15, "title": "16.親傳弟子"}, 1200: {"rewards": 6, "title": "17.戒律堂執事"}, 1400: {"rewards": 6, "title": "18.藏經閣執事"}, 1600: {"rewards": 6, "title": "19.百草園管事"}, 1800: {"rewards": 6, "title": "20.萬獸山管事"}, 2000: {"rewards": 20, "title": "21.首席大弟子"}, 2500: {"rewards": 10, "title": "22.任務堂長老"}, 3000: {"rewards": 10, "title": "23.傳法堂長老"}, 3500: {"rewards": 10, "title": "24.煉丹閣長老"}, 4000: {"rewards": 10, "title": "25.煉器坊長老"}, 5000: {"rewards": 25, "title": "26.宗門長老"}, 6000: {"rewards": 12, "title": "27.刑法長老"}, 7000: {"rewards": 12, "title": "28.傳功長老"}, 8000: {"rewards": 12, "title": "29.客卿長老"}, 9000: {"rewards": 12, "title": "30.巡山長老"}, 10000: {"rewards": 30, "title": "31.宗門護法"}, 12500: {"rewards": 15, "title": "32.丹道峰主"}, 15000: {"rewards": 15, "title": "33.器道峰主"}, 17500: {"rewards": 15, "title": "34.劍道峰主"}, 20000: {"rewards": 40, "title": "35.太上長老"}, 25000: {"rewards": 20, "title": "36.宗門聖子"}, 30000: {"rewards": 20, "title": "37.宗門聖女"}, 35000: {"rewards": 20, "title": "38.行走的傳說"}, 40000: {"rewards": 20, "title": "39.護道人"}, 50000: {"rewards": 50, "title": "40.代宗主"}, 60000: {"rewards": 25, "title": "41.鎮派老祖"}, 70000: {"rewards": 25, "title": "42.開派祖師"}, 80000: {"rewards": 25, "title": "43.渡劫真仙"}, 90000: {"rewards": 25, "title": "44.飛升之人"}, 100000: {"rewards": 100, "title": "45.人間之神"}, 120000: {"rewards": 50, "title": "46.天界行者"}, 140000: {"rewards": 50, "title": "47.星界遊神"}, 160000: {"rewards": 50, "title": "48.位面之主"}, 180000: {"rewards": 50, "title": "49.時空旅者"}, 200000: {"rewards": 100, "title": "50.萬古傳說"}, 250000: {"rewards": 100, "title": "51.因果之手"}, 300000: {"rewards": 100, "title": "52.命運編織者"}, 400000: {"rewards": 100, "title": "53規則制定者"}, 500000: {"rewards": 100, "title": "54.大道之源"}, 1000000: {"rewards": 500, "title": "55.終極造物主"},
 };
+
+// 貢獻度里程碑：根據宗門累積貢獻度授予仙門位階。由於本遊戲後期將修煉成就與宗門貢獻綁定，
+// 此表以貢獻度為鍵，而非訓練次數。注意：原先的 36、37 兩個位階（宗門聖子、宗門聖女）已移除，
+// 後續位階的編號相應前移兩位以保持遞增順序。
+const CONTRIBUTION_MILESTONES = {
+    5: { rewards: 1, title: '1.宗門的基石' },
+    10: { rewards: 1, title: '2.見習弟子' },
+    25: { rewards: 2, title: '3.外門雜役' },
+    50: { rewards: 2, title: '4.外門弟子' },
+    75: { rewards: 3, title: '5.外門師兄' },
+    100: { rewards: 5, title: '6.外門菁英' },
+    150: { rewards: 3, title: '7.內門候補' },
+    200: { rewards: 4, title: '8.內門弟子' },
+    300: { rewards: 5, title: '9.內門師兄' },
+    400: { rewards: 5, title: '10.內門菁英' },
+    500: { rewards: 10, title: '11.宗門執事' },
+    600: { rewards: 5, title: '12.任務堂弟子' },
+    700: { rewards: 5, title: '13.傳法堂弟子' },
+    800: { rewards: 5, title: '14.煉丹閣弟子' },
+    900: { rewards: 5, title: '15.煉器坊弟子' },
+    1000: { rewards: 15, title: '16.親傳弟子' },
+    1200: { rewards: 6, title: '17.戒律堂執事' },
+    1400: { rewards: 6, title: '18.藏經閣執事' },
+    1600: { rewards: 6, title: '19.百草園管事' },
+    1800: { rewards: 6, title: '20.萬獸山管事' },
+    2000: { rewards: 20, title: '21.首席大弟子' },
+    2500: { rewards: 10, title: '22.任務堂長老' },
+    3000: { rewards: 10, title: '23.傳法堂長老' },
+    3500: { rewards: 10, title: '24.煉丹閣長老' },
+    4000: { rewards: 10, title: '25.煉器坊長老' },
+    5000: { rewards: 25, title: '26.宗門長老' },
+    6000: { rewards: 12, title: '27.刑法長老' },
+    7000: { rewards: 12, title: '28.傳功長老' },
+    8000: { rewards: 12, title: '29.客卿長老' },
+    9000: { rewards: 12, title: '30.巡山長老' },
+    10000: { rewards: 30, title: '31.宗門護法' },
+    12500: { rewards: 15, title: '32.丹道峰主' },
+    15000: { rewards: 15, title: '33.器道峰主' },
+    17500: { rewards: 15, title: '34.劍道峰主' },
+    20000: { rewards: 40, title: '35.太上長老' },
+    35000: { rewards: 20, title: '36.行走的傳說' },
+    40000: { rewards: 20, title: '37.護道人' },
+    50000: { rewards: 50, title: '38.代宗主' },
+    60000: { rewards: 25, title: '39.鎮派老祖' },
+    70000: { rewards: 25, title: '40.開派祖師' },
+    80000: { rewards: 25, title: '41.渡劫真仙' },
+    90000: { rewards: 25, title: '42.飛升之人' },
+    100000: { rewards: 100, title: '43.人間之神' },
+    120000: { rewards: 50, title: '44.天界行者' },
+    140000: { rewards: 50, title: '45.星界遊神' },
+    160000: { rewards: 50, title: '46.位面之主' },
+    180000: { rewards: 50, title: '47.時空旅者' },
+    200000: { rewards: 100, title: '48.萬古傳說' },
+    250000: { rewards: 100, title: '49.因果之手' },
+    300000: { rewards: 100, title: '50.命運編織者' },
+    400000: { rewards: 100, title: '51.規則制定者' },
+    500000: { rewards: 100, title: '52.大道之源' },
+    1000000: { rewards: 500, title: '53.終極造物主' }
+};
+
+// 根據宗門貢獻度返回當前達成的里程碑（若尚未達成，返回 null）。
+function getCurrentContributionMilestone(contrib) {
+    try {
+        const thresholds = Object.keys(CONTRIBUTION_MILESTONES).map(x => parseInt(x, 10)).sort((a, b) => a - b);
+        let milestone = null;
+        for (const t of thresholds) {
+            if (contrib >= t) milestone = CONTRIBUTION_MILESTONES[t];
+        }
+        return milestone;
+    } catch (e) {
+        return null;
+    }
+}
+
+// 同步玩家的仙門位階：根據宗門累積貢獻度更新 gameState.current_title。
+function syncTitleByContribution() {
+    try {
+        const contrib = gameState.sectContribution || 0;
+        const milestone = getCurrentContributionMilestone(contrib);
+        if (milestone && gameState.current_title !== milestone.title) {
+            gameState.current_title = milestone.title;
+            return milestone;
+        }
+        return null;
+    } catch (e) {
+        return null;
+    }
+}
 
 const CULTIVATION_STAGES = (() => {
     let stages = [[0, 0, "凡人初入道"]];
@@ -1324,7 +1412,7 @@ function renderMainMenu() {
     // 重新建構主選單 HTML：將 infoSection 移至訓練按鈕之前，更新版本號
     let html = `
         <h1>🎯 運氣訓練工具</h1>
-        <h2>V3-8（修仙網頁離線版）</h2>
+        <h2>V3-10（修仙網頁離線版）</h2>
         ${infoSection}
         <p style="text-align:center;">請選擇訓練難度（1 最簡單～10 最困難）</p>
     `;
@@ -1779,12 +1867,12 @@ function showTrainingResult() {
         rewardsHTML += `<div class="message msg-reward">🎉 累積訓練達 ${gameState.total} 次，達成週期獎勵！<br>${rewardsList.join('<br>')}</div>`;
     }
     
-    // 里程碑獎勵
-    if (TRAINING_MILESTONES[gameState.total]) {
-        const milestone = TRAINING_MILESTONES[gameState.total];
-        gameState.current_title = milestone.title;
-        const [rewardsList] = grantRandomRewards(milestone.rewards);
-        rewardsHTML += `<div class="message msg-reward">🏆 恭喜！訓練達 ${gameState.total} 次，達成里程碑！<br>獲得新位階：【${milestone.title}】<br>獲得獎勵：<br>${rewardsList.join('<br>')}</div>`;
+    // 里程碑獎勵：改以宗門貢獻度為依據
+    const milestoneObj = syncTitleByContribution();
+    if (milestoneObj) {
+        // 若位階提升則授予對應獎勵
+        const [rewardsList] = grantRandomRewards(milestoneObj.rewards);
+        rewardsHTML += `<div class="message msg-reward">🏆 恭喜！宗門貢獻達到 ${gameState.sectContribution}，晉升仙門位階！<br>獲得新位階：【${milestoneObj.title}】<br>獲得獎勵：<br>${rewardsList.join('<br>')}</div>`;
     }
 
     // 特定次數獎勵
@@ -2299,6 +2387,23 @@ function exchangeStones(count) {
         saveGameState();
     }
     renderMainMenu();
+
+    // === 宗門自動運轉系統 ===
+    // 為了使宗門貢獻與 AI 修士成長自動進行，
+    // 每分鐘呼叫一次 updateSectDailyContribution() 並更新主選單資訊。
+    try {
+        setInterval(() => {
+            try {
+                updateSectDailyContribution();
+                // 更新主選單信息，以便即時顯示最新的宗門貢獻和修為。
+                updateMainMenuInfo();
+            } catch (e) {
+                console.warn('Auto sect run failed', e);
+            }
+        }, 60000); // 60 秒更新一次
+    } catch (e) {
+        console.warn('Failed to start auto sect updater', e);
+    }
 }
 
 function resetTrainingStats() {
@@ -2349,8 +2454,9 @@ function showStageList() {
 }
 
 function showRankList() {
-    let content = '仙門位階是根據您的總訓練次數授予的榮譽稱號：<br><br><ul style="padding-left: 20px;">';
-    content += Object.entries(TRAINING_MILESTONES).map(([count, data]) => `<li>訓練 <b>${count}</b> 次：授予位階【${data.title}】</li>`).join('');
+    // 依貢獻度列出仙門位階封號
+    let content = '仙門位階是根據宗門累積貢獻度授予的榮譽稱號：<br><br><ul style="padding-left: 20px;">';
+    content += Object.entries(CONTRIBUTION_MILESTONES).map(([need, data]) => `<li>貢獻度 <b>${need}</b>：授予位階【${data.title}】</li>`).join('');
     showModal("仙門位階封號一覽表", `${content}</ul>`, `<button data-action="close-modal">關閉</button>`);
 }
 
@@ -2459,7 +2565,7 @@ function showGameRules() {
                 <li><b>建立宗門條件：</b>玩家必須至少達到「渡劫 1 層以上」修為（包含渡劫一層），方可建立宗門。宗門初始等級為 1，可透過貢獻與活動逐步提升。</li>
                 <li><b>AI 宗門與 AI 修士：</b>遊戲預設有十個 AI 宗門（如紫雲宗、青雲門等），等級預設為 20。加入 AI 宗門時會自動生成若干名 AI 修士（弟子或長老），他們擁有各自的修為、戰力與每日貢獻，會每日替宗門提供貢獻。宗門會自動招收新弟子：每天若成員未達上限，將新增一位 AI 修士。</li>
                 <li><b>宗門成員列表：</b>加入宗門後可查看宗門成員清單，包括 AI 修士與玩家本身，顯示每位成員的修為、戰力、每日貢獻與職位。每日貢獻與戰力會隨修練自動成長。</li>
-                <li><b>宗門總戰力與貢獻：</b>宗門戰力為成員戰力之和，加上宗主本人的修為戰力。每位成員的戰力每天會增加，宗門戰力也會隨之成長。宗門貢獻會每日依 AI 修士的每日貢獻值增加，並可能因每日事件獲得額外貢獻。</li>
+                <li><b>宗門總戰力與貢獻：</b>宗門戰力為成員戰力之和，加上宗主本人的修為戰力。每位成員的戰力會隨時間增加，宗門戰力也會隨之成長。宗門貢獻會依照 AI 修士的貢獻值持續增加，並可能因事件額外提升，所有變化都會定期自動更新。</li>
                 <li><b>宗門排行榜：</b>提供排行榜，按照宗門綜合實力排序（等級 × 1000 + 戰力 + 貢獻），列出所有 AI 宗門及玩家宗門。可查看每個宗門的等級、戰力與貢獻。</li>
                 <li><b>宗門每日事件：</b>每天都有機會觸發特殊事件，如新增成員、額外宗門貢獻或成員戰力大幅提升。</li>
                 <li><b>宗門職位與提升：</b>職位分為宗主、長老、弟子。宗門職位提升需要同時滿足修為和貢獻度，例如達到元嬰或更高境界且貢獻度達 1000 以上方可升為長老。</li>
@@ -2472,6 +2578,7 @@ function showGameRules() {
                 <li><b>宗門必須有宗主：</b>每個宗門都需要一名宗主，負責升級與管理宗門。若尚未指定宗主，系統會自動將第一位成員視為宗主。</li>
                 <li><b>成員列表排序：</b>宗門成員列表按職位（宗主 &gt; 長老 &gt; 弟子）及修為高低排序，方便快速查看核心成員與強者。</li>
                 <li><b>AI 修士成長與宗門位階：</b>AI 修士初始修為將根據宗門等級隨機分佈，高階宗門擁有更多元嬰、化神以上修士。每天更新時，AI 修士有機會提升修為並晉升為長老，戰力與每日貢獻也會增加。宗門位階會根據宗門總貢獻與成員平均修為自動調整，分為三流宗門、二流宗門、一流宗門、名門大宗、聖地宗門與仙門聖地，該位階會顯示在宗門介面與排行榜中。</li>
+                <li><b>宗門自動運轉系統：</b>為了讓宗門更加活躍，系統會在背景定時更新宗門狀態。每隔一段時間（例如每分鐘）會自動呼叫宗門的每日更新函式，使每位 AI 修士提供貢獻並有機會提升修為，並將最新的宗門貢獻與戰力即時反映在主畫面和排行榜中。</li>
             </ul>
             <p>在主選單中點擊「⛩️ 宗門系統」可查看目前宗門資訊、加入 AI 宗門、建立或退出宗門，並透過成員列表、戰力與貢獻查看宗門整體狀態。宗門功能會隨版本更新逐步擴充，例如宗門任務、宗門戰與更多互動。</p>
         </div>
@@ -2657,11 +2764,11 @@ function showTrialResult() {
             const [cycleRewards] = grantRandomRewards(1);
             rewardsHTML += `<div class="message msg-reward">🎉 累積訓練達 ${gameState.total} 次，達成週期獎勵！<br>${cycleRewards.join('<br>')}</div>`;
         }
-        if (TRAINING_MILESTONES[gameState.total]) {
-            const milestone = TRAINING_MILESTONES[gameState.total];
-            gameState.current_title = milestone.title;
-            const [milestoneRewards] = grantRandomRewards(milestone.rewards);
-            rewardsHTML += `<div class="message msg-reward">🏆 恭喜！訓練達 ${gameState.total} 次，達成里程碑！<br>獲得新位階：【${milestone.title}】<br>獲得獎勵：<br>${milestoneRewards.join('<br>')}</div>`;
+        // 以宗門貢獻度為里程碑：更新位階並顯示獎勵
+        const milestoneObj = syncTitleByContribution();
+        if (milestoneObj) {
+            const [mRewards] = grantRandomRewards(milestoneObj.rewards);
+            rewardsHTML += `<div class="message msg-reward">🏆 恭喜！宗門貢獻達到 ${gameState.sectContribution}，晉升仙門位階！<br>獲得新位階：【${milestoneObj.title}】<br>獲得獎勵：<br>${mRewards.join('<br>')}</div>`;
         }
         const countRewards = checkTrainingCountRewards(prevTotalTrainCount, gameState.total);
         if (countRewards) rewardsHTML += `<div class="message msg-reward">${countRewards}</div>`;
@@ -4991,7 +5098,17 @@ function generateAISectMembers(level) {
             const dailyContrib = 5 + Math.floor(Math.random() * 50);
             // 記錄修為索引，方便後續排序
             const stageIndexForSort = getStageIndexByName(stageName);
-            members.push({ name, stage: stageName, power: Math.round(power), dailyContrib, role: '弟子', stageIdx: stageIndexForSort });
+            members.push({
+                name,
+                stage: stageName,
+                power: Math.round(power),
+                dailyContrib,
+                // 新增 lastDailyContrib 與 totalContrib，方便統計與顯示
+                lastDailyContrib: dailyContrib,
+                totalContrib: 0,
+                role: '弟子',
+                stageIdx: stageIndexForSort
+            });
         }
         return members;
     } catch (e) {
@@ -5011,7 +5128,16 @@ function generateAISectMember(level) {
     const power = Math.round(level * 100 + (Math.random() * 2000));
     const dailyContrib = 5 + Math.floor(Math.random() * 50);
     // 直接將 stageIdx 作為排序依據，以便後續比較修為高低
-    return { name, stage: stageName, power, dailyContrib, role: '弟子', stageIdx };
+    return {
+        name,
+        stage: stageName,
+        power,
+        dailyContrib,
+        lastDailyContrib: dailyContrib,
+        totalContrib: 0,
+        role: '弟子',
+        stageIdx
+    };
     } catch (e) {
         console.warn('生成單一 AI 修士失敗', e);
         return { name: '無名修士', stage: '散修', power: 100, dailyContrib: 10, role: '弟子' };
@@ -5123,7 +5249,8 @@ function updateSectDailyContribution() {
     try {
         if (!gameState.sectName || gameState.sectName === '') return;
         const today = getTodayDateStr();
-        if (gameState.sectLastContributionDate === today) return;
+        // 移除僅每日一次更新的限制，讓宗門貢獻在每次調用時都可更新。
+        // 原本以日期判斷造成當日僅更新一次，導致使用者認為貢獻未即時更新。
         let added = 0;
         if (Array.isArray(gameState.sectMembers)) {
             // 每個成員累計其每日貢獻，並同時成長戰力、修為與更新每日貢獻
@@ -5133,7 +5260,11 @@ function updateSectDailyContribution() {
                     m.stageIdx = getStageIndexByName(m.stage);
                 }
                 // 累計每日貢獻值
-                added += m.dailyContrib || 0;
+                const contribVal = m.dailyContrib || 0;
+                added += contribVal;
+                // 將本次的每日貢獻記錄到 lastDailyContrib 並累加 totalContrib
+                m.lastDailyContrib = contribVal;
+                m.totalContrib = (m.totalContrib || 0) + contribVal;
                 // 戰力成長：每天增加 5%
                 m.power = Math.round((m.power || 0) * 1.05);
                 // 修為成長：30% 機率晉級一層
@@ -5178,10 +5309,13 @@ function updateSectDailyContribution() {
                 });
             }
         }
+        // 每次調用都累加當前的貢獻，並更新最近更新日期。
         gameState.sectContribution = (gameState.sectContribution || 0) + added;
         gameState.sectLastContributionDate = today;
         // 更新宗門位階依據最新貢獻與修為
         updateSectRank();
+        // 更新玩家仙門位階（依宗門貢獻度）
+        syncTitleByContribution();
         saveGameState();
     } catch (e) {
         console.warn('更新宗門貢獻失敗', e);
@@ -5228,7 +5362,9 @@ function showSectMembers() {
                     return sb - sa;
                 });
                 sortedMembers.forEach(m => {
-                    html += `<tr><td>${m.name}</td><td>${m.stage}</td><td>${m.power}</td><td>${m.dailyContrib || 0}</td><td>${m.role || '弟子'}</td></tr>`;
+                    // 顯示上次計算的每日貢獻值，若沒有則顯示 0
+                    const contribDisplay = (typeof m.lastDailyContrib === 'number' ? m.lastDailyContrib : (m.dailyContrib || 0));
+                    html += `<tr><td>${m.name}</td><td>${m.stage}</td><td>${m.power}</td><td>${contribDisplay}</td><td>${m.role || '弟子'}</td></tr>`;
                 });
                 html += '</tbody></table>';
             }
