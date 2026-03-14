@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>運氣訓練工具 V3-7（修仙網頁離線版）</title>
+    <title>運氣訓練工具 V3-8（修仙網頁離線版）</title>
     <style>
         :root {
             --bg-color: #f0f2f5;
@@ -1324,7 +1324,7 @@ function renderMainMenu() {
     // 重新建構主選單 HTML：將 infoSection 移至訓練按鈕之前，更新版本號
     let html = `
         <h1>🎯 運氣訓練工具</h1>
-        <h2>V3-7（修仙網頁離線版）</h2>
+        <h2>V3-8（修仙網頁離線版）</h2>
         ${infoSection}
         <p style="text-align:center;">請選擇訓練難度（1 最簡單～10 最困難）</p>
     `;
@@ -2456,7 +2456,7 @@ function showGameRules() {
             <p>宗門是修仙者聚集、互助與競爭的集體。未加入宗門的玩家被稱為<strong>散修</strong>。你可以選擇加入預設的 AI 宗門，或達到要求後自行建立宗門。</p>
             <ul>
                 <li><b>宗門等級無上限：</b>宗門可透過累積貢獻或完成宗門活動不斷提升等級，沒有最高限制。</li>
-                <li><b>建立宗門條件：</b>玩家必須至少達到「渡劫 1 層」修為，方可建立宗門。宗門初始等級為 1，可透過貢獻與活動逐步提升。</li>
+                <li><b>建立宗門條件：</b>玩家必須至少達到「渡劫 1 層以上」修為（包含渡劫一層），方可建立宗門。宗門初始等級為 1，可透過貢獻與活動逐步提升。</li>
                 <li><b>AI 宗門與 AI 修士：</b>遊戲預設有十個 AI 宗門（如紫雲宗、青雲門等），等級預設為 20。加入 AI 宗門時會自動生成若干名 AI 修士（弟子或長老），他們擁有各自的修為、戰力與每日貢獻，會每日替宗門提供貢獻。宗門會自動招收新弟子：每天若成員未達上限，將新增一位 AI 修士。</li>
                 <li><b>宗門成員列表：</b>加入宗門後可查看宗門成員清單，包括 AI 修士與玩家本身，顯示每位成員的修為、戰力、每日貢獻與職位。每日貢獻與戰力會隨修練自動成長。</li>
                 <li><b>宗門總戰力與貢獻：</b>宗門戰力為成員戰力之和，加上宗主本人的修為戰力。每位成員的戰力每天會增加，宗門戰力也會隨之成長。宗門貢獻會每日依 AI 修士的每日貢獻值增加，並可能因每日事件獲得額外貢獻。</li>
@@ -2468,6 +2468,8 @@ function showGameRules() {
                 <li><b>宗門改名與唯一 ID：</b>每個宗門都有唯一的 ID，避免排行榜重複。宗主可支付 100000 靈石修改宗門名稱，名稱變更後宗門 ID 不變。</li>
                 <li><b>宗門倉庫與貢獻：</b>加入宗門後，你在訓練或秘境試煉中獲得的經驗會自動轉為宗門貢獻，並在結算畫面顯示本次貢獻增量。</li>
                 <li><b>上貢功能：</b>可透過「📦 上貢」按鈕捐贈仙丹、靈器、靈符或靈石，捐贈物品按其售價乘以係數計算貢獻，靈石則按 1:1 轉換為貢獻。完成上貢後會顯示獲得的貢獻值，貢獻將累積在宗門倉庫。</li>
+                <li><b>宗門升級系統：</b>當宗門總貢獻與成員數達到相應門檻時，宗主可消耗貢獻提升宗門等級，每升一級需消耗等級×5000 的貢獻並有等級×3 名成員要求。宗門等級提升後將提高最大成員數。</li>
+                <li><b>宗門必須有宗主：</b>每個宗門都需要一名宗主，負責升級與管理宗門。若尚未指定宗主，系統會自動將第一位成員視為宗主。</li>
                 <li><b>成員列表排序：</b>宗門成員列表按職位（宗主 &gt; 長老 &gt; 弟子）及修為高低排序，方便快速查看核心成員與強者。</li>
                 <li><b>AI 修士成長與宗門位階：</b>AI 修士初始修為將根據宗門等級隨機分佈，高階宗門擁有更多元嬰、化神以上修士。每天更新時，AI 修士有機會提升修為並晉升為長老，戰力與每日貢獻也會增加。宗門位階會根據宗門總貢獻與成員平均修為自動調整，分為三流宗門、二流宗門、一流宗門、名門大宗、聖地宗門與仙門聖地，該位階會顯示在宗門介面與排行榜中。</li>
             </ul>
@@ -4557,7 +4559,10 @@ function showSectMenu() {
         if (!gameState.sectName || gameState.sectName === '') {
             // 檢查玩家是否達到渡劫一層修為，方可建立宗門
             const stageName = getCultivationStage(gameState.exp);
-            const canCreate = stageName.includes('渡劫');
+            // 建立宗門需達到渡劫一層以上，透過修為索引判斷而非僅檢查字串
+            const playerStageIdx = getStageIndexByName(stageName);
+            const tribulationIdx = getStageIndexByName('渡劫一層');
+            const canCreate = playerStageIdx >= tribulationIdx;
             html += '<p>你目前是散修，可選擇加入AI宗門或建立自己的宗門。</p>';
             // 列出可加入的 AI 宗門
             html += '<div style="margin-bottom: 12px;"><strong>可加入的 AI 宗門：</strong></div>';
@@ -4568,12 +4573,16 @@ function showSectMenu() {
             if (canCreate) {
                 html += '<button data-action="create-sect">🏯 建立宗門</button>';
             } else {
-                html += '<button disabled>🏯 建立宗門（需渡劫一層修為）</button>';
+                html += '<button disabled>🏯 建立宗門（需渡劫一層以上修為）</button>';
             }
             // 加入玩家創建的宗門需要審核，故暫不開放
             html += '<button disabled>⛩️ 加入其他宗門（需宗主審核）</button>';
             showModal('⛩️ 宗門系統', html, '<button data-action="close-modal">關閉</button>');
         } else {
+            // 確保宗門存在宗主。若尚未指定職位，預設為宗主
+            if (!gameState.sectRole) {
+                gameState.sectRole = '宗主';
+            }
             // 已加入宗門：顯示資訊
             updateSectDailyContribution();
             const name = gameState.sectName;
@@ -4598,8 +4607,8 @@ function showSectMenu() {
             html += '<button data-action="rename-sect">✏️ 改名宗門</button> ';
             html += '<button data-action="tribute-to-sect">📦 上貢</button> ';
             html += '<button data-action="show-sect-storage">🏦 宗門倉庫</button>';
-            // 宗門升級功能保留未來開發
-            html += ' <button disabled>⬆️ 升級宗門（未開放）</button>';
+            // 宗門升級功能：使用動作 upgrade-sect
+            html += ' <button data-action="upgrade-sect">⬆️ 升級宗門</button>';
             showModal('⛩️ 宗門系統', html, '<button data-action="close-modal">關閉</button>');
         }
     } catch (e) {
@@ -4664,10 +4673,12 @@ function confirmCreateSect() {
             showModal('⛩️ 建立宗門', '<p>你已經加入宗門，無法再次建立。</p>', '<button data-action="close-modal">關閉</button>');
             return;
         }
-        // 檢查修為是否達到渡劫一層
+        // 檢查修為是否達到渡劫一層以上
         const stageName = getCultivationStage(gameState.exp);
-        if (!stageName.includes('渡劫')) {
-            showModal('⛩️ 建立宗門', '<p>你的修為尚未達到渡劫一層，無法建立宗門。</p>', '<button data-action="close-modal">關閉</button>');
+        const playerStageIdx = getStageIndexByName(stageName);
+        const tribulationIdx = getStageIndexByName('渡劫一層');
+        if (playerStageIdx < tribulationIdx) {
+            showModal('⛩️ 建立宗門', '<p>你的修為尚未達到渡劫一層以上，無法建立宗門。</p>', '<button data-action="close-modal">關閉</button>');
             return;
         }
         // 設置宗門資料，生成唯一 ID 以防排行榜重複
@@ -4710,6 +4721,44 @@ function confirmLeaveSect() {
     } catch (e) {
         console.warn('退出宗門失敗', e);
         showModal('⛩️ 退出宗門', '<p>退出宗門時發生錯誤。</p>', '<button data-action="close-modal">關閉</button>');
+    }
+}
+
+// 嘗試提升宗門等級：僅宗主可升級。滿足貢獻度與人數條件方可升級。
+function tryUpgradeSect() {
+    try {
+        // 必須已加入宗門
+        if (!gameState.sectName || gameState.sectName === '') {
+            showModal('⛩️ 升級宗門', '<p>你尚未加入任何宗門。</p>', '<button data-action="close-modal">關閉</button>');
+            return;
+        }
+        // 只有宗主可以升級宗門
+        if (gameState.sectRole !== '宗主') {
+            showModal('⛩️ 升級宗門', '<p>只有宗主可以升級宗門。</p>', '<button data-action="close-modal">關閉</button>');
+            return;
+        }
+        const level = gameState.sectLevel || 1;
+        const members = (gameState.sectMembers ? gameState.sectMembers.length : 0) + 1;
+        const contrib = gameState.sectContribution || 0;
+        // 升級條件：需要貢獻 = 等級 * 5000，成員數 = 等級 * 3
+        const needContrib = level * 5000;
+        const needMembers = level * 3;
+        // 判斷是否達到條件
+        if (contrib < needContrib || members < needMembers) {
+            showModal('⛩️ 升級宗門', `<p>升級條件不足</p><p>需要貢獻：${needContrib}</p><p>需要人數：${needMembers}</p>`, '<button data-action="close-modal">關閉</button>');
+            return;
+        }
+        // 扣除對應的貢獻
+        gameState.sectContribution -= needContrib;
+        // 升級等級
+        gameState.sectLevel += 1;
+        // 升級後自動更新宗門位階
+        updateSectRank();
+        saveGameState();
+        showModal('⛩️ 升級宗門成功', `<p>宗門升級至 Lv.${gameState.sectLevel}！</p>`, '<button data-action="close-modal">確認</button>');
+    } catch (e) {
+        console.warn('升級宗門失敗', e);
+        showModal('⛩️ 升級宗門', '<p>升級宗門時發生錯誤。</p>', '<button data-action="close-modal">關閉</button>');
     }
 }
 
@@ -4908,6 +4957,10 @@ function joinAiSect(index) {
         gameState.sectRole = '弟子';
         // 生成 AI 修士成員列表並更新宗門戰力
         gameState.sectMembers = generateAISectMembers(gameState.sectLevel);
+        // 確保宗門擁有宗主：將首位 AI 成員設為宗主
+        if (Array.isArray(gameState.sectMembers) && gameState.sectMembers.length > 0) {
+            gameState.sectMembers[0].role = '宗主';
+        }
         // 更新宗門每日貢獻（第一次加入立即計算）
         updateSectDailyContribution();
         saveGameState();
@@ -5495,6 +5548,8 @@ document.body.addEventListener('click', (event) => {
         'rename-sect': showRenameSectDialog,
         'confirm-rename-sect': confirmRenameSect,
         'show-sect-storage': showSectStorage,
+        // 宗門升級功能
+        'upgrade-sect': tryUpgradeSect,
     };
 
     if (simpleActions[action]) {
