@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>運氣訓練工具 V3-1（修仙網頁離線版）</title>
+    <title>運氣訓練工具 V3-4（修仙網頁離線版）</title>
     <style>
         :root {
             --bg-color: #f0f2f5;
@@ -521,6 +521,38 @@ const CULTIVATION_STAGES = (() => {
 const GRADE_NAMES = ["入品", "下品", "中品", "上品", "極品", "超品", "絕品", "寶品", "地品", "天品"];
 const ITEM_TYPE_ORDER = ['兵器', '功法', '陣法', '仙丹', '靈器', '靈符'];
 
+// ===================== 宗門相關常數 =====================
+// 預設 AI 宗門列表，名稱與初始等級。玩家可直接加入這些宗門，無需審核。
+const AI_SECTS = [
+    { name: '紫雲宗', level: 20 },
+    { name: '青雲門', level: 20 },
+    { name: '天劍宗', level: 20 },
+    { name: '太乙宗', level: 20 },
+    { name: '紫霄宮', level: 20 },
+    { name: '萬劍宗', level: 20 },
+    { name: '混元宗', level: 20 },
+    { name: '蒼穹殿', level: 20 },
+    { name: '星河閣', level: 20 },
+    { name: '靈霞谷', level: 20 },
+];
+
+// 預設宗門名稱列表（200 個），建立宗門時提供下拉選擇。若玩家想輸入自訂名稱，需支付靈石。
+const PRESET_SECT_NAMES = (() => {
+    // 使用簡單組合生成 200 個宗門名稱，例如「玄○宗」「天○門」「○雲殿」等
+    const prefixes1 = ['玄', '天', '紫', '青', '萬', '混', '蒼', '靈', '星', '雲'];
+    const prefixes2 = ['劍', '龍', '鳳', '雷', '霞', '陽', '陰', '虹', '光', '火'];
+    const suffixes = ['宗', '門', '殿', '閣', '谷'];
+    const names = [];
+    for (let p1 = 0; p1 < prefixes1.length && names.length < 200; p1++) {
+        for (let p2 = 0; p2 < prefixes2.length && names.length < 200; p2++) {
+            for (let suf = 0; suf < suffixes.length && names.length < 200; suf++) {
+                names.push(prefixes1[p1] + prefixes2[p2] + suffixes[suf]);
+            }
+        }
+    }
+    return names;
+})();
+
 const WEAPONS = {
     "入品青竹劍": {"type": "multi_choice", "n": 1, "exp_cost": 100, "upgrade_cost": 2000, "desc": "增加1次作答次數"}, "入品銅背刀": {"type": "multi_choice", "n": 1, "exp_cost": 100, "upgrade_cost": 2000, "desc": "增加1次作答次數"}, "入品碎雲槍": {"type": "multi_choice", "n": 1, "exp_cost": 100, "upgrade_cost": 2000, "desc": "增加1次作答次數"},
     "下品寒鋒劍": {"type": "multi_choice", "n": 2, "exp_cost": 200, "upgrade_cost": 4000, "desc": "增加2次作答次數"}, "下品裂石刀": {"type": "multi_choice", "n": 2, "exp_cost": 200, "upgrade_cost": 4000, "desc": "增加2次作答次數"}, "下品游龍槍": {"type": "multi_choice", "n": 2, "exp_cost": 200, "upgrade_cost": 4000, "desc": "增加2次作答次數"},
@@ -744,6 +776,10 @@ const defaultStats = {
     , sectLevel: 1
     , sectContribution: 0
     , sectRole: ""
+    // 宗門成員：包含 AI 修士及玩家本人，用於計算宗門戰力與貢獻
+    , sectMembers: []
+    // 上一次領取每日宗門貢獻的日期，用於每日 AI 貢獻刷新
+    , sectLastContributionDate: ""
 };
 
 function saveToLocalStorage(key, data) {
@@ -771,6 +807,38 @@ function saveGameState() {
     saveToLocalStorage(TRIAL_SCORE_FILE, maxTrialScores);
 }
 
+// 根據玩家的修為與宗門貢獻自動更新其在宗門中的職位（僅適用於非宗主角色）。
+function updateSectRole() {
+    try {
+        if (!gameState || !gameState.sectName || gameState.sectName === '') {
+            gameState.sectRole = '';
+            return;
+        }
+        // 宗主不會自動調整職位
+        if (gameState.sectRole === '宗主') return;
+        // 取得當前修為階段名稱
+        const stageName = getCultivationStage(gameState.exp);
+        // 取得貢獻度
+        const contrib = gameState.sectContribution || 0;
+        // 定義簡易條件：若修為到達『元嬰』或以上且貢獻 >= 1000，提升為長老；否則為弟子
+        const highStages = ['元嬰', '化神', '煉虛', '合體', '大乘', '渡劫', '真仙', '金仙', '太乙金仙', '大羅金仙'];
+        let shouldBeElder = false;
+        for (const st of highStages) {
+            if (stageName.includes(st)) {
+                shouldBeElder = true;
+                break;
+            }
+        }
+        if (shouldBeElder && contrib >= 1000) {
+            gameState.sectRole = '長老';
+        } else {
+            gameState.sectRole = '弟子';
+        }
+    } catch (e) {
+        console.warn('更新宗門職位失敗', e);
+    }
+}
+
 // 取得當前在線人數。離線版固定返回 1，未來連線版可從伺服器更新此值。
 function getOnlineCount() {
     try {
@@ -795,6 +863,12 @@ function loadGameState() {
     }
     if (typeof gameState.sectRole === 'undefined') {
         gameState.sectRole = "";
+    }
+    if (!Array.isArray(gameState.sectMembers)) {
+        gameState.sectMembers = [];
+    }
+    if (typeof gameState.sectLastContributionDate !== 'string') {
+        gameState.sectLastContributionDate = "";
     }
     maxScores = loadFromLocalStorage(SCORE_FILE, {});
     // # 載入秘境試煉最高紀錄，如果尚無則給空物件
@@ -1148,6 +1222,8 @@ function renderMainMenu() {
         if (backBtn) backBtn.style.display = 'inline-block';
     } catch (e) { /* ignore */ }
     grantDailyTicketIfNeeded();
+    // 刷新宗門每日貢獻與戰力
+    try { updateSectDailyContribution(); } catch (e) { /* ignore */ }
     // 初始化每日任務：若當日任務不存在或已過期則生成新任務
     try { initDailyTask(); } catch (e) {}
 
@@ -1206,7 +1282,7 @@ function renderMainMenu() {
     // 重新建構主選單 HTML：將 infoSection 移至訓練按鈕之前，更新版本號
     let html = `
         <h1>🎯 運氣訓練工具</h1>
-        <h2>V3-1（修仙網頁離線版）</h2>
+        <h2>V3-4（修仙網頁離線版）</h2>
         ${infoSection}
         <p style="text-align:center;">請選擇訓練難度（1 最簡單～10 最困難）</p>
     `;
@@ -2322,8 +2398,20 @@ function showGameRules() {
             <p>你可以透過購買並使用<strong>靈根重塑丹</strong>來重新檢測靈根。重新檢測後若新靈根高於原有靈根，將更新為新靈根；若相同或更低則維持原有靈根。</p>
             
             <h3>11. 宗門系統</h3>
-            <p>宗門是修仙者聚集、互助與競爭的集體。若尚未加入宗門，你的身份為散修。你可以建立自己的宗門，成為宗主；宗門等級起始為 1，可隨貢獻提升。</p>
-            <p>在主選單中點擊「⛩️ 宗門系統」可查看你的宗門資訊或建立新宗門。建立宗門後，介面會顯示宗門名稱、等級、貢獻以及你的職位。離線版宗門僅供個人體驗，未來線上版將支援多名玩家共同加入與互動。</p>
+            <p>宗門是修仙者聚集、互助與競爭的集體。未加入宗門的玩家被稱為<strong>散修</strong>。你可以選擇加入預設的 AI 宗門，或達到要求後自行建立宗門。</p>
+            <ul>
+                <li><b>宗門等級無上限：</b>宗門可透過累積貢獻或完成宗門活動不斷提升等級，沒有最高限制。</li>
+                <li><b>建立宗門條件：</b>玩家必須至少達到「渡劫 1 層」修為，方可建立宗門。宗門初始等級為 1，可透過貢獻與活動逐步提升。</li>
+                <li><b>AI 宗門與 AI 修士：</b>遊戲預設有十個 AI 宗門（如紫雲宗、青雲門等），等級預設為 20。加入 AI 宗門時會自動生成若干名 AI 修士（弟子或長老），他們擁有各自的修為、戰力與每日貢獻，會每日替宗門提供貢獻。宗門會自動招收新弟子：每天若成員未達上限，將新增一位 AI 修士。</li>
+                <li><b>宗門成員列表：</b>加入宗門後可查看宗門成員清單，包括 AI 修士與玩家本身，顯示每位成員的修為、戰力、每日貢獻與職位。每日貢獻與戰力會隨修練自動成長。</li>
+                <li><b>宗門總戰力與貢獻：</b>宗門戰力為成員戰力之和，加上宗主本人的修為戰力。每位成員的戰力每天會增加，宗門戰力也會隨之成長。宗門貢獻會每日依 AI 修士的每日貢獻值增加，並可能因每日事件獲得額外貢獻。</li>
+                <li><b>宗門排行榜：</b>提供排行榜，按照宗門綜合實力排序（等級 × 1000 + 戰力 + 貢獻），列出所有 AI 宗門及玩家宗門。可查看每個宗門的等級、戰力與貢獻。</li>
+                <li><b>宗門每日事件：</b>每天都有機會觸發特殊事件，如新增成員、額外宗門貢獻或成員戰力大幅提升。</li>
+                <li><b>宗門職位與提升：</b>職位分為宗主、長老、弟子。宗門職位提升需要同時滿足修為和貢獻度，例如達到元嬰或更高境界且貢獻度達 1000 以上方可升為長老。</li>
+                <li><b>宗門名稱選擇：</b>建立宗門時可以從 200 個預設名稱中選擇。如欲自訂宗門名稱，需支付 100000 靈石。</li>
+                <li><b>加入與審核：</b>加入 AI 宗門無需審核；加入其他玩家創建的宗門需要宗主或管理層審核（離線版暫未開放）。</li>
+            </ul>
+            <p>在主選單中點擊「⛩️ 宗門系統」可查看目前宗門資訊、加入 AI 宗門、建立或退出宗門，並透過成員列表、戰力與貢獻查看宗門整體狀態。宗門功能會隨版本更新逐步擴充，例如宗門任務、宗門戰與更多互動。</p>
         </div>
     `;
     showModal("📜 遊戲規則說明", content, `<button data-action="close-modal">關閉</button>`);
@@ -4396,25 +4484,44 @@ function showSectMenu() {
         let html = '';
         // 未加入宗門：散修狀態
         if (!gameState.sectName || gameState.sectName === '') {
-            html += '<p>你目前是散修，可建立自己的宗門。</p>';
-            html += '<button data-action="create-sect">🏯 建立宗門</button>';
-            // 加入宗門功能保留未來開發
-            html += '<button disabled>⛩️ 加入宗門（未開放）</button>';
+            // 檢查玩家是否達到渡劫一層修為，方可建立宗門
+            const stageName = getCultivationStage(gameState.exp);
+            const canCreate = stageName.includes('渡劫');
+            html += '<p>你目前是散修，可選擇加入AI宗門或建立自己的宗門。</p>';
+            // 列出可加入的 AI 宗門
+            html += '<div style="margin-bottom: 12px;"><strong>可加入的 AI 宗門：</strong></div>';
+            AI_SECTS.forEach((sect, idx) => {
+                html += `<button data-action="join-ai-sect" data-index="${idx}">加入 ${sect.name}（Lv.${sect.level}）</button>`;
+            });
+            // 提供建立宗門按鈕，若未達門檻則禁用並提示
+            if (canCreate) {
+                html += '<button data-action="create-sect">🏯 建立宗門</button>';
+            } else {
+                html += '<button disabled>🏯 建立宗門（需渡劫一層修為）</button>';
+            }
+            // 加入玩家創建的宗門需要審核，故暫不開放
+            html += '<button disabled>⛩️ 加入其他宗門（需宗主審核）</button>';
             showModal('⛩️ 宗門系統', html, '<button data-action="close-modal">關閉</button>');
         } else {
             // 已加入宗門：顯示資訊
+            updateSectDailyContribution();
             const name = gameState.sectName;
             const level = gameState.sectLevel || 1;
             const contrib = gameState.sectContribution || 0;
             const role = gameState.sectRole || '宗主';
+            const power = calcSectPower();
+            const memberCount = (gameState.sectMembers ? gameState.sectMembers.length : 0) + 1;
             html += `<p>宗門名稱：<b>${name}</b></p>`;
             html += `<p>宗門等級：${level}</p>`;
             html += `<p>宗門貢獻：${contrib}</p>`;
+            html += `<p>宗門總戰力：${power}</p>`;
             html += `<p>你的職位：${role}</p>`;
-            html += `<p>目前成員：1 人（離線版僅顯示自己）</p>`;
-            html += '<button data-action="leave-sect">🚪 退出宗門</button>';
+            html += `<p>目前成員：${memberCount} 人</p>`;
+            html += '<button data-action="leave-sect">🚪 退出宗門</button> ';
+            html += '<button data-action="show-sect-members">👥 成員列表</button> ';
+            html += '<button data-action="show-sect-rank">📜 宗門排行榜</button>';
             // 宗門升級功能保留未來開發
-            html += '<button disabled>⬆️ 升級宗門（未開放）</button>';
+            html += ' <button disabled>⬆️ 升級宗門（未開放）</button>';
             showModal('⛩️ 宗門系統', html, '<button data-action="close-modal">關閉</button>');
         }
     } catch (e) {
@@ -4425,25 +4532,64 @@ function showSectMenu() {
 
 // 顯示建立宗門的對話框
 function showCreateSectDialog() {
-    const content = `
-        <p>請輸入宗門名稱：</p>
-        <input id="sectNameInput" type="text" maxlength="20" style="width: 100%; padding: 8px;" placeholder="宗門名稱">
-    `;
-    const footer = `<button data-action="confirm-create-sect">確定</button> <button data-action="close-modal">取消</button>`;
-    showModal('⛩️ 建立宗門', content, footer);
+    try {
+        // 準備下拉選單選項
+        const options = PRESET_SECT_NAMES.map(n => `<option value="${n}">${n}</option>`).join('');
+        const content = `
+            <p>請選擇宗門名稱：</p>
+            <select id="sectNameSelect" style="width: 100%; margin-bottom: 8px; padding: 6px;" onchange="document.getElementById('sectNameInput').disabled = (this.value !== 'custom');">
+                <option value="" disabled selected>選擇預設名稱或自訂</option>
+                ${options}
+                <option value="custom">自訂名稱（需 100000 靈石）</option>
+            </select>
+            <input id="sectNameInput" type="text" maxlength="20" style="width: 100%; padding: 8px;" placeholder="自訂宗門名稱" disabled>
+        `;
+        const footer = `<button data-action="confirm-create-sect">確定</button> <button data-action="close-modal">取消</button>`;
+        showModal('⛩️ 建立宗門', content, footer);
+    } catch (e) {
+        console.warn('顯示建立宗門對話框失敗', e);
+        showModal('⛩️ 建立宗門', '<p>無法顯示建立宗門介面。</p>', '<button data-action="close-modal">關閉</button>');
+    }
 }
 
 // 確認建立宗門：讀取輸入的名稱並創建宗門
 function confirmCreateSect() {
     try {
+        // 取得選擇的名稱
+        const selectEl = document.getElementById('sectNameSelect');
         const inputEl = document.getElementById('sectNameInput');
-        const name = inputEl ? inputEl.value.trim() : '';
+        let selected = selectEl ? selectEl.value : '';
+        let name = '';
+        // 決定名稱與扣費
+        if (selected === 'custom') {
+            name = inputEl ? inputEl.value.trim() : '';
+            if (!name) {
+                showModal('⛩️ 建立宗門', '<p>自訂宗門名稱不能為空。</p>', '<button data-action="close-modal">關閉</button>');
+                return;
+            }
+            // 檢查是否有足夠靈石
+            if ((gameState.stones || 0) < 100000) {
+                showModal('⛩️ 建立宗門', '<p>靈石不足，自訂名稱需 100000 靈石。</p>', '<button data-action="close-modal">關閉</button>');
+                return;
+            }
+            // 扣除靈石
+            gameState.stones -= 100000;
+        } else {
+            name = selected;
+        }
         if (!name) {
-            showModal('⛩️ 建立宗門', '<p>宗門名稱不能為空。</p>', '<button data-action="close-modal">關閉</button>');
+            showModal('⛩️ 建立宗門', '<p>請選擇宗門名稱或輸入自訂名稱。</p>', '<button data-action="close-modal">關閉</button>');
             return;
         }
+        // 檢查是否已有宗門
         if (gameState.sectName && gameState.sectName !== '') {
-            showModal('⛩️ 建立宗門', '<p>你已經有宗門，無法再次建立。</p>', '<button data-action="close-modal">關閉</button>');
+            showModal('⛩️ 建立宗門', '<p>你已經加入宗門，無法再次建立。</p>', '<button data-action="close-modal">關閉</button>');
+            return;
+        }
+        // 檢查修為是否達到渡劫一層
+        const stageName = getCultivationStage(gameState.exp);
+        if (!stageName.includes('渡劫')) {
+            showModal('⛩️ 建立宗門', '<p>你的修為尚未達到渡劫一層，無法建立宗門。</p>', '<button data-action="close-modal">關閉</button>');
             return;
         }
         // 設置宗門資料
@@ -4451,8 +4597,9 @@ function confirmCreateSect() {
         gameState.sectLevel = 1;
         gameState.sectContribution = 0;
         gameState.sectRole = '宗主';
+        gameState.sectMembers = [];
+        gameState.sectLastContributionDate = "";
         saveGameState();
-        // 提示成功
         showModal('⛩️ 建立宗門成功', `<p>宗門「${name}」建立成功！</p>`, '<button data-action="close-modal">確認</button>');
         renderMainMenu();
     } catch (e) {
@@ -4481,6 +4628,205 @@ function confirmLeaveSect() {
     } catch (e) {
         console.warn('退出宗門失敗', e);
         showModal('⛩️ 退出宗門', '<p>退出宗門時發生錯誤。</p>', '<button data-action="close-modal">關閉</button>');
+    }
+}
+
+// 加入 AI 宗門：根據索引加入預設 AI 宗門，無需審核
+function joinAiSect(index) {
+    try {
+        const idx = parseInt(index, 10);
+        if (isNaN(idx) || idx < 0 || idx >= AI_SECTS.length) return;
+        const sect = AI_SECTS[idx];
+        // 設定宗門資料
+        gameState.sectName = sect.name;
+        // AI 宗門等級預設為設定值，並且沒有上限
+        gameState.sectLevel = sect.level;
+        gameState.sectContribution = 0;
+        gameState.sectRole = '弟子';
+        // 生成 AI 修士成員列表並更新宗門戰力
+        gameState.sectMembers = generateAISectMembers(gameState.sectLevel);
+        // 更新宗門每日貢獻（第一次加入立即計算）
+        updateSectDailyContribution();
+        saveGameState();
+        showModal('⛩️ 加入宗門成功', `<p>你已加入 ${sect.name}！</p>`, '<button data-action="close-modal">確認</button>');
+        renderMainMenu();
+    } catch (e) {
+        console.warn('加入 AI 宗門失敗', e);
+        showModal('⛩️ 加入宗門', '<p>加入宗門時發生錯誤。</p>', '<button data-action="close-modal">關閉</button>');
+    }
+}
+
+// 生成 AI 修士成員列表。根據宗門等級決定成員數量與修為，返回包含 name、stage、power、contribution 的物件陣列。
+function generateAISectMembers(level) {
+    try {
+        const namesPool = ['青松真人','玄劍子','天風道人','紫霞仙子','無塵子','流雲真人','青雲道人','太虛子','紫電真人','白雲劍仙','青蓮仙子','太初道人'];
+        const members = [];
+        // 成員數量根據等級：最低 5 人，之後每 2 級增加 1 人，上限 30 人
+        let count = 5 + Math.floor(level / 2);
+        if (count > 30) count = 30;
+        for (let i = 0; i < count; i++) {
+            const name = namesPool[Math.floor(Math.random() * namesPool.length)] + (i+1);
+            // 決定修為階段：隨等級提升調整段位
+            const stageIdx = Math.min(Math.floor(level / 10), CULTIVATION_STAGES.length - 1);
+            // 取得對應修為名稱，CULTIVATION_STAGES 結構為 [需要經驗, 勝率, 修為名稱]
+            const stageName = (CULTIVATION_STAGES[stageIdx] && CULTIVATION_STAGES[stageIdx][2]) || '散修';
+            // 決定戰力與每日貢獻：戰力隨等級及修為上限增加；每日貢獻為一定範圍隨機值
+            const power = level * 100 + (Math.random() * 2000);
+            const dailyContrib = 5 + Math.floor(Math.random() * 50);
+            members.push({ name, stage: stageName, power: Math.round(power), dailyContrib, role: '弟子' });
+        }
+        return members;
+    } catch (e) {
+        console.warn('生成 AI 成員失敗', e);
+        return [];
+    }
+}
+
+// 生成單一 AI 修士成員，供自動招收與每日事件使用
+function generateAISectMember(level) {
+    try {
+        const namesPool = ['青松真人','玄劍子','天風道人','紫霞仙子','無塵子','流雲真人','青雲道人','太虛子','紫電真人','白雲劍仙','青蓮仙子','太初道人'];
+        const name = namesPool[Math.floor(Math.random() * namesPool.length)] + Math.floor(Math.random() * 100);
+        const stageIdx = Math.min(Math.floor(level / 10), CULTIVATION_STAGES.length - 1);
+        const stageName = (CULTIVATION_STAGES[stageIdx] && CULTIVATION_STAGES[stageIdx][2]) || '散修';
+        const power = Math.round(level * 100 + (Math.random() * 2000));
+        const dailyContrib = 5 + Math.floor(Math.random() * 50);
+        return { name, stage: stageName, power, dailyContrib, role: '弟子' };
+    } catch (e) {
+        console.warn('生成單一 AI 修士失敗', e);
+        return { name: '無名修士', stage: '散修', power: 100, dailyContrib: 10, role: '弟子' };
+    }
+}
+
+// 計算宗門總戰力：加總所有成員的 power，再加上玩家的修煉經驗值
+function calcSectPower() {
+    try {
+        let total = 0;
+        if (Array.isArray(gameState.sectMembers)) {
+            for (const m of gameState.sectMembers) {
+                total += m.power || 0;
+            }
+        }
+        // 將玩家經驗也視為戰力之一部分
+        total += (gameState.exp || 0);
+        return total;
+    } catch (e) {
+        console.warn('計算宗門戰力失敗', e);
+        return 0;
+    }
+}
+
+// 更新每日宗門貢獻：如果今天尚未計算，則讓 AI 成員提供每日貢獻值並累加至宗門貢獻
+function updateSectDailyContribution() {
+    try {
+        if (!gameState.sectName || gameState.sectName === '') return;
+        const today = getTodayDateStr();
+        if (gameState.sectLastContributionDate === today) return;
+        let added = 0;
+        if (Array.isArray(gameState.sectMembers)) {
+            // 每個成員累計其每日貢獻，並同時成長戰力與刷新每日貢獻
+            gameState.sectMembers.forEach(m => {
+                added += m.dailyContrib || 0;
+                // 戰力成長：每次每日更新增加 5%
+                m.power = Math.round((m.power || 0) * 1.05);
+                // 重新設定下一次的每日貢獻值在 5~50 之間
+                m.dailyContrib = 5 + Math.floor(Math.random() * 50);
+            });
+            // 自動收徒：若成員數未達上限，招收新的 AI 修士
+            const maxMembers = Math.min(30, 5 + Math.floor((gameState.sectLevel || 1) / 2));
+            if (gameState.sectMembers.length < maxMembers) {
+                const newMember = generateAISectMember(gameState.sectLevel || 1);
+                gameState.sectMembers.push(newMember);
+            }
+            // 宗門每日事件：隨機產生特殊事件
+            const rand = Math.random();
+            if (rand < 0.2) {
+                // 新增成員事件：若尚未達上限，再招收一名修士
+                if (gameState.sectMembers.length < maxMembers) {
+                    gameState.sectMembers.push(generateAISectMember(gameState.sectLevel || 1));
+                }
+            } else if (rand < 0.4) {
+                // 額外貢獻事件：獲得 100~500 隨機貢獻
+                const bonus = 100 + Math.floor(Math.random() * 401);
+                added += bonus;
+            } else if (rand < 0.6) {
+                // 戰力提升事件：所有成員戰力額外增加 10%
+                gameState.sectMembers.forEach(m => {
+                    m.power = Math.round((m.power || 0) * 1.10);
+                });
+            }
+        }
+        gameState.sectContribution = (gameState.sectContribution || 0) + added;
+        gameState.sectLastContributionDate = today;
+        saveGameState();
+    } catch (e) {
+        console.warn('更新宗門貢獻失敗', e);
+    }
+}
+
+// 顯示宗門成員列表
+function showSectMembers() {
+    try {
+        updateSectDailyContribution();
+        let html = '';
+        if (!gameState.sectName || gameState.sectName === '') {
+            html += '<p>你尚未加入任何宗門。</p>';
+        } else {
+            const members = gameState.sectMembers || [];
+            html += `<p>宗門名稱：${gameState.sectName}</p>`;
+            html += `<p>宗門等級：${gameState.sectLevel}</p>`;
+            html += `<p>宗門貢獻：${gameState.sectContribution}</p>`;
+            html += `<p>宗門總戰力：${calcSectPower()}</p>`;
+            html += '<div style="max-height:300px; overflow-y:auto; border:1px solid #ccc; padding:4px;">';
+            if (members.length === 0) {
+                html += '<p>目前只有你一人。</p>';
+            } else {
+                html += '<table style="width:100%;"><thead><tr><th>成員</th><th>修為</th><th>戰力</th><th>每日貢獻</th><th>職位</th></tr></thead><tbody>';
+                members.forEach(m => {
+                    html += `<tr><td>${m.name}</td><td>${m.stage}</td><td>${m.power}</td><td>${m.dailyContrib}</td><td>${m.role || '弟子'}</td></tr>`;
+                });
+                // 玩家本人
+                html += `<tr><td>你</td><td>${getCultivationStage(gameState.exp)}</td><td>${gameState.exp}</td><td>0</td><td>${gameState.sectRole || '宗主'}</td></tr>`;
+                html += '</tbody></table>';
+            }
+            html += '</div>';
+        }
+        showModal('👥 宗門成員列表', html, '<button data-action="close-modal">關閉</button>');
+    } catch (e) {
+        console.warn('顯示成員列表失敗', e);
+        showModal('👥 宗門成員列表', '<p>無法顯示成員列表。</p>', '<button data-action="close-modal">關閉</button>');
+    }
+}
+
+// 顯示宗門排行榜：列出所有 AI 宗門及玩家宗門，依戰力排序
+function showSectLeaderboard() {
+    try {
+        updateSectDailyContribution();
+        const list = [];
+        // AI 宗門
+        AI_SECTS.forEach(sect => {
+            // AI 宗門戰力基於等級
+            const power = sect.level * 1000;
+            list.push({ name: sect.name, level: sect.level, power, contribution: 0 });
+        });
+        // 玩家宗門
+        if (gameState.sectName && gameState.sectName !== '') {
+            list.push({ name: gameState.sectName + '(玩家)', level: gameState.sectLevel, power: calcSectPower(), contribution: gameState.sectContribution });
+        }
+        // 排序：按照綜合實力排序：等級*1000 + 戰力 + 貢獻
+        list.forEach(item => {
+            item.score = (item.level || 1) * 1000 + (item.power || 0) + (item.contribution || 0);
+        });
+        list.sort((a, b) => b.score - a.score);
+        let html = '<table style="width:100%;"><thead><tr><th>排名</th><th>宗門</th><th>等級</th><th>戰力</th><th>貢獻</th></tr></thead><tbody>';
+        list.forEach((item, idx) => {
+            html += `<tr><td>${idx + 1}</td><td>${item.name}</td><td>${item.level}</td><td>${item.power}</td><td>${item.contribution}</td></tr>`;
+        });
+        html += '</tbody></table>';
+        showModal('📜 宗門排行榜', html, '<button data-action="close-modal">關閉</button>');
+    } catch (e) {
+        console.warn('顯示宗門排行榜失敗', e);
+        showModal('📜 宗門排行榜', '<p>無法顯示排行榜。</p>', '<button data-action="close-modal">關閉</button>');
     }
 }
 
@@ -4723,6 +5069,9 @@ document.body.addEventListener('click', (event) => {
         'confirm-create-sect': confirmCreateSect,
         'leave-sect': showLeaveSectConfirm,
         'confirm-leave-sect': confirmLeaveSect,
+        // 顯示宗門成員與排行榜
+        'show-sect-members': showSectMembers,
+        'show-sect-rank': showSectLeaderboard,
     };
 
     if (simpleActions[action]) {
@@ -4759,6 +5108,10 @@ document.body.addEventListener('click', (event) => {
             break;
         case 'refresh-heaven-challenge':
             refreshHeavenChallenge(parseInt(target.dataset.index || '0', 10));
+            break;
+        case 'join-ai-sect':
+            // 加入 AI 宗門，索引由 data-index 傳遞
+            joinAiSect(target.dataset.index);
             break;
         case 'use-item':
             useItem(target.dataset.itemName);
