@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>運氣訓練工具 V3-10（修仙網頁離線版）</title>
+    <title>運氣訓練工具 V3-11（修仙網頁離線版）</title>
     <style>
         :root {
             --bg-color: #f0f2f5;
@@ -576,7 +576,8 @@ function getCurrentContributionMilestone(contrib) {
 // 同步玩家的仙門位階：根據宗門累積貢獻度更新 gameState.current_title。
 function syncTitleByContribution() {
     try {
-        const contrib = gameState.sectContribution || 0;
+        // 依個人在宗門中的累積貢獻度授予仙門位階，而非宗門總貢獻
+        const contrib = gameState.sectPersonalContribution || 0;
         const milestone = getCurrentContributionMilestone(contrib);
         if (milestone && gameState.current_title !== milestone.title) {
             gameState.current_title = milestone.title;
@@ -897,7 +898,9 @@ const defaultStats = {
     , sectContribution: 0
     , sectRole: ""
     , sectId: null
-    , sectStorage: 0
+    , sectStorage: {}
+    // 玩家在宗門中的個人累積貢獻，用於計算仙門位階與職位（不會重置）
+    , sectPersonalContribution: 0
     // 宗門成員：包含 AI 修士及玩家本人，用於計算宗門戰力與貢獻
     , sectMembers: []
     // 上一次領取每日宗門貢獻的日期，用於每日 AI 貢獻刷新
@@ -940,8 +943,8 @@ function updateSectRole() {
         if (gameState.sectRole === '宗主') return;
         // 取得當前修為階段名稱
         const stageName = getCultivationStage(gameState.exp);
-        // 取得貢獻度
-        const contrib = gameState.sectContribution || 0;
+        // 取得個人貢獻度（以個人在宗門中的累積貢獻決定職位）
+        const contrib = gameState.sectPersonalContribution || 0;
         // 定義簡易條件：若修為到達『元嬰』或以上且貢獻 >= 1000，提升為長老；否則為弟子
         const highStages = ['元嬰', '化神', '煉虛', '合體', '大乘', '渡劫', '真仙', '金仙', '太乙金仙', '大羅金仙'];
         let shouldBeElder = false;
@@ -990,9 +993,17 @@ function loadGameState() {
     if (typeof gameState.sectId === 'undefined') {
         gameState.sectId = null;
     }
-    // 若宗門倉庫不存在，初始化為 0（兼容舊版存檔）
-    if (typeof gameState.sectStorage === 'undefined') {
-        gameState.sectStorage = 0;
+    // 若宗門倉庫不存在，初始化為空物件（兼容舊版存檔）
+    if (typeof gameState.sectStorage === 'undefined' || typeof gameState.sectStorage !== 'object') {
+        gameState.sectStorage = {};
+    }
+    // 初始化玩家宗門個人累積貢獻
+    if (typeof gameState.sectPersonalContribution === 'undefined') {
+        gameState.sectPersonalContribution = 0;
+    }
+    // 初始化宗門貢獻每週重置日期（yyyy-mm-dd 格式）
+    if (typeof gameState.sectWeeklyResetDate === 'undefined') {
+        gameState.sectWeeklyResetDate = "";
     }
     if (!Array.isArray(gameState.sectMembers)) {
         gameState.sectMembers = [];
@@ -1412,7 +1423,7 @@ function renderMainMenu() {
     // 重新建構主選單 HTML：將 infoSection 移至訓練按鈕之前，更新版本號
     let html = `
         <h1>🎯 運氣訓練工具</h1>
-        <h2>V3-10（修仙網頁離線版）</h2>
+        <h2>V3-11（修仙網頁離線版）</h2>
         ${infoSection}
         <p style="text-align:center;">請選擇訓練難度（1 最簡單～10 最困難）</p>
     `;
@@ -2455,8 +2466,8 @@ function showStageList() {
 
 function showRankList() {
     // 依貢獻度列出仙門位階封號
-    let content = '仙門位階是根據宗門累積貢獻度授予的榮譽稱號：<br><br><ul style="padding-left: 20px;">';
-    content += Object.entries(CONTRIBUTION_MILESTONES).map(([need, data]) => `<li>貢獻度 <b>${need}</b>：授予位階【${data.title}】</li>`).join('');
+    let content = '仙門位階是根據修士在宗門中的累積貢獻度授予的榮譽稱號：<br><br><ul style="padding-left: 20px;">';
+    content += Object.entries(CONTRIBUTION_MILESTONES).map(([need, data]) => `<li>個人貢獻度 <b>${need}</b>：授予位階【${data.title}】</li>`).join('');
     showModal("仙門位階封號一覽表", `${content}</ul>`, `<button data-action="close-modal">關閉</button>`);
 }
 
@@ -2568,11 +2579,11 @@ function showGameRules() {
                 <li><b>宗門總戰力與貢獻：</b>宗門戰力為成員戰力之和，加上宗主本人的修為戰力。每位成員的戰力會隨時間增加，宗門戰力也會隨之成長。宗門貢獻會依照 AI 修士的貢獻值持續增加，並可能因事件額外提升，所有變化都會定期自動更新。</li>
                 <li><b>宗門排行榜：</b>提供排行榜，按照宗門綜合實力排序（等級 × 1000 + 戰力 + 貢獻），列出所有 AI 宗門及玩家宗門。可查看每個宗門的等級、戰力與貢獻。</li>
                 <li><b>宗門每日事件：</b>每天都有機會觸發特殊事件，如新增成員、額外宗門貢獻或成員戰力大幅提升。</li>
-                <li><b>宗門職位與提升：</b>職位分為宗主、長老、弟子。宗門職位提升需要同時滿足修為和貢獻度，例如達到元嬰或更高境界且貢獻度達 1000 以上方可升為長老。</li>
+                <li><b>宗門職位與提升：</b>職位分為宗主、長老、弟子。你的宗門職位會依個人在宗門中的累積貢獻度與修為自動調整：例如達到元嬰或更高境界且個人貢獻達 1000 以上時晉升為長老；未達條件則為弟子。宗主不會自動降職或升職。</li>
                 <li><b>宗門名稱選擇：</b>建立宗門時可以從 200 個預設名稱中選擇。如欲自訂宗門名稱，需支付 100000 靈石。</li>
                 <li><b>加入與審核：</b>加入 AI 宗門無需審核；加入其他玩家創建的宗門需要宗主或管理層審核（離線版暫未開放）。</li>
                 <li><b>宗門改名與唯一 ID：</b>每個宗門都有唯一的 ID，避免排行榜重複。宗主可支付 100000 靈石修改宗門名稱，名稱變更後宗門 ID 不變。</li>
-                <li><b>宗門倉庫與貢獻：</b>加入宗門後，你在訓練或秘境試煉中獲得的經驗會自動轉為宗門貢獻，並在結算畫面顯示本次貢獻增量。</li>
+                <li><b>宗門貢獻與倉庫：</b>宗門貢獻分為<strong>個人貢獻</strong>與<strong>宗門總貢獻</strong>兩部分。個人貢獻度會永久累計，決定你的仙門位階與宗門職位，永不歸零；宗門總貢獻則在每週日凌晨（00:00）歸零，用於計算宗門等級、戰力與排行。加入宗門後，你在訓練或秘境試煉中獲得的修煉經驗將自動轉為貢獻，在結算畫面顯示本次貢獻增量。宗門倉庫使用與背包相同的顯示方式，清楚列出倉庫中存放的仙丹、靈器、靈符等物資及數量。</li>
                 <li><b>上貢功能：</b>可透過「📦 上貢」按鈕捐贈仙丹、靈器、靈符或靈石，捐贈物品按其售價乘以係數計算貢獻，靈石則按 1:1 轉換為貢獻。完成上貢後會顯示獲得的貢獻值，貢獻將累積在宗門倉庫。</li>
                 <li><b>宗門升級系統：</b>當宗門總貢獻與成員數達到相應門檻時，宗主可消耗貢獻提升宗門等級，每升一級需消耗等級×5000 的貢獻並有等級×3 名成員要求。宗門等級提升後將提高最大成員數。</li>
                 <li><b>宗門必須有宗主：</b>每個宗門都需要一名宗主，負責升級與管理宗門。若尚未指定宗主，系統會自動將第一位成員視為宗主。</li>
@@ -4795,7 +4806,9 @@ function confirmCreateSect() {
         gameState.sectContribution = 0;
         gameState.sectRole = '宗主';
         gameState.sectMembers = [];
-        gameState.sectStorage = 0;
+        gameState.sectStorage = {};
+        gameState.sectPersonalContribution = 0;
+        gameState.sectWeeklyResetDate = "";
         gameState.sectLastContributionDate = "";
         saveGameState();
         showModal('⛩️ 建立宗門成功', `<p>宗門「${name}」建立成功！</p>`, '<button data-action="close-modal">確認</button>');
@@ -4821,7 +4834,9 @@ function confirmLeaveSect() {
         gameState.sectContribution = 0;
         gameState.sectRole = "";
         gameState.sectId = null;
-        gameState.sectStorage = 0;
+        gameState.sectStorage = {};
+        gameState.sectPersonalContribution = 0;
+        gameState.sectWeeklyResetDate = "";
         saveGameState();
         showModal('⛩️ 已退出宗門', '<p>你已退出宗門，現在是一名散修。</p>', '<button data-action="close-modal">關閉</button>');
         renderMainMenu();
@@ -4934,11 +4949,24 @@ function showSectStorage() {
             return;
         }
         const contrib = gameState.sectContribution || 0;
-        const storage = gameState.sectStorage || 0;
-        let content = `<p>宗門倉庫目前儲存：</p>`;
-        content += `<p>🔸 總貢獻：${contrib}</p>`;
-        content += `<p>🔹 倉庫儲量：${storage}</p>`;
-        content += '<p>目前版本僅顯示貢獻與倉庫，更多功能將於後續版本開放。</p>';
+        const storage = (typeof gameState.sectStorage === 'object' && gameState.sectStorage !== null) ? gameState.sectStorage : {};
+        let content = `<p>🔸 宗門總貢獻：${contrib}</p>`;
+        // 將倉庫道具按名稱排序並以背包風格呈現
+        const entries = Object.entries(storage)
+            .filter(([, cnt]) => cnt > 0)
+            .sort(([a], [b]) => compareItemNames(a, b));
+        if (entries.length > 0) {
+            let list = '<ul style="padding-left: 20px; list-style-position: inside;">';
+            entries.forEach(([name, cnt]) => {
+                const catCls = getItemCategoryClass(name);
+                const gradeCls = getItemGradeClass(name);
+                list += `<li class="cat-${catCls}"><span class="grade-${gradeCls}">${name}</span> ×${cnt}</li>`;
+            });
+            list += '</ul>';
+            content += '<p>🔹 倉庫物資列表：</p>' + list;
+        } else {
+            content += '<p>🔹 倉庫為空</p>';
+        }
         showModal('🏦 宗門倉庫', content, '<button data-action="close-modal">關閉</button>');
     } catch (e) {
         console.warn('顯示宗門倉庫失敗', e);
@@ -5036,10 +5064,23 @@ function confirmTribute() {
             showModal('📦 上貢', '<p>請選擇要捐贈的物品或輸入靈石數量。</p>', '<button data-action="close-modal">關閉</button>');
             return;
         }
-        // 增加宗門貢獻並同步倉庫
+        // 增加宗門貢獻並更新倉庫與個人貢獻
         gameState.sectContribution = (gameState.sectContribution || 0) + totalContribution;
-        gameState.sectStorage = (gameState.sectStorage || 0) + totalContribution;
+        // 同步玩家個人宗門貢獻
+        gameState.sectPersonalContribution = (gameState.sectPersonalContribution || 0) + totalContribution;
+        // 將物品存入宗門倉庫（若有物品捐贈）
+        if (itemName) {
+            if (typeof gameState.sectStorage !== 'object' || gameState.sectStorage === null) {
+                gameState.sectStorage = {};
+            }
+            gameState.sectStorage[itemName] = (gameState.sectStorage[itemName] || 0) + qty;
+        }
         saveGameState();
+        // 更新宗門位階與玩家職位、仙門位階
+        updateSectRank();
+        syncTitleByContribution();
+        updateSectRole();
+        // 顯示上貢結果
         showModal('📦 上貢成功', `${details}<p>總貢獻 +${totalContribution}</p>`, '<button data-action="close-modal">確認</button>');
         // 更新主介面
         renderMainMenu();
@@ -5236,8 +5277,14 @@ function addSectContributionFromTraining(expGain) {
         if (gameState && gameState.sectName && gameState.sectName !== '') {
             const addVal = Math.max(1, Math.floor(expGain || 0));
             gameState.sectContribution = (gameState.sectContribution || 0) + addVal;
+            // 同步玩家個人宗門貢獻
+            gameState.sectPersonalContribution = (gameState.sectPersonalContribution || 0) + addVal;
             // 更新宗門位階使其即時反映新增貢獻
             updateSectRank();
+            // 根據個人貢獻更新仙門位階與宗門職位，並保存狀態
+            syncTitleByContribution();
+            updateSectRole();
+            saveGameState();
         }
     } catch (e) {
         console.warn('增加宗門貢獻失敗', e);
@@ -5249,8 +5296,19 @@ function updateSectDailyContribution() {
     try {
         if (!gameState.sectName || gameState.sectName === '') return;
         const today = getTodayDateStr();
-        // 移除僅每日一次更新的限制，讓宗門貢獻在每次調用時都可更新。
-        // 原本以日期判斷造成當日僅更新一次，導致使用者認為貢獻未即時更新。
+        // === 每週日貢獻歸零：於週日凌晨00:00重置宗門總貢獻 ===
+        try {
+            const now = new Date();
+            // getDay(): Sunday = 0
+            if (now.getDay() === 0) {
+                if (gameState.sectWeeklyResetDate !== today) {
+                    gameState.sectContribution = 0;
+                    gameState.sectWeeklyResetDate = today;
+                }
+            }
+        } catch (e) {
+            console.warn('Weekly reset error', e);
+        }
         let added = 0;
         if (Array.isArray(gameState.sectMembers)) {
             // 每個成員累計其每日貢獻，並同時成長戰力、修為與更新每日貢獻
@@ -5262,9 +5320,10 @@ function updateSectDailyContribution() {
                 // 累計每日貢獻值
                 const contribVal = m.dailyContrib || 0;
                 added += contribVal;
-                // 將本次的每日貢獻記錄到 lastDailyContrib 並累加 totalContrib
-                m.lastDailyContrib = contribVal;
+                // 將本次的每日貢獻累加到個人累積貢獻
                 m.totalContrib = (m.totalContrib || 0) + contribVal;
+                // 記錄上次貢獻值以便顯示，但不清零
+                m.lastDailyContrib = contribVal;
                 // 戰力成長：每天增加 5%
                 m.power = Math.round((m.power || 0) * 1.05);
                 // 修為成長：30% 機率晉級一層
@@ -5275,11 +5334,14 @@ function updateSectDailyContribution() {
                         if (newStage && newStage[2]) {
                             m.stage = newStage[2];
                         }
-                        // 職位晉升：當修為達到化神以上，弟子晉升為長老
-                        const sName = m.stage || '';
-                        if (m.role === '弟子' && (sName.includes('化神') || sName.includes('煉虛') || sName.includes('合體') || sName.includes('大乘') || sName.includes('渡劫'))) {
-                            m.role = '長老';
-                        }
+                    }
+                }
+                // 根據累積貢獻調整職位：宗主除外
+                if (m.role !== '宗主') {
+                    if ((m.totalContrib || 0) >= 1000) {
+                        m.role = '長老';
+                    } else {
+                        m.role = '弟子';
                     }
                 }
                 // 重置下一次的每日貢獻值為 5~50 隨機
@@ -5309,6 +5371,19 @@ function updateSectDailyContribution() {
                 });
             }
         }
+        // 更新玩家個人職位：非宗主時依累積個人貢獻自動調整
+        try {
+            if (gameState.sectRole !== '宗主') {
+                const personal = gameState.sectPersonalContribution || 0;
+                if (personal >= 1000) {
+                    gameState.sectRole = '長老';
+                } else {
+                    gameState.sectRole = '弟子';
+                }
+            }
+        } catch (e) {
+            console.warn('更新玩家職位失敗', e);
+        }
         // 每次調用都累加當前的貢獻，並更新最近更新日期。
         gameState.sectContribution = (gameState.sectContribution || 0) + added;
         gameState.sectLastContributionDate = today;
@@ -5325,6 +5400,15 @@ function updateSectDailyContribution() {
 // 顯示宗門成員列表
 function showSectMembers() {
     try {
+        // 在顯示成員列表前，先刷新宗門每日貢獻、位階與職位，確保累積貢獻與職位即時更新
+        try {
+            updateSectDailyContribution();
+            syncTitleByContribution();
+            updateSectRole();
+            saveGameState();
+        } catch (e) {
+            console.warn('刷新宗門成員資料時發生錯誤', e);
+        }
         updateSectDailyContribution();
         let html = '';
         if (!gameState.sectName || gameState.sectName === '') {
@@ -5339,7 +5423,7 @@ function showSectMembers() {
             if (members.length === 0) {
                 html += '<p>目前只有你一人。</p>';
             } else {
-                html += '<table style="width:100%;"><thead><tr><th>成員</th><th>修為</th><th>戰力</th><th>每日貢獻</th><th>職位</th></tr></thead><tbody>';
+                html += '<table style="width:100%;"><thead><tr><th>成員</th><th>修為</th><th>戰力</th><th>累積貢獻</th><th>職位</th></tr></thead><tbody>';
                 // 將玩家也視為成員，合併後一併排序。依職位（宗主＞長老＞弟子）及修為高低排序
                 const combinedMembers = (members.slice());
                 const playerStageName = getCultivationStage(gameState.exp);
@@ -5362,8 +5446,13 @@ function showSectMembers() {
                     return sb - sa;
                 });
                 sortedMembers.forEach(m => {
-                    // 顯示上次計算的每日貢獻值，若沒有則顯示 0
-                    const contribDisplay = (typeof m.lastDailyContrib === 'number' ? m.lastDailyContrib : (m.dailyContrib || 0));
+                    // 顯示累積貢獻：玩家使用個人貢獻，AI 成員使用其 totalContrib
+                    let contribDisplay = 0;
+                    if (m.name === '你') {
+                        contribDisplay = gameState.sectPersonalContribution || 0;
+                    } else {
+                        contribDisplay = m.totalContrib || 0;
+                    }
                     html += `<tr><td>${m.name}</td><td>${m.stage}</td><td>${m.power}</td><td>${contribDisplay}</td><td>${m.role || '弟子'}</td></tr>`;
                 });
                 html += '</tbody></table>';
