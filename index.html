@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>運氣訓練工具 V3-12（修仙網頁離線版）</title>
+    <title>運氣訓練工具 V3-13（修仙網頁離線版）</title>
     <style>
         :root {
             --bg-color: #f0f2f5;
@@ -129,6 +129,12 @@
         .cat-elixir { background-color: #fff8e1; }
         .cat-artifact { background-color: #e0f7fa; }
         .cat-charm { background-color: #fce4ec; }
+
+        /*
+         * 新增護甲分類底色：輕微米色，用以區分於其他道具類別。
+         * 防具屬於宗門商店新增的道具，可減免處罰率。
+         */
+        .cat-armor { background-color: #f5f5dc; }
 
         /*
          * 道具品階字體顏色區隔
@@ -608,7 +614,8 @@ const CULTIVATION_STAGES = (() => {
 })();
 
 const GRADE_NAMES = ["入品", "下品", "中品", "上品", "極品", "超品", "絕品", "寶品", "地品", "天品"];
-const ITEM_TYPE_ORDER = ['兵器', '功法', '陣法', '仙丹', '靈器', '靈符'];
+// 新增護甲分類於道具類型順序，用於背包與商店分類顯示
+const ITEM_TYPE_ORDER = ['兵器', '功法', '陣法', '仙丹', '靈器', '靈符', '護甲'];
 
 // ===================== 宗門相關常數 =====================
 // 預設 AI 宗門列表，名稱與初始等級。玩家可直接加入這些宗門，無需審核。
@@ -725,7 +732,18 @@ const ITEM_EFFECTS = {
     "入品靈符": {"type": "wrong", "n": 1, "desc": "排除 1 個錯誤答案"}, "下品靈符": {"type": "wrong", "n": 2, "desc": "排除 2 個錯誤答案"}, "中品靈符": {"type": "wrong", "n": 3, "desc": "排除 3 個錯誤答案"}, "上品靈符": {"type": "wrong", "n": 4, "desc": "排除 4 個錯誤答案"}, "極品靈符": {"type": "wrong", "n": 5, "desc": "排除 5 個錯誤答案"}, "超品靈符": {"type": "wrong", "n": 6, "desc": "排除 6 個錯誤答案"}, "絕品靈符": {"type": "wrong", "n": 7, "desc": "排除 7 個錯誤答案"}, "寶品靈符": {"type": "wrong", "n": 8, "desc": "排除 8 個錯誤答案"}, "地品靈符": {"type": "wrong", "n": 9, "desc": "排除 9 個錯誤答案"}, "天品靈符": {"type": "wrong", "n": 10, "desc": "排除 10 個錯誤答案"},
     "入品靈器": {"type": "correct", "n": 0, "desc": "顯示全部正確答案"}, "下品靈器": {"type": "correct", "n": 0, "desc": "顯示全部正確答案"}, "中品靈器": {"type": "correct", "n": 0, "desc": "顯示全部正確答案"}, "上品靈器": {"type": "correct", "n": 0, "desc": "顯示全部正確答案"}, "極品靈器": {"type": "correct", "n": 0, "desc": "顯示全部正確答案"}, "超品靈器": {"type": "correct", "n": 0, "desc": "顯示全部正確答案"}, "絕品靈器": {"type": "correct", "n": 0, "desc": "顯示全部正確答案"}, "寶品靈器": {"type": "correct", "n": 0, "desc": "顯示全部正確答案"}, "地品靈器": {"type": "correct", "n": 0, "desc": "顯示全部正確答案"}, "天品靈器": {"type": "correct", "n": 0, "desc": "顯示全部正確答案"},
     ...WEAPONS, ...TECHNIQUES, ...FORMATIONS,
-    "靈根重塑丹": {"type": "exp", "n": 0, "change_root": true, "desc": "重塑靈根：重新檢測靈根，若結果更高則更新"}
+    "靈根重塑丹": {"type": "exp", "n": 0, "change_root": true, "desc": "重塑靈根：重新檢測靈根，若結果更高則更新"},
+    // 新增護甲類道具：可減免處罰率，需要裝備後生效。各等級護甲提供不同的減免百分比。
+    "入品護甲": {"type": "defense", "reduce": 5, "desc": "減免 5% 處罰"},
+    "下品護甲": {"type": "defense", "reduce": 7, "desc": "減免 7% 處罰"},
+    "中品護甲": {"type": "defense", "reduce": 10, "desc": "減免 10% 處罰"},
+    "上品護甲": {"type": "defense", "reduce": 15, "desc": "減免 15% 處罰"},
+    "極品護甲": {"type": "defense", "reduce": 20, "desc": "減免 20% 處罰"},
+    "超品護甲": {"type": "defense", "reduce": 25, "desc": "減免 25% 處罰"},
+    "絕品護甲": {"type": "defense", "reduce": 30, "desc": "減免 30% 處罰"},
+    "寶品護甲": {"type": "defense", "reduce": 35, "desc": "減免 35% 處罰"},
+    "地品護甲": {"type": "defense", "reduce": 40, "desc": "減免 40% 處罰"},
+    "天品護甲": {"type": "defense", "reduce": 50, "desc": "減免 50% 處罰"}
 };
 
 const ITEM_STONE_PRICES = {
@@ -737,6 +755,20 @@ const ITEM_STONE_PRICES = {
 
 const ITEM_RENAME_MAP = {
     "普通仙丹": "入品仙丹", "普通靈符": "入品靈符", "普通靈器": "入品靈器",
+};
+
+// 宗門商店防禦裝備售價（以貢獻點計價）。每種護甲分別需要不同貢獻值購買。
+const ARMOR_SECT_PRICES = {
+    '入品護甲': 100,
+    '下品護甲': 200,
+    '中品護甲': 300,
+    '上品護甲': 400,
+    '極品護甲': 500,
+    '超品護甲': 600,
+    '絕品護甲': 700,
+    '寶品護甲': 800,
+    '地品護甲': 900,
+    '天品護甲': 1000
 };
 
 const EMOJIS = ["😀","😂","😎","😡","😭","😍","😱","😴","😇","🤖"];
@@ -905,6 +937,9 @@ const defaultStats = {
     , sectMembers: []
     // 上一次領取每日宗門貢獻的日期，用於每日 AI 貢獻刷新
     , sectLastContributionDate: ""
+    // 新增防禦裝備相關：目前裝備的護甲名稱與其減免值（百分比）
+    , equippedArmor: ""
+    , defenseReduction: 0
 };
 
 function saveToLocalStorage(key, data) {
@@ -1187,6 +1222,7 @@ function getItemCategoryClass(itemName) {
         case '仙丹': return 'elixir';
         case '靈器': return 'artifact';
         case '靈符': return 'charm';
+        case '護甲': return 'armor';
         default: return 'unknown';
     }
 }
@@ -1423,7 +1459,7 @@ function renderMainMenu() {
     // 重新建構主選單 HTML：將 infoSection 移至訓練按鈕之前，更新版本號
     let html = `
         <h1>🎯 運氣訓練工具</h1>
-        <h2>V3-12（修仙網頁離線版）</h2>
+        <h2>V3-13（修仙網頁離線版）</h2>
         ${infoSection}
         <p style="text-align:center;">請選擇訓練難度（1 最簡單～10 最困難）</p>
     `;
@@ -1433,6 +1469,8 @@ function renderMainMenu() {
     }
     html += `<button class="btn-trial" data-action="render-secret-trial-menu">🌌 秘境試煉</button>`;
     html += `<button class="btn-trial" data-action="show-trial-leaderboard">🏆 秘境排行榜</button>`;
+    // 將宗門系統按鈕移至修仙排行榜之前
+    html += `<button class="btn-other" data-action="show-sect-menu">⛩️ 宗門系統</button>`;
     html += `<button class="btn-other" data-action="show-cultivation-leaderboard">🌄 修仙排行榜</button>`;
     html += `
         <button class="btn-other" data-action="show-stage-list">📜 查看修仙等級一覽</button>
@@ -1445,7 +1483,7 @@ function renderMainMenu() {
         <button class="btn-other" data-action="show-signin-calendar">📆 簽到日曆</button>
         <button class="btn-other" data-action="show-daily-task">🗒️ 每日任務</button>
         <button class="btn-other" data-action="show-heaven-challenges">🌠 天命挑戰</button>
-        <button class="btn-other" data-action="show-sect-menu">⛩️ 宗門系統</button>
+        <!-- 已將宗門系統按鈕提前顯示，此處移除重複項 -->
         <button class="btn-other" data-action="test-sfx">🔊 測試音效</button>
         <button class="btn-other" data-action="show-login-menu">👤 帳號</button>
         <button class="btn-secondary" data-action="exchange-stones" data-count="1">🪙 兌換 1 靈石 (-${STONE_EXCHANGE_COST} EXP)</button>
@@ -2584,23 +2622,27 @@ function showGameRules() {
                 <li><b>宗門等級無上限：</b>宗門可透過累積貢獻或完成宗門活動不斷提升等級，沒有最高限制。</li>
                 <li><b>建立宗門條件：</b>玩家必須至少達到「渡劫 1 層以上」修為（包含渡劫一層），方可建立宗門。宗門初始等級為 1，可透過貢獻與活動逐步提升。</li>
                 <li><b>AI 宗門與 AI 修士：</b>遊戲預設有十個 AI 宗門（如紫雲宗、青雲門等），等級預設為 20。加入 AI 宗門時會自動生成若干名 AI 修士（弟子或長老），他們擁有各自的修為、戰力與每日貢獻，會每日替宗門提供貢獻。宗門會自動招收新弟子：每天若成員未達上限，將新增一位 AI 修士。</li>
-                <li><b>宗門成員列表：</b>加入宗門後可查看宗門成員清單，包括 AI 修士與玩家本身。列表會顯示每位成員的修為、戰力、<b>累積貢獻</b>與職位，並顯示目前成員人數與最大可容納人數。累積貢獻為每個人在宗門中的總貢獻值，永不歸零，用於判定個人位階與職位。戰力與貢獻會隨每日修練自動成長。</li>
-                <li><b>宗門總戰力與貢獻：</b>宗門戰力為成員戰力之和，加上宗主本人的修為戰力。每位成員的戰力會隨時間增加，宗門戰力也會隨之成長。宗門貢獻會依照 AI 修士的貢獻值持續增加，並可能因事件額外提升，所有變化都會定期自動更新。</li>
+                <li><b>宗門成員列表：</b>加入宗門後可查看宗門成員清單，包括 AI 修士與玩家本身。列表會顯示每位成員的修為、戰力、訓練次數、靈根、<b>累積貢獻</b>與職位，並顯示目前成員人數與最大可容納人數。累積貢獻為每個人在宗門中的總貢獻值，永不歸零，用於判定個人位階與職位。AI 修士戰力不再隨時間自動增長，而是透過訓練次數突破後提升。</li>
+                <li><b>宗門總戰力與貢獻：</b>宗門戰力為成員戰力之和，加上宗主本人的修為戰力。AI 修士的戰力不會隨時間自動提升；只有當其訓練次數達到門檻並突破修為時，戰力才會提升，因此宗門戰力會隨成員突破而增加。宗門貢獻則依 AI 修士的每日貢獻值持續增加，並可能因事件額外提升，所有變化都會定期自動更新。</li>
                 <li><b>宗門排行榜：</b>提供排行榜，按照宗門綜合實力排序（等級 × 1000 + 戰力 + 貢獻），列出所有 AI 宗門及玩家宗門。可查看每個宗門的等級、戰力與貢獻。</li>
                 <li><b>宗門每日事件：</b>每天都有機會觸發特殊事件，如新增成員、額外宗門貢獻或成員戰力大幅提升。</li>
                 <li><b>宗門職位與提升：</b>職位分為宗主、長老、弟子。你的宗門職位會依個人在宗門中的累積貢獻度與修為自動調整：例如達到元嬰或更高境界且個人貢獻達 1000 以上時晉升為長老；未達條件則為弟子。宗主不會自動降職或升職。</li>
+                <li><b>宗門成員上限：</b>宗門每升一級最大成員數增加 5 名（含宗主）。等級 1 可容納 5 人，等級 2 可容納 10 人，以此類推。</li>
+                <li><b>宗門介面調整：</b>宗門系統按鈕已移至修仙排行榜上方，點擊後不再彈出視窗，而是進入完整的宗門頁面，頁面底部提供返回主選單按鈕。</li>
+                <li><b>AI 修士訓練次數與靈根：</b>AI 修士新增「訓練次數」與「靈根」屬性，會每天自動累積訓練次數。當訓練次數達到門檻時，才可突破修為並提升戰力；靈根越高，所需訓練次數越少。</li>
+                <li><b>防禦裝備護甲：</b>宗門商店新增加的護甲道具需裝備在身上才生效，減免處罰率，每位修士只能穿戴一件護甲。</li>
                 <li><b>宗門名稱選擇：</b>建立宗門時可以從 200 個預設名稱中選擇。如欲自訂宗門名稱，需支付 100000 靈石。</li>
                 <li><b>加入與審核：</b>加入 AI 宗門無需審核；加入其他玩家創建的宗門需要宗主或管理層審核（離線版暫未開放）。</li>
                 <li><b>宗門改名與唯一 ID：</b>每個宗門都有唯一的 ID，避免排行榜重複。宗主可支付 100000 靈石修改宗門名稱，名稱變更後宗門 ID 不變。</li>
                 <li><b>宗門貢獻與倉庫：</b>宗門貢獻分為<strong>個人貢獻</strong>與<strong>宗門總貢獻</strong>兩部分。個人貢獻會永久累計，用於決定你的仙門位階與宗門職位；宗門總貢獻則在每週日 00:00 歸零，用於計算宗門等級、戰力與排行。加入宗門後，你在訓練或秘境試煉中獲得的修煉經驗將自動轉為貢獻，在結算畫面顯示本次貢獻增量。宗門倉庫使用與背包相同的顯示方式，清楚列出倉庫中存放的仙丹、靈器、靈符等物資及數量。</li>
-                <li><b>宗門商店、宗門秘境與宗門擂台：</b>宗門介面新增「宗門商店」「宗門秘境」「宗門擂台」按鈕。宗門商店可用個人貢獻購買防禦裝備等道具（未來可降低處罰率）；宗門秘境讓成員共同挑戰特殊副本；宗門擂台提供宗門內外的比武競技。功能將分階段開放，詳情請關注後續版本。</li>
+                <li><b>宗門商店、宗門秘境與宗門擂台：</b>宗門介面新增「宗門商店」「宗門秘境」「宗門擂台」按鈕。宗門商店現已上架防禦裝備「護甲」，共分十個品階，可用個人貢獻購買並必須裝備在身上才能減免處罰機制，每位修士只能穿戴一件護甲；宗門秘境讓成員共同挑戰特殊副本；宗門擂台提供宗門內外的比武競技。功能將分階段開放，詳情請關注後續版本。</li>
                 <li><b>退出宗門按鈕位置：</b>為避免誤操作，退出宗門按鈕已移至宗門系統選單最底部，請謹慎操作。</li>
                 <li><b>上貢功能：</b>可透過「📦 上貢」按鈕捐贈仙丹、靈器、靈符或靈石，捐贈物品按其售價乘以係數計算貢獻，靈石則按 1:1 轉換為貢獻。完成上貢後會顯示獲得的貢獻值，貢獻將累積在宗門倉庫。</li>
                 <li><b>宗門升級系統：</b>當宗門總貢獻與成員數達到相應門檻時，宗主可消耗貢獻提升宗門等級，每升一級需消耗等級×5000 的貢獻並有等級×3 名成員要求。宗門等級提升後將提高最大成員數。</li>
                 <li><b>宗門必須有宗主：</b>每個宗門都需要一名宗主，負責升級與管理宗門。若尚未指定宗主，系統會自動將第一位成員視為宗主。</li>
                 <li><b>成員列表排序：</b>宗門成員列表按職位（宗主 &gt; 長老 &gt; 弟子）及修為高低排序，方便快速查看核心成員與強者。</li>
-                <li><b>AI 修士成長與宗門位階：</b>AI 修士初始修為將根據宗門等級隨機分佈，高階宗門擁有更多元嬰、化神以上修士。每天更新時，AI 修士有機會提升修為並晉升為長老，戰力與每日貢獻也會增加。宗門位階會根據宗門總貢獻與成員平均修為自動調整，分為三流宗門、二流宗門、一流宗門、名門大宗、聖地宗門與仙門聖地，該位階會顯示在宗門介面與排行榜中。</li>
-                <li><b>宗門自動運轉系統：</b>為了讓宗門更加活躍，系統會在背景定時更新宗門狀態。每隔一段時間（例如每分鐘）會自動呼叫宗門的每日更新函式，使每位 AI 修士提供貢獻並有機會提升修為，並將最新的宗門貢獻與戰力即時反映在主畫面和排行榜中。</li>
+                <li><b>AI 修士成長與宗門位階：</b>AI 修士的初始修為依宗門等級隨機決定，高階宗門擁有更多元嬰、化神以上修士。AI 修士具備訓練次數與靈根，每天自動累積訓練次數；只有當訓練次數達到其修為門檻時，才會突破修為並增加戰力，靈根越高所需次數越少。宗門位階依宗門總貢獻與成員平均修為自動調整，分為三流宗門、二流宗門、一流宗門、名門大宗、聖地宗門與仙門聖地，在宗門介面與排行榜中顯示。</li>
+                <li><b>宗門自動運轉系統：</b>系統會在背景定時更新宗門狀態，每隔一段時間（例如每分鐘）呼叫宗門每日更新函式，使每位 AI 修士提供貢獻並累積訓練次數，並處理隨機事件。AI 修士不會因時間而直接提升修為；只有訓練次數達標時才會突破。最新的宗門貢獻與戰力會即時反映在主畫面和排行榜中。</li>
             </ul>
             <p>在主選單中點擊「⛩️ 宗門系統」可查看目前宗門資訊、加入 AI 宗門、建立或退出宗門，並透過成員列表、戰力與貢獻查看宗門整體狀態。宗門功能會隨版本更新逐步擴充，例如宗門任務、宗門戰與更多互動。</p>
         </div>
@@ -3219,6 +3261,8 @@ function showBackpack() {
       { id: 'formation', label: '陣法' },
       { id: 'artifact', label: '靈器' },
       { id: 'charm', label: '靈符' },
+      // 新增護甲分類：顯示宗門商店購入的防禦裝備
+      { id: 'armor', label: '護甲' },
       { id: 'quick', label: '快捷道具' }
     ];
     // 建立分類按鈕列
@@ -3246,6 +3290,8 @@ function showBackpack() {
           return effType === 'correct';
         case 'charm':
           return effType === 'wrong';
+        case 'armor':
+          return effType === 'defense';
         case 'quick':
           return Array.isArray(gameState.quickItems) &&
             gameState.quickItems.includes(name) &&
@@ -3258,13 +3304,26 @@ function showBackpack() {
     if (filteredInventory.length === 0) {
       listHtml = "<p>該分類下沒有道具</p>";
     } else {
-      listHtml = '<ul style="padding-left: 20px; list-style-position: inside;">' +
-        filteredInventory.map(([name, qty]) => {
-          const catCls = getItemCategoryClass(name);
-          const gradeCls = getItemGradeClass(name);
-          return `<li class="cat-${catCls}"><span class="grade-${gradeCls}">${name}</span> ×${qty}</li>`;
-        }).join('') +
-        '</ul>';
+      // 若為護甲分類，列出可裝備的護甲並提供裝備按鈕
+      if (currentBackpackFilter === 'armor') {
+        listHtml = '<ul style="padding-left: 20px; list-style-position: inside;">' +
+          filteredInventory.map(([name, qty]) => {
+            const catCls = getItemCategoryClass(name);
+            const gradeCls = getItemGradeClass(name);
+            const isEquipped = (gameState.equippedArmor === name);
+            const equipLabel = isEquipped ? '（已裝備）' : '';
+            return `<li class="cat-${catCls}"><button data-action="equip-armor" data-name="${name}" style="background:none;border:none;padding:0;color:inherit;text-decoration:underline;cursor:pointer;"><span class="grade-${gradeCls}">${name}</span>${equipLabel}</button> ×${qty}</li>`;
+          }).join('') +
+          '</ul>';
+      } else {
+        listHtml = '<ul style="padding-left: 20px; list-style-position: inside;">' +
+          filteredInventory.map(([name, qty]) => {
+            const catCls = getItemCategoryClass(name);
+            const gradeCls = getItemGradeClass(name);
+            return `<li class="cat-${catCls}"><span class="grade-${gradeCls}">${name}</span> ×${qty}</li>`;
+          }).join('') +
+          '</ul>';
+      }
     }
     // 組合內容：分類按鈕列 + 道具列表
     const content = `<div>${filterBar}</div>${listHtml}`;
@@ -3273,6 +3332,33 @@ function showBackpack() {
       <button class="btn-danger" data-action="delete-items">🗑️ 刪除道具</button>
       <button data-action="manage-quick-items">⚡ 快捷道具設定</button>`;
     showModal("🎒 背包", content, footer);
+}
+
+// 裝備護甲：將指定護甲設為當前裝備，更新防禦減免值
+function equipArmor(name) {
+    try {
+        // 確認背包中有該護甲
+        if (!gameState.inventory || !gameState.inventory[name] || gameState.inventory[name] <= 0) {
+            addTemporaryMessage('⚠️ 背包中沒有該護甲', 'msg-shop-fail');
+            return;
+        }
+        // 更新裝備狀態
+        gameState.equippedArmor = name;
+        const eff = ITEM_EFFECTS[name];
+        // 更新減免百分比
+        if (eff && typeof eff.reduce === 'number') {
+            gameState.defenseReduction = eff.reduce;
+        } else {
+            gameState.defenseReduction = 0;
+        }
+        saveGameState();
+        // 顯示提示訊息
+        addTemporaryMessage(`✅ 已裝備 ${name} (減免 ${gameState.defenseReduction}% 處罰)`, 'msg-shop');
+    } catch (e) {
+        console.warn('裝備護甲失敗', e);
+    }
+    // 裝備後刷新背包畫面以顯示已裝備標記
+    showBackpack();
 }
 
 // === 使用仙丹（EXP 類）===
@@ -4720,8 +4806,8 @@ function showSectMenu() {
             const role = gameState.sectRole || '宗主';
             const power = calcSectPower();
             const memberCount = (gameState.sectMembers ? gameState.sectMembers.length : 0) + 1;
-            // 計算最大可容納人數：AI 修士上限（5 + Level/2）加上玩家本人
-            const maxCap = Math.min(30, 5 + Math.floor(level / 2)) + 1;
+            // 計算最大可容納人數：每個等級增加 5 個名額，總額包含玩家本人
+            const maxCap = (level || 1) * 5;
             // 更新宗門位階以確保顯示最新值
             updateSectRank();
             const rank = gameState.sectRankName || '三流宗門';
@@ -4750,6 +4836,140 @@ function showSectMenu() {
         console.warn('顯示宗門介面失敗', e);
         showModal('⛩️ 宗門系統', '<p>無法顯示宗門介面。</p>', '<button data-action="close-modal">關閉</button>');
     }
+}
+
+// ===================== 新宗門頁面 =====================
+// Render sect main page (replacing modal). Displays sect info or join/create options and includes return to main menu.
+function renderSectMenu() {
+    try {
+        clearApp();
+        let html = '<h2>⛩️ 宗門系統</h2>';
+        // 若未加入宗門：提供加入或建立選項
+        if (!gameState.sectName || gameState.sectName === '') {
+            // 判斷是否達到渡劫一層，可建立宗門
+            const stageName = getCultivationStage(gameState.exp);
+            const playerStageIdx = getStageIndexByName(stageName);
+            const tribulationIdx = getStageIndexByName('渡劫一層');
+            const canCreate = playerStageIdx >= tribulationIdx;
+            html += '<p>你目前是散修，可選擇加入 AI 宗門或建立自己的宗門。</p>';
+            html += '<div style="margin-bottom: 12px;"><strong>可加入的 AI 宗門：</strong></div>';
+            AI_SECTS.forEach((sect, idx) => {
+                html += `<button data-action="join-ai-sect" data-index="${idx}">加入 ${sect.name}（Lv.${sect.level}）</button>`;
+            });
+            // 建立宗門按鈕
+            if (canCreate) {
+                html += '<button data-action="create-sect">🏯 建立宗門</button>';
+            } else {
+                html += '<button disabled>🏯 建立宗門（需渡劫一層以上修為）</button>';
+            }
+            // 其他玩家宗門（離線版暫不開放）
+            html += '<button disabled>⛩️ 加入其他宗門（需宗主審核）</button>';
+        } else {
+            // 已加入宗門：顯示資訊
+            // 確保宗門存在宗主
+            if (!gameState.sectRole) {
+                gameState.sectRole = '宗主';
+            }
+            // 更新每日貢獻與位階
+            updateSectDailyContribution();
+            const name = gameState.sectName;
+            const level = gameState.sectLevel || 1;
+            const contrib = gameState.sectContribution || 0;
+            const role = gameState.sectRole || '宗主';
+            const power = calcSectPower();
+            const memberCount = (gameState.sectMembers ? gameState.sectMembers.length : 0) + 1;
+            // 最大人數 = 等級 * 5（包含玩家本人）
+            const maxCap = (level || 1) * 5;
+            // 更新宗門位階
+            updateSectRank();
+            const rank = gameState.sectRankName || '三流宗門';
+            html += `<p>宗門名稱：<b>${name}</b></p>`;
+            html += `<p>宗門位階：${rank}</p>`;
+            html += `<p>宗門等級：${level}</p>`;
+            html += `<p>宗門貢獻：${contrib}</p>`;
+            html += `<p>宗門總戰力：${power}</p>`;
+            html += `<p>你的職位：${role}</p>`;
+            html += `<p>目前成員：${memberCount} / ${maxCap} 人</p>`;
+            // 功能按鈕
+            html += '<button data-action="show-sect-members">👥 成員列表</button> ';
+            html += '<button data-action="show-sect-rank">📜 宗門排行榜</button> ';
+            html += '<button data-action="rename-sect">✏️ 改名宗門</button> ';
+            html += '<button data-action="tribute-to-sect">📦 上貢</button> ';
+            html += '<button data-action="show-sect-storage">🏦 宗門倉庫</button> ';
+            html += '<button data-action="show-sect-shop">🛒 宗門商店</button> ';
+            html += '<button data-action="show-sect-secret">🗺️ 宗門秘境</button> ';
+            html += '<button data-action="show-sect-arena">🥋 宗門擂台</button> ';
+            html += '<button data-action="upgrade-sect">⬆️ 升級宗門</button> ';
+            // 退出宗門
+            html += '<button data-action="leave-sect">🚪 退出宗門</button>';
+        }
+        // 返回主選單按鈕
+        html += '<hr><button data-action="render-main-menu">🔙 返回主選單</button>';
+        app.innerHTML = html;
+    } catch (e) {
+        console.warn('顯示宗門頁面失敗', e);
+        showModal('⛩️ 宗門系統', '<p>無法顯示宗門介面。</p>', '<button data-action="close-modal">關閉</button>');
+    }
+}
+
+// Render sect shop page. Displays armor items purchasable with sect contributions.
+function renderSectShop() {
+    try {
+        clearApp();
+        let html = '<h2>🛒 宗門商店</h2>';
+        // 檢查是否加入宗門
+        if (!gameState.sectName || gameState.sectName === '') {
+            html += '<p>你尚未加入宗門，無法購買宗門專屬道具。</p>';
+        } else {
+            // 顯示當前宗門貢獻與裝備資訊
+            html += `<p>當前宗門貢獻：${gameState.sectContribution || 0}</p>`;
+            html += `<p>已裝備護甲：${gameState.equippedArmor ? gameState.equippedArmor + '（減免' + gameState.defenseReduction + '%）' : '無'}</p>`;
+            // 列出可購買的護甲
+            html += '<ul style="padding-left:20px; list-style-position: inside;">';
+            Object.keys(ARMOR_SECT_PRICES).forEach(name => {
+                const price = ARMOR_SECT_PRICES[name];
+                const catCls = getItemCategoryClass(name);
+                const gradeCls = getItemGradeClass(name);
+                html += `<li class="cat-${catCls}"><span class="grade-${gradeCls}">${name}</span> - 價值 ${price} 貢獻 <button data-action="buy-sect-armor" data-name="${name}">購買</button></li>`;
+            });
+            html += '</ul>';
+        }
+        // 返回宗門選單與主選單
+        html += '<hr><button data-action="render-sect-menu">🔙 返回宗門選單</button> ';
+        html += '<button data-action="render-main-menu">🔙 返回主選單</button>';
+        app.innerHTML = html;
+    } catch (e) {
+        console.warn('無法顯示宗門商店', e);
+        showModal('🛒 宗門商店', '<p>無法顯示宗門商店。</p>', '<button data-action="close-modal">關閉</button>');
+    }
+}
+
+// 購買宗門護甲
+function buySectArmor(name) {
+    try {
+        const cost = ARMOR_SECT_PRICES[name] || 0;
+        const contrib = gameState.sectContribution || 0;
+        if (!gameState.sectName || gameState.sectName === '') {
+            addTemporaryMessage('⚠️ 尚未加入宗門，無法購買護甲。', 'msg-shop-fail');
+            return;
+        }
+        if (contrib < cost) {
+            addTemporaryMessage(`⚠️ 宗門貢獻不足，購買 ${name} 需要 ${cost} 貢獻。`, 'msg-shop-fail');
+            return;
+        }
+        // 扣除宗門貢獻
+        gameState.sectContribution = contrib - cost;
+        // 新增到玩家背包
+        if (!gameState.inventory) gameState.inventory = {};
+        gameState.inventory[name] = (gameState.inventory[name] || 0) + 1;
+        saveGameState();
+        addTemporaryMessage(`✅ 已購買 ${name}，花費 ${cost} 貢獻。`, 'msg-shop');
+    } catch (e) {
+        console.warn('購買護甲失敗', e);
+        addTemporaryMessage('⚠️ 購買護甲時發生錯誤。', 'msg-shop-fail');
+    }
+    // 回到商店頁面以更新顯示
+    renderSectShop();
 }
 
 // 顯示建立宗門的對話框
@@ -5175,9 +5395,9 @@ function generateAISectMembers(level) {
     try {
         const namesPool = ['青松真人','玄劍子','天風道人','紫霞仙子','無塵子','流雲真人','青雲道人','太虛子','紫電真人','白雲劍仙','青蓮仙子','太初道人'];
         const members = [];
-        // 成員數量根據等級：最低 5 人，之後每 2 級增加 1 人，上限 30 人
-        let count = 5 + Math.floor(level / 2);
-        if (count > 30) count = 30;
+        // 成員數量根據等級：每提升一級，增加 5 人名額（包含宗主）。AI 修士名額為總額減 1。
+        const totalCap = (level || 1) * 5;
+        let count = Math.max(0, totalCap - 1);
         for (let i = 0; i < count; i++) {
             const name = namesPool[Math.floor(Math.random() * namesPool.length)] + (i+1);
             // 決定修為階段：依宗門等級選擇適合的修為類別
@@ -5198,7 +5418,10 @@ function generateAISectMembers(level) {
                 lastDailyContrib: dailyContrib,
                 totalContrib: 0,
                 role: '弟子',
-                stageIdx: stageIndexForSort
+                stageIdx: stageIndexForSort,
+                // 新增訓練次數與靈根：AI 修士需依訓練次數成長，隨機靈根 1-10
+                trainCount: 0,
+                linggen: 1 + Math.floor(Math.random() * 10)
             });
         }
         return members;
@@ -5227,11 +5450,49 @@ function generateAISectMember(level) {
         lastDailyContrib: dailyContrib,
         totalContrib: 0,
         role: '弟子',
-        stageIdx
+        stageIdx,
+        // 新增訓練次數與靈根屬性，用於後續成長判定
+        trainCount: 0,
+        linggen: 1 + Math.floor(Math.random() * 10)
     };
     } catch (e) {
         console.warn('生成單一 AI 修士失敗', e);
         return { name: '無名修士', stage: '散修', power: 100, dailyContrib: 10, role: '弟子' };
+    }
+}
+
+// ===================== AI 修士成長邏輯 =====================
+// 根據 AI 修士的訓練次數與靈根，判定是否突破修為。
+// AI 成員升級需要達到特定訓練次數門檻，門檻由下一層修為所需經驗除以靈根決定，向上取整。
+// 成功突破後重置其訓練次數，提升 stageIdx 與 stage 名稱，並根據新的修為提升戰力。
+function updateAIMemberGrowth(member) {
+    try {
+        if (!member || member.role === '宗主') return;
+        // 確保存在 stageIdx
+        if (typeof member.stageIdx !== 'number') {
+            member.stageIdx = getStageIndexByName(member.stage);
+        }
+        const currentIdx = member.stageIdx;
+        const nextIdx = currentIdx + 1;
+        // 若存在下一個修為層級，計算所需訓練次數門檻
+        if (CULTIVATION_STAGES[nextIdx]) {
+            const needExp = CULTIVATION_STAGES[nextIdx][0];
+            const root = member.linggen || 1;
+            // 訓練門檻 = 需經驗 ÷ 靈根，向上取整，至少為 1
+            const requiredTrain = Math.max(1, Math.ceil(needExp / root));
+            if ((member.trainCount || 0) >= requiredTrain) {
+                // 突破修為
+                member.stageIdx = nextIdx;
+                member.stage = CULTIVATION_STAGES[nextIdx][2];
+                // 提升戰力：基於原有戰力增加 10%，再加 100 作為基礎提升
+                const basePower = typeof member.power === 'number' ? member.power : 0;
+                member.power = Math.round(basePower * 1.1 + 100);
+                // 重置訓練次數，等待下一次突破
+                member.trainCount = 0;
+            }
+        }
+    } catch (e) {
+        console.warn('AI 修士升級失敗', e);
     }
 }
 
@@ -5374,17 +5635,16 @@ function updateSectDailyContribution() {
                 m.totalContrib = (m.totalContrib || 0) + contribVal;
                 // 記錄上次貢獻值以便顯示，但不清零
                 m.lastDailyContrib = contribVal;
-                // 戰力成長：每天增加 5%
-                m.power = Math.round((m.power || 0) * 1.05);
-                // 修為成長：30% 機率晉級一層
-                if (Math.random() < 0.30) {
-                    if (typeof m.stageIdx === 'number' && m.stageIdx < CULTIVATION_STAGES.length - 1) {
-                        m.stageIdx += 1;
-                        const newStage = CULTIVATION_STAGES[m.stageIdx];
-                        if (newStage && newStage[2]) {
-                            m.stage = newStage[2];
-                        }
+                // AI 修士不再自動提升修為與戰力；需透過訓練次數成長。
+                // 每日累計訓練次數 +1，作為未來修為成長依據。
+                m.trainCount = (m.trainCount || 0) + 1;
+                // 根據訓練次數與靈根決定是否突破修為。
+                try {
+                    if (typeof updateAIMemberGrowth === 'function') {
+                        updateAIMemberGrowth(m);
                     }
+                } catch (e) {
+                    console.warn('AI 成員成長檢查失敗', e);
                 }
                 // 根據累積貢獻調整職位：宗主除外
                 if (m.role !== '宗主') {
@@ -5397,8 +5657,9 @@ function updateSectDailyContribution() {
                 // 重置下一次的每日貢獻值為 5~50 隨機
                 m.dailyContrib = 5 + Math.floor(Math.random() * 50);
             });
-            // 自動收徒：若成員數未達上限，招收新的 AI 修士
-            const maxMembers = Math.min(30, 5 + Math.floor((gameState.sectLevel || 1) / 2));
+            // 自動收徒：若成員數未達上限，招收新的 AI 修士。上限 = 等級 * 5 - 1 (預留宗主 1 人)
+            const totalCap = (gameState.sectLevel || 1) * 5;
+            const maxMembers = Math.max(0, totalCap - 1);
             if (gameState.sectMembers.length < maxMembers) {
                 const newMember = generateAISectMember(gameState.sectLevel || 1);
                 gameState.sectMembers.push(newMember);
@@ -5415,10 +5676,7 @@ function updateSectDailyContribution() {
                 const bonus = 100 + Math.floor(Math.random() * 401);
                 added += bonus;
             } else if (rand < 0.6) {
-                // 戰力提升事件：所有成員戰力額外增加 10%
-                gameState.sectMembers.forEach(m => {
-                    m.power = Math.round((m.power || 0) * 1.10);
-                });
+                // 戰力提升事件已取消自動提升，避免 AI 修士自動成長
             }
         }
         // 更新玩家個人職位：非宗主時依累積個人貢獻自動調整
@@ -5473,7 +5731,7 @@ function showSectMembers() {
             if (members.length === 0) {
                 html += '<p>目前只有你一人。</p>';
             } else {
-                html += '<table style="width:100%;"><thead><tr><th>成員</th><th>修為</th><th>戰力</th><th>累積貢獻</th><th>職位</th></tr></thead><tbody>';
+                html += '<table style="width:100%;"><thead><tr><th>成員</th><th>修為</th><th>戰力</th><th>訓練次數</th><th>靈根</th><th>累積貢獻</th><th>職位</th></tr></thead><tbody>';
                 // 將玩家也視為成員，合併後一併排序。依職位（宗主＞長老＞弟子）及修為高低排序
                 const combinedMembers = (members.slice());
                 const playerStageName = getCultivationStage(gameState.exp);
@@ -5498,12 +5756,26 @@ function showSectMembers() {
                 sortedMembers.forEach(m => {
                     // 顯示累積貢獻：玩家使用個人貢獻，AI 成員使用其 totalContrib
                     let contribDisplay = 0;
+                    let trainDisplay = 0;
+                    let rootDisplay = '';
                     if (m.name === '你') {
                         contribDisplay = gameState.sectPersonalContribution || 0;
+                        trainDisplay = gameState.total || 0;
+                        // 玩家靈根顯示
+                        const gg = gameState.linggen;
+                        if (gg === undefined || gg === null) {
+                            rootDisplay = '未測';
+                        } else if (gg <= 0) {
+                            rootDisplay = '無靈根';
+                        } else {
+                            rootDisplay = gg + ' 靈根';
+                        }
                     } else {
                         contribDisplay = m.totalContrib || 0;
+                        trainDisplay = m.trainCount || 0;
+                        rootDisplay = (m.linggen !== undefined) ? (m.linggen + ' 靈根') : '';
                     }
-                    html += `<tr><td>${m.name}</td><td>${m.stage}</td><td>${m.power}</td><td>${contribDisplay}</td><td>${m.role || '弟子'}</td></tr>`;
+                    html += `<tr><td>${m.name}</td><td>${m.stage}</td><td>${m.power}</td><td>${trainDisplay}</td><td>${rootDisplay}</td><td>${contribDisplay}</td><td>${m.role || '弟子'}</td></tr>`;
                 });
                 html += '</tbody></table>';
             }
@@ -5743,6 +6015,8 @@ document.body.addEventListener('click', (event) => {
     
     const simpleActions = {
         'render-main-menu': renderMainMenu, 'render-test-luck-menu': renderTestLuckMenu,
+        // 宗門系統頁面渲染（非模態視窗）
+        'render-sect-menu': renderSectMenu, 'render-sect-shop': renderSectShop,
         'show-stage-list': showStageList, 'show-rank-list': showRankList,
         'show-backpack': showBackpack, 'show-shop': showShop,
         'reset-stats': resetTrainingStats, 'clear-scores': clearMaxScores,
@@ -5808,7 +6082,8 @@ document.body.addEventListener('click', (event) => {
             } catch (e) { console.warn('無法再次挑戰秘境', e); }
         },
         // 宗門系統：顯示、建立、退出等
-        'show-sect-menu': showSectMenu,
+        // 將宗門系統改為頁面顯示（非模態視窗）
+        'show-sect-menu': renderSectMenu,
         'create-sect': showCreateSectDialog,
         'confirm-create-sect': confirmCreateSect,
         'leave-sect': showLeaveSectConfirm,
@@ -5826,9 +6101,11 @@ document.body.addEventListener('click', (event) => {
         // 宗門升級功能
         'upgrade-sect': tryUpgradeSect,
         // 新增宗門商店、秘境、擂台
-        'show-sect-shop': showSectShop,
+        // 宗門商店改為頁面模式
+        'show-sect-shop': renderSectShop,
         'show-sect-secret': showSectSecret,
         'show-sect-arena': showSectArena,
+        // 裝備護甲為含參數動作，在後段 switch-case 中處理
     };
 
     if (simpleActions[action]) {
@@ -5888,6 +6165,14 @@ document.body.addEventListener('click', (event) => {
             // 切換背包道具分類過濾器，再重新顯示背包
             currentBackpackFilter = target.dataset.filter;
             showBackpack();
+            break;
+        case 'equip-armor':
+            // 裝備護甲：參數為 data-name
+            equipArmor(target.dataset.name);
+            break;
+        case 'buy-sect-armor':
+            // 購買護甲：參數為 data-name
+            buySectArmor(target.dataset.name);
             break;
     }
 });
