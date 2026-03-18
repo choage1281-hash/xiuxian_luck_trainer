@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>運氣訓練工具 V3-13（修仙網頁離線版）</title>
+    <title>運氣訓練工具 V3-14（修仙網頁離線版）</title>
     <style>
         :root {
             --bg-color: #f0f2f5;
@@ -135,6 +135,14 @@
          * 防具屬於宗門商店新增的道具，可減免處罰率。
          */
         .cat-armor { background-color: #f5f5dc; }
+
+        /*
+         * 新增護身符、靈盾與護脘分類底色：採用淡綠、淡藍與淡粉色區分，
+         * 方便辨識不同防禦類型道具。
+         */
+        .cat-amulet { background-color: #e6ffe6; }
+        .cat-shield { background-color: #e6f7ff; }
+        .cat-cuff { background-color: #fff0f5; }
 
         /*
          * 道具品階字體顏色區隔
@@ -615,7 +623,8 @@ const CULTIVATION_STAGES = (() => {
 
 const GRADE_NAMES = ["入品", "下品", "中品", "上品", "極品", "超品", "絕品", "寶品", "地品", "天品"];
 // 新增護甲分類於道具類型順序，用於背包與商店分類顯示
-const ITEM_TYPE_ORDER = ['兵器', '功法', '陣法', '仙丹', '靈器', '靈符', '護甲'];
+// 新增護身符、靈盾、護腕等防具類型於道具排序中
+const ITEM_TYPE_ORDER = ['兵器', '功法', '陣法', '仙丹', '靈器', '靈符', '護甲', '護身符', '靈盾', '護腕'];
 
 // ===================== 宗門相關常數 =====================
 // 預設 AI 宗門列表，名稱與初始等級。玩家可直接加入這些宗門，無需審核。
@@ -725,6 +734,15 @@ const UPGRADE_PATHS = {
     "入品松鹤長青功": "下品青木養元術", "下品青木養元術": "中品赤陽煉體篇", "中品赤陽煉體篇": "上品紫府還真經", "上品紫府還真經": "極品離火冥雷經", "極品離火冥雷經": "超品無相玄功", "超品無相玄功": "絕品五雷正法", "絕品五雷正法": "寶品先天一炁訣", "寶品先天一炁訣": "地品厚土無疆訣", "地品厚土無疆訣": "天品無極本源經",
     "入品三才聚靈陣": "下品五行護山陣", "下品五行護山陣": "中品七曜星門陣", "中品七曜星門陣": "上品九宮幻天陣", "上品九宮幻天陣": "極品玄武鎮海陣", "極品玄武鎮海陣": "超品青龍騰雲陣", "超品青龍騰雲陣": "絕品四象合一鎮域陣", "絕品四象合一鎮域陣": "寶品萬靈歸源陣", "寶品萬靈歸源陣": "地品九地鎮魔大陣", "地品九地鎮魔大陣": "天品先天一炁化劫大陣",
     "入品四門陷敵陣": "下品六甲迷踪陣", "下品六甲迷踪陣": "中品八門金鎖陣", "中品八門金鎖陣": "上品十二天罡陣", "上品十二天罡陣": "極品白虎裂天陣", "極品白虎裂天陣": "超品朱雀焚天陣", "超品朱雀焚天陣": "絕品太乙混元封天陣", "絕品太乙混元封天陣": "寶品先天兩儀反演陣", "寶品先天兩儀反演陣": "地品厚土歸墟陣", "地品厚土歸墟陣": "天品無極乾坤界域陣",
+    // 新增護甲、護身符、靈盾、護腕升級路徑
+    '入品護甲': '下品護甲', '下品護甲': '中品護甲', '中品護甲': '上品護甲', '上品護甲': '極品護甲',
+    '極品護甲': '超品護甲', '超品護甲': '絕品護甲', '絕品護甲': '寶品護甲', '寶品護甲': '地品護甲', '地品護甲': '天品護甲',
+    '入品護身符': '下品護身符', '下品護身符': '中品護身符', '中品護身符': '上品護身符', '上品護身符': '極品護身符',
+    '極品護身符': '超品護身符', '超品護身符': '絕品護身符', '絕品護身符': '寶品護身符', '寶品護身符': '地品護身符', '地品護身符': '天品護身符',
+    '入品靈盾': '下品靈盾', '下品靈盾': '中品靈盾', '中品靈盾': '上品靈盾', '上品靈盾': '極品靈盾',
+    '極品靈盾': '超品靈盾', '超品靈盾': '絕品靈盾', '絕品靈盾': '寶品靈盾', '寶品靈盾': '地品靈盾', '地品靈盾': '天品靈盾',
+    '入品護腕': '下品護腕', '下品護腕': '中品護腕', '中品護腕': '上品護腕', '上品護腕': '極品護腕',
+    '極品護腕': '超品護腕', '超品護腕': '絕品護腕', '絕品護腕': '寶品護腕', '寶品護腕': '地品護腕', '地品護腕': '天品護腕'
 };
 
 const ITEM_EFFECTS = {
@@ -770,6 +788,65 @@ const ARMOR_SECT_PRICES = {
     '地品護甲': 900,
     '天品護甲': 1000
 };
+
+// 在宗門商店中，各品階基礎道具的購買成本（以個人貢獻點計算）
+const SECT_GRADE_COSTS = {
+    '入品': 100,
+    '下品': 200,
+    '中品': 400,
+    '上品': 800,
+    '極品': 1600,
+    '超品': 3200,
+    '絕品': 6400,
+    '寶品': 12800,
+    '地品': 25600,
+    '天品': 51200
+};
+
+// 新增護身符、靈盾、護腕等防禦道具：需裝備後方可生效，減免處罰與護甲類似
+const NEW_DEFENSE_ITEMS = {
+    '入品護身符': { type: 'amulet', reduce: 5, desc: '減免 5% 處罰' },
+    '下品護身符': { type: 'amulet', reduce: 7, desc: '減免 7% 處罰' },
+    '中品護身符': { type: 'amulet', reduce: 10, desc: '減免 10% 處罰' },
+    '上品護身符': { type: 'amulet', reduce: 15, desc: '減免 15% 處罰' },
+    '極品護身符': { type: 'amulet', reduce: 20, desc: '減免 20% 處罰' },
+    '超品護身符': { type: 'amulet', reduce: 25, desc: '減免 25% 處罰' },
+    '絕品護身符': { type: 'amulet', reduce: 30, desc: '減免 30% 處罰' },
+    '寶品護身符': { type: 'amulet', reduce: 35, desc: '減免 35% 處罰' },
+    '地品護身符': { type: 'amulet', reduce: 40, desc: '減免 40% 處罰' },
+    '天品護身符': { type: 'amulet', reduce: 50, desc: '減免 50% 處罰' },
+    '入品靈盾': { type: 'shield', reduce: 5, desc: '減免 5% 處罰' },
+    '下品靈盾': { type: 'shield', reduce: 7, desc: '減免 7% 處罰' },
+    '中品靈盾': { type: 'shield', reduce: 10, desc: '減免 10% 處罰' },
+    '上品靈盾': { type: 'shield', reduce: 15, desc: '減免 15% 處罰' },
+    '極品靈盾': { type: 'shield', reduce: 20, desc: '減免 20% 處罰' },
+    '超品靈盾': { type: 'shield', reduce: 25, desc: '減免 25% 處罰' },
+    '絕品靈盾': { type: 'shield', reduce: 30, desc: '減免 30% 處罰' },
+    '寶品靈盾': { type: 'shield', reduce: 35, desc: '減免 35% 處罰' },
+    '地品靈盾': { type: 'shield', reduce: 40, desc: '減免 40% 處罰' },
+    '天品靈盾': { type: 'shield', reduce: 50, desc: '減免 50% 處罰' },
+    '入品護腕': { type: 'cuff', reduce: 5, desc: '減免 5% 處罰' },
+    '下品護腕': { type: 'cuff', reduce: 7, desc: '減免 7% 處罰' },
+    '中品護腕': { type: 'cuff', reduce: 10, desc: '減免 10% 處罰' },
+    '上品護腕': { type: 'cuff', reduce: 15, desc: '減免 15% 處罰' },
+    '極品護腕': { type: 'cuff', reduce: 20, desc: '減免 20% 處罰' },
+    '超品護腕': { type: 'cuff', reduce: 25, desc: '減免 25% 處罰' },
+    '絕品護腕': { type: 'cuff', reduce: 30, desc: '減免 30% 處罰' },
+    '寶品護腕': { type: 'cuff', reduce: 35, desc: '減免 35% 處罰' },
+    '地品護腕': { type: 'cuff', reduce: 40, desc: '減免 40% 處罰' },
+    '天品護腕': { type: 'cuff', reduce: 50, desc: '減免 50% 處罰' },
+};
+
+// 將新增防禦道具併入 ITEM_EFFECTS 供後續使用
+Object.assign(ITEM_EFFECTS, NEW_DEFENSE_ITEMS);
+
+// 宗門商店可購買的基礎道具清單
+const SECT_SHOP_ITEMS = [
+    '入品青竹劍', '入品銅背刀', '入品碎雲槍',
+    '入品築基吐納訣', '入品松鹤長青功',
+    '入品三才聚靈陣', '入品四門陷敵陣',
+    '入品護甲', '入品護身符', '入品靈盾', '入品護腕'
+];
 
 const EMOJIS = ["😀","😂","😎","😡","😭","😍","😱","😴","😇","🤖"];
 const ANIMALS = ["🐶","🐱","🐭","🐹","🐰","🦊","🐻","🐼","🐨","🐯","🦁","🐮","🐷","🐸","🐵","🦄","🐔","🐧","🐦","🐤"];
@@ -940,6 +1017,11 @@ const defaultStats = {
     // 新增防禦裝備相關：目前裝備的護甲名稱與其減免值（百分比）
     , equippedArmor: ""
     , defenseReduction: 0
+    // 新增裝備欄位：兵器、護身符、靈盾、護腕（防具/攻擊道具）
+    , equippedWeapon: ""
+    , equippedAmulet: ""
+    , equippedShield: ""
+    , equippedCuff: ""
 };
 
 function saveToLocalStorage(key, data) {
@@ -1223,6 +1305,9 @@ function getItemCategoryClass(itemName) {
         case '靈器': return 'artifact';
         case '靈符': return 'charm';
         case '護甲': return 'armor';
+        case '護身符': return 'amulet';
+        case '靈盾': return 'shield';
+        case '護腕': return 'cuff';
         default: return 'unknown';
     }
 }
@@ -1459,7 +1544,7 @@ function renderMainMenu() {
     // 重新建構主選單 HTML：將 infoSection 移至訓練按鈕之前，更新版本號
     let html = `
         <h1>🎯 運氣訓練工具</h1>
-        <h2>V3-13（修仙網頁離線版）</h2>
+        <h2>V3-14（修仙網頁離線版）</h2>
         ${infoSection}
         <p style="text-align:center;">請選擇訓練難度（1 最簡單～10 最困難）</p>
     `;
@@ -2014,22 +2099,8 @@ function checkTrainingCountRewards(prev, current) {
         }
     };
 
-    if (prev < 100 && current >= 100) {
-        const item = Math.random() < 0.5 ? "入品三才聚靈陣" : "入品四門陷敵陣";
-        addItem(item);
-        msg.push(`🎁 百煉成鋼！訓練達 100 次，領悟陣法：【${item}】`);
-    }
-    if (prev < 200 && current >= 200) {
-        const item = Math.random() < 0.5 ? "入品築基吐納訣" : "入品松鹤長青功";
-        addItem(item);
-        msg.push(`🎁 道心穩固！訓練達 200 次，習得功法：【${item}】`);
-    }
-    if (prev < 500 && current >= 500) {
-        const item = ["入品青竹劍", "入品銅背刀", "入品碎雲槍"][Math.floor(Math.random() * 3)];
-        addItem(item);
-        msg.push(`🎁 鋒芒初露！訓練達 500 次，獲得兵器：【${item}】`);
-    }
-    return msg.join('<br>');
+    // V3-14 調整：兵器、功法與陣法不再透過訓練次數取得，改由宗門商店購買
+    return '';
 }
 
 function commentForScore(score, expected) {
@@ -2568,7 +2639,7 @@ function showGameRules() {
             </ul>
             <p>道具可在商店購買，或使用靈石進行升級以提升效果。升級時消耗的靈石會即刻從你的帳戶扣除並刷新主畫面。</p>
             <h3>4. 處罰機制</h3>
-            <p>若訓練結算得分低於該難度要求的勝率門檻，你的修煉經驗將被扣減。與門檻差距每增加 5 分，處罰率提高：差 5 分扣 50%，差 10 分扣 55%，差 15 分扣 60%，差 20 分扣 65%，差 25 分扣 70%，差 30 分扣 75%，依此類推。當修煉經驗為 0 時不再扣減。未來將推出防禦裝備，可減免部分處罰率。</p>
+            <p>若訓練結算得分低於該難度要求的勝率門檻，你的修煉經驗將被扣減。與門檻差距每增加 5 分，處罰率提高：差 5 分扣 50%，差 10 分扣 55%，差 15 分扣 60%，差 20 分扣 65%，差 25 分扣 70%，差 30 分扣 75%，依此類推。當修煉經驗為 0 時不再扣減。自 V3-14 起，引入多種防禦裝備（護甲、護身符、靈盾、護腕），裝備後可減免一定比例的處罰率，越高品階減免越多。</p>
 
             <h3>5. 完美與秘境獎勵</h3>
             <p>在普通訓練中，若在 20 題中取得 100 分滿分，將根據挑戰難度額外獲得隨機獎勵：難度 1 時額外 1 份獎勵，難度 2 時 2 份，以此類推。</p>
@@ -3253,7 +3324,7 @@ function showBackpack() {
     if (!currentBackpackFilter) {
       currentBackpackFilter = 'weapon';
     }
-    // 定義分類列表：仙丹、兵器、功法、陣法、靈器、靈符、快捷道具
+    // 定義分類列表：仙丹、兵器、功法、陣法、靈器、靈符、護甲、護身符、靈盾、護腕、快捷道具
     const backpackFilterDefs = [
       { id: 'elixir', label: '仙丹' },
       { id: 'weapon', label: '兵器' },
@@ -3261,8 +3332,10 @@ function showBackpack() {
       { id: 'formation', label: '陣法' },
       { id: 'artifact', label: '靈器' },
       { id: 'charm', label: '靈符' },
-      // 新增護甲分類：顯示宗門商店購入的防禦裝備
       { id: 'armor', label: '護甲' },
+      { id: 'amulet', label: '護身符' },
+      { id: 'shield', label: '靈盾' },
+      { id: 'cuff', label: '護腕' },
       { id: 'quick', label: '快捷道具' }
     ];
     // 建立分類按鈕列
@@ -3276,43 +3349,41 @@ function showBackpack() {
     }).join('');
     // 根據當前篩選類型篩選道具
     const filteredInventory = sortedInventory.filter(([name, qty]) => {
-      const effType = ITEM_EFFECTS[name]?.type;
-      switch (currentBackpackFilter) {
-        case 'elixir':
-          return effType === 'exp';
-        case 'weapon':
-          return effType === 'multi_choice';
-        case 'technique':
-          return effType === 'reveal_wrong';
-        case 'formation':
-          return effType === 'add_time';
-        case 'artifact':
-          return effType === 'correct';
-        case 'charm':
-          return effType === 'wrong';
-        case 'armor':
-          return effType === 'defense';
-        case 'quick':
-          return Array.isArray(gameState.quickItems) &&
-            gameState.quickItems.includes(name) &&
-            effType !== 'exp';
-        default:
-          return true;
+      // 快捷道具需另外判定
+      if (currentBackpackFilter === 'quick') {
+        return Array.isArray(gameState.quickItems) &&
+               gameState.quickItems.includes(name) &&
+               ITEM_EFFECTS[name]?.type !== 'exp';
       }
+      // 仙丹直接判斷 type
+      if (currentBackpackFilter === 'elixir') {
+        return ITEM_EFFECTS[name]?.type === 'exp';
+      }
+      // 其他類型依照分類 class 判斷
+      const cls = getItemCategoryClass(name);
+      return cls === currentBackpackFilter;
     });
     let listHtml = '';
     if (filteredInventory.length === 0) {
       listHtml = "<p>該分類下沒有道具</p>";
     } else {
-      // 若為護甲分類，列出可裝備的護甲並提供裝備按鈕
-      if (currentBackpackFilter === 'armor') {
+      // 若為可裝備分類，列出可裝備道具並提供裝備按鈕
+      const equipCategories = {
+        'armor': { field: 'equippedArmor', action: 'equip-armor' },
+        'weapon': { field: 'equippedWeapon', action: 'equip-weapon' },
+        'amulet': { field: 'equippedAmulet', action: 'equip-amulet' },
+        'shield': { field: 'equippedShield', action: 'equip-shield' },
+        'cuff': { field: 'equippedCuff', action: 'equip-cuff' }
+      };
+      if (equipCategories[currentBackpackFilter]) {
+        const cfg = equipCategories[currentBackpackFilter];
         listHtml = '<ul style="padding-left: 20px; list-style-position: inside;">' +
           filteredInventory.map(([name, qty]) => {
             const catCls = getItemCategoryClass(name);
             const gradeCls = getItemGradeClass(name);
-            const isEquipped = (gameState.equippedArmor === name);
+            const isEquipped = (gameState[cfg.field] === name);
             const equipLabel = isEquipped ? '（已裝備）' : '';
-            return `<li class="cat-${catCls}"><button data-action="equip-armor" data-name="${name}" style="background:none;border:none;padding:0;color:inherit;text-decoration:underline;cursor:pointer;"><span class="grade-${gradeCls}">${name}</span>${equipLabel}</button> ×${qty}</li>`;
+            return `<li class="cat-${catCls}"><button data-action="${cfg.action}" data-name="${name}" style="background:none;border:none;padding:0;color:inherit;text-decoration:underline;cursor:pointer;"><span class="grade-${gradeCls}">${name}</span>${equipLabel}</button> ×${qty}</li>`;
           }).join('') +
           '</ul>';
       } else {
@@ -3345,12 +3416,8 @@ function equipArmor(name) {
         // 更新裝備狀態
         gameState.equippedArmor = name;
         const eff = ITEM_EFFECTS[name];
-        // 更新減免百分比
-        if (eff && typeof eff.reduce === 'number') {
-            gameState.defenseReduction = eff.reduce;
-        } else {
-            gameState.defenseReduction = 0;
-        }
+        // 重新計算總減免（護甲、護身符、靈盾、護腕）
+        recomputeDefenseReduction();
         saveGameState();
         // 顯示提示訊息
         addTemporaryMessage(`✅ 已裝備 ${name} (減免 ${gameState.defenseReduction}% 處罰)`, 'msg-shop');
@@ -3359,6 +3426,116 @@ function equipArmor(name) {
     }
     // 裝備後刷新背包畫面以顯示已裝備標記
     showBackpack();
+}
+
+// 取得道具品階名稱，例如傳入「上品靈符」回傳「上品」
+function getItemGradeName(name) {
+    for (const g of GRADE_NAMES) {
+        if (name.includes(g)) return g;
+    }
+    return '';
+}
+
+// 重新計算總防禦減免值：將護甲、護身符、靈盾、護腕的減免加總
+function recomputeDefenseReduction() {
+    let total = 0;
+    const equipNames = [gameState.equippedArmor, gameState.equippedAmulet, gameState.equippedShield, gameState.equippedCuff];
+    equipNames.forEach(n => {
+        const eff = ITEM_EFFECTS[n] || {};
+        if (typeof eff.reduce === 'number') {
+            total += eff.reduce;
+        }
+    });
+    gameState.defenseReduction = total;
+}
+
+// 裝備兵器
+function equipWeapon(name) {
+    try {
+        if (!gameState.inventory || !gameState.inventory[name] || gameState.inventory[name] <= 0) {
+            addTemporaryMessage('⚠️ 背包中沒有該兵器', 'msg-shop-fail');
+            return;
+        }
+        gameState.equippedWeapon = name;
+        // 兵器本身沒有減免，但若具有 reduce 屬性亦會累加
+        recomputeDefenseReduction();
+        saveGameState();
+        addTemporaryMessage(`✅ 已裝備 ${name}`, 'msg-shop');
+    } catch (e) {
+        console.warn('裝備兵器失敗', e);
+    }
+    showBackpack();
+}
+
+// 裝備護身符
+function equipAmulet(name) {
+    try {
+        if (!gameState.inventory || !gameState.inventory[name] || gameState.inventory[name] <= 0) {
+            addTemporaryMessage('⚠️ 背包中沒有該護身符', 'msg-shop-fail');
+            return;
+        }
+        gameState.equippedAmulet = name;
+        recomputeDefenseReduction();
+        saveGameState();
+        addTemporaryMessage(`✅ 已裝備 ${name} (減免 ${gameState.defenseReduction}% 處罰)`, 'msg-shop');
+    } catch (e) {
+        console.warn('裝備護身符失敗', e);
+    }
+    showBackpack();
+}
+
+// 裝備靈盾
+function equipShield(name) {
+    try {
+        if (!gameState.inventory || !gameState.inventory[name] || gameState.inventory[name] <= 0) {
+            addTemporaryMessage('⚠️ 背包中沒有該靈盾', 'msg-shop-fail');
+            return;
+        }
+        gameState.equippedShield = name;
+        recomputeDefenseReduction();
+        saveGameState();
+        addTemporaryMessage(`✅ 已裝備 ${name} (減免 ${gameState.defenseReduction}% 處罰)`, 'msg-shop');
+    } catch (e) {
+        console.warn('裝備靈盾失敗', e);
+    }
+    showBackpack();
+}
+
+// 裝備護腕
+function equipCuff(name) {
+    try {
+        if (!gameState.inventory || !gameState.inventory[name] || gameState.inventory[name] <= 0) {
+            addTemporaryMessage('⚠️ 背包中沒有該護腕', 'msg-shop-fail');
+            return;
+        }
+        gameState.equippedCuff = name;
+        recomputeDefenseReduction();
+        saveGameState();
+        addTemporaryMessage(`✅ 已裝備 ${name} (減免 ${gameState.defenseReduction}% 處罰)`, 'msg-shop');
+    } catch (e) {
+        console.warn('裝備護腕失敗', e);
+    }
+    showBackpack();
+}
+
+// 重置個人宗門貢獻：將個人貢獻歸零，不影響宗門總貢獻
+function resetPersonalContribution() {
+    try {
+        if (!gameState.sectName || gameState.sectName === '') {
+            addTemporaryMessage('⚠️ 尚未加入宗門，無法歸零貢獻。', 'msg-shop-fail');
+            return;
+        }
+        gameState.sectPersonalContribution = 0;
+        // 重算仙門位階與職位
+        syncTitleByContribution();
+        updateSectRole();
+        saveGameState();
+        addTemporaryMessage('✅ 個人宗門貢獻已歸零。', 'msg-shop');
+    } catch (e) {
+        console.warn('重置個人貢獻失敗', e);
+    }
+    // 刷新宗門頁面
+    renderSectMenu();
 }
 
 // === 使用仙丹（EXP 類）===
@@ -3608,8 +3785,7 @@ function showShop() {
     }).join('');
 
     let footer = `<button data-action="bulk-buy-items">購買選擇</button>
-                  <button class="btn-warning" data-action="show-sell-dialog">販賣道具</button>
-                  <button class="btn-secondary" data-action="show-upgrade-dialog">品階升級</button>`;
+                  <button class="btn-warning" data-action="show-sell-dialog">販賣道具</button>`;
     
     showModal("🛒 商店", content, footer);
 }
@@ -4887,6 +5063,8 @@ function renderSectMenu() {
             html += `<p>宗門位階：${rank}</p>`;
             html += `<p>宗門等級：${level}</p>`;
             html += `<p>宗門貢獻：${contrib}</p>`;
+            // 顯示個人宗門貢獻
+            html += `<p>你的個人貢獻：${gameState.sectPersonalContribution || 0}</p>`;
             html += `<p>宗門總戰力：${power}</p>`;
             html += `<p>你的職位：${role}</p>`;
             html += `<p>目前成員：${memberCount} / ${maxCap} 人</p>`;
@@ -4900,6 +5078,8 @@ function renderSectMenu() {
             html += '<button data-action="show-sect-secret">🗺️ 宗門秘境</button> ';
             html += '<button data-action="show-sect-arena">🥋 宗門擂台</button> ';
             html += '<button data-action="upgrade-sect">⬆️ 升級宗門</button> ';
+            // 個人貢獻歸零按鈕
+            html += '<button data-action="reset-personal-contribution">🧹 個人貢獻歸零</button> ';
             // 退出宗門
             html += '<button data-action="leave-sect">🚪 退出宗門</button>';
         }
@@ -4919,22 +5099,93 @@ function renderSectShop() {
         let html = '<h2>🛒 宗門商店</h2>';
         // 檢查是否加入宗門
         if (!gameState.sectName || gameState.sectName === '') {
-            html += '<p>你尚未加入宗門，無法購買宗門專屬道具。</p>';
+            html += '<p>你尚未加入宗門，無法使用宗門商店。</p>';
         } else {
-            // 顯示當前宗門貢獻與裝備資訊
-            html += `<p>當前宗門貢獻：${gameState.sectContribution || 0}</p>`;
-            html += `<p>已裝備護甲：${gameState.equippedArmor ? gameState.equippedArmor + '（減免' + gameState.defenseReduction + '%）' : '無'}</p>`;
-            // 列出可購買的護甲
-            html += '<ul style="padding-left:20px; list-style-position: inside;">';
-            Object.keys(ARMOR_SECT_PRICES).forEach(name => {
-                const price = ARMOR_SECT_PRICES[name];
+            // 顯示個人貢獻與裝備資訊
+            const contrib = gameState.sectPersonalContribution || 0;
+            html += `<p>你的個人貢獻：${contrib}</p>`;
+            // 裝備資訊
+            const eqWeapon = gameState.equippedWeapon || '無';
+            const eqArmor = gameState.equippedArmor || '無';
+            const eqAmulet = gameState.equippedAmulet || '無';
+            const eqShield = gameState.equippedShield || '無';
+            const eqCuff = gameState.equippedCuff || '無';
+            html += `<p>已裝備兵器：${eqWeapon}</p>`;
+            html += `<p>已裝備護甲：${eqArmor}</p>`;
+            html += `<p>已裝備護身符：${eqAmulet}</p>`;
+            html += `<p>已裝備靈盾：${eqShield}</p>`;
+            html += `<p>已裝備護腕：${eqCuff}</p>`;
+            html += `<p>總減免處罰：${gameState.defenseReduction || 0}%</p>`;
+            // 基礎道具購買
+            html += '<h3>購買基礎道具</h3><ul style="padding-left:20px; list-style-position: inside;">';
+            SECT_SHOP_ITEMS.forEach(name => {
+                const grade = getItemGradeName(name);
+                const cost = SECT_GRADE_COSTS[grade] || 0;
                 const catCls = getItemCategoryClass(name);
                 const gradeCls = getItemGradeClass(name);
-                html += `<li class="cat-${catCls}"><span class="grade-${gradeCls}">${name}</span> - 價值 ${price} 貢獻 <button data-action="buy-sect-armor" data-name="${name}">購買</button></li>`;
+                html += `<li class="cat-${catCls}"><span class="grade-${gradeCls}">${name}</span> - ${cost} 貢獻 <button data-action="buy-sect-item" data-name="${name}" ${contrib < cost ? 'disabled' : ''}>購買</button></li>`;
             });
             html += '</ul>';
+            // 道具升級
+            html += '<h3>道具升級</h3><div style="max-height:300px; overflow-y:auto;">';
+            const upgradable = [];
+            // 從玩家背包中找出可升級的道具
+            if (gameState.inventory) {
+                Object.entries(gameState.inventory).forEach(([item, qty]) => {
+                    if (qty > 0) {
+                        let nextItem = null;
+                        if (UPGRADE_PATHS[item]) {
+                            nextItem = UPGRADE_PATHS[item];
+                        } else {
+                            // 嘗試依品階與類型構造下一級防具升級，例如護甲/護身符/靈盾/護腕等
+                            const gradeName = getItemGradeName(item);
+                            const gradeIdx = GRADE_NAMES.indexOf(gradeName);
+                            if (gradeIdx >= 0 && gradeIdx < GRADE_NAMES.length - 1) {
+                                const nextGrade = GRADE_NAMES[gradeIdx + 1];
+                                // 根據類型組合新名稱
+                                if (item.includes('護甲')) {
+                                    nextItem = nextGrade + '護甲';
+                                } else if (item.includes('護身符')) {
+                                    nextItem = nextGrade + '護身符';
+                                } else if (item.includes('靈盾')) {
+                                    nextItem = nextGrade + '靈盾';
+                                } else if (item.includes('護腕')) {
+                                    nextItem = nextGrade + '護腕';
+                                }
+                            }
+                        }
+                        if (nextItem && (gameState.inventory[nextItem] || 0) === 0) {
+                            upgradable.push({ current: item, next: nextItem });
+                        }
+                    }
+                });
+            }
+            if (upgradable.length === 0) {
+                html += '<p>沒有可升級的道具。</p>';
+            } else {
+                upgradable.sort((a, b) => {
+                    // sort by type and grade for better display
+                    const keyA = getItemSortKey(a.current);
+                    const keyB = getItemSortKey(b.current);
+                    if (keyA[0] !== keyB[0]) return keyA[0] - keyB[0];
+                    if (keyA[1] !== keyB[1]) return keyA[1] - keyB[1];
+                    return a.current.localeCompare(b.current, 'zh-Hant');
+                });
+                html += upgradable.map(({ current, next }) => {
+                    const grade = getItemGradeName(current);
+                    const cost = SECT_GRADE_COSTS[grade] || 0;
+                    const catCls = getItemCategoryClass(current);
+                    const gradeClsCur = getItemGradeClass(current);
+                    const gradeClsNext = getItemGradeClass(next);
+                    return `<div class="modal-item-row cat-${catCls}">
+                        <span>升級 <span class="grade-${gradeClsCur}">${current}</span> → <span class="grade-${gradeClsNext}">${next}</span></span>
+                        <button data-action="upgrade-sect-item" data-current="${current}" data-next="${next}" data-cost="${cost}" ${contrib < cost ? 'disabled' : ''}>${cost} 貢獻</button>
+                    </div>`;
+                }).join('');
+            }
+            html += '</div>';
         }
-        // 返回宗門選單與主選單
+        // 返回按鈕
         html += '<hr><button data-action="render-sect-menu">🔙 返回宗門選單</button> ';
         html += '<button data-action="render-main-menu">🔙 返回主選單</button>';
         app.innerHTML = html;
@@ -4969,6 +5220,71 @@ function buySectArmor(name) {
         addTemporaryMessage('⚠️ 購買護甲時發生錯誤。', 'msg-shop-fail');
     }
     // 回到商店頁面以更新顯示
+    renderSectShop();
+}
+
+// 購買宗門道具：依照個人貢獻扣除成本並新增道具
+function buySectItem(name) {
+    try {
+        if (!gameState.sectName || gameState.sectName === '') {
+            addTemporaryMessage('⚠️ 尚未加入宗門，無法購買宗門道具。', 'msg-shop-fail');
+            return;
+        }
+        // 取得品階名稱並計算花費
+        const grade = getItemGradeName(name);
+        const cost = SECT_GRADE_COSTS[grade] || 0;
+        const contrib = gameState.sectPersonalContribution || 0;
+        if (contrib < cost) {
+            addTemporaryMessage(`⚠️ 個人貢獻不足，購買 ${name} 需要 ${cost} 貢獻。`, 'msg-shop-fail');
+            return;
+        }
+        // 扣除個人貢獻
+        gameState.sectPersonalContribution = contrib - cost;
+        // 新增到玩家背包
+        if (!gameState.inventory) gameState.inventory = {};
+        gameState.inventory[name] = (gameState.inventory[name] || 0) + 1;
+        if (!gameState.inventory_order.includes(name)) {
+            gameState.inventory_order.push(name);
+            gameState.inventory_order.sort((a, b) => compareItemNames(a, b));
+        }
+        saveGameState();
+        addTemporaryMessage(`✅ 已購買 ${name}，花費 ${cost} 貢獻。`, 'msg-shop');
+    } catch (e) {
+        console.warn('購買宗門道具失敗', e);
+        addTemporaryMessage('⚠️ 購買宗門道具時發生錯誤。', 'msg-shop-fail');
+    }
+    // 刷新宗門商店畫面
+    renderSectShop();
+}
+
+// 升級道具：從背包中提升品階，扣除個人貢獻
+function upgradeSectItem(currentItem, nextItem, cost) {
+    try {
+        if (!gameState.sectName || gameState.sectName === '') {
+            addTemporaryMessage('⚠️ 尚未加入宗門，無法升級道具。', 'msg-shop-fail');
+            return;
+        }
+        const contrib = gameState.sectPersonalContribution || 0;
+        const price = parseInt(cost, 10) || 0;
+        if (contrib < price) {
+            addTemporaryMessage('⚠️ 個人貢獻不足，無法升級。', 'msg-shop-fail');
+            return;
+        }
+        // 扣除個人貢獻
+        gameState.sectPersonalContribution = contrib - price;
+        // 新增升級後道具
+        if (!gameState.inventory) gameState.inventory = {};
+        gameState.inventory[nextItem] = (gameState.inventory[nextItem] || 0) + 1;
+        if (!gameState.inventory_order.includes(nextItem)) {
+            gameState.inventory_order.push(nextItem);
+            gameState.inventory_order.sort((a, b) => compareItemNames(a, b));
+        }
+        saveGameState();
+        addTemporaryMessage(`✅ 升級成功！獲得 ${nextItem}。`, 'msg-shop');
+    } catch (e) {
+        console.warn('升級道具失敗', e);
+        addTemporaryMessage('⚠️ 升級道具時發生錯誤。', 'msg-shop-fail');
+    }
     renderSectShop();
 }
 
@@ -5607,19 +5923,7 @@ function updateSectDailyContribution() {
     try {
         if (!gameState.sectName || gameState.sectName === '') return;
         const today = getTodayDateStr();
-        // === 每週日貢獻歸零：於週日凌晨00:00重置宗門總貢獻 ===
-        try {
-            const now = new Date();
-            // getDay(): Sunday = 0
-            if (now.getDay() === 0) {
-                if (gameState.sectWeeklyResetDate !== today) {
-                    gameState.sectContribution = 0;
-                    gameState.sectWeeklyResetDate = today;
-                }
-            }
-        } catch (e) {
-            console.warn('Weekly reset error', e);
-        }
+        // 宗門貢獻與個人貢獻將持續累計，不再於每週日歸零
         let added = 0;
         if (Array.isArray(gameState.sectMembers)) {
             // 每個成員累計其每日貢獻，並同時成長戰力、修為與更新每日貢獻
@@ -6017,6 +6321,8 @@ document.body.addEventListener('click', (event) => {
         'render-main-menu': renderMainMenu, 'render-test-luck-menu': renderTestLuckMenu,
         // 宗門系統頁面渲染（非模態視窗）
         'render-sect-menu': renderSectMenu, 'render-sect-shop': renderSectShop,
+        // 重置個人宗門貢獻
+        'reset-personal-contribution': resetPersonalContribution,
         'show-stage-list': showStageList, 'show-rank-list': showRankList,
         'show-backpack': showBackpack, 'show-shop': showShop,
         'reset-stats': resetTrainingStats, 'clear-scores': clearMaxScores,
@@ -6170,9 +6476,33 @@ document.body.addEventListener('click', (event) => {
             // 裝備護甲：參數為 data-name
             equipArmor(target.dataset.name);
             break;
+        case 'equip-weapon':
+            // 裝備兵器：參數為 data-name
+            equipWeapon(target.dataset.name);
+            break;
+        case 'equip-amulet':
+            // 裝備護身符：參數為 data-name
+            equipAmulet(target.dataset.name);
+            break;
+        case 'equip-shield':
+            // 裝備靈盾：參數為 data-name
+            equipShield(target.dataset.name);
+            break;
+        case 'equip-cuff':
+            // 裝備護腕：參數為 data-name
+            equipCuff(target.dataset.name);
+            break;
         case 'buy-sect-armor':
             // 購買護甲：參數為 data-name
             buySectArmor(target.dataset.name);
+            break;
+        case 'buy-sect-item':
+            // 購買宗門道具（兵器/護甲/護身符/靈盾/護腕/功法/陣法）：參數為 data-name
+            buySectItem(target.dataset.name);
+            break;
+        case 'upgrade-sect-item':
+            // 升級宗門道具：傳入當前道具、下一道具與成本
+            upgradeSectItem(target.dataset.current, target.dataset.next, parseInt(target.dataset.cost, 10));
             break;
     }
 });
