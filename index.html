@@ -1738,6 +1738,8 @@ function renderTrainingScreen(title, items, correctAnswers, columns=5, btnSize=6
             ${buttonsHTML}
         </div>
         <div id="action-buttons">
+            <!-- 恢復確認作答按鈕，放在使用道具按鈕上方 -->
+            <button id="confirm-btn" data-action="confirm-answer">確認作答</button>
             <button data-action="show-use-item-dialog">🎒 使用道具</button>
         </div>
     `;
@@ -1773,22 +1775,43 @@ function renderTrainingScreen(title, items, correctAnswers, columns=5, btnSize=6
 function onGridButtonClick(button) {
     if (trainingState.hasAnswered) return;
 
+    const choice = button.dataset.choice;
+    // 多選模式
     if (trainingState.allowedChoices > 1) {
-        const choice = button.dataset.choice;
         button.classList.toggle('checked');
         if (button.classList.contains('checked')) {
+            // 初始化 selectedChoices
+            trainingState.selectedChoices = trainingState.selectedChoices || [];
             if (trainingState.selectedChoices.length < trainingState.allowedChoices) {
                 trainingState.selectedChoices.push(choice);
             } else {
-                button.classList.remove('checked'); // Exceeded choices
+                // 超出可選數量則取消勾選
+                button.classList.remove('checked');
             }
         } else {
-            trainingState.selectedChoices = trainingState.selectedChoices.filter(c => c !== choice);
+            // 移除已選
+            trainingState.selectedChoices = (trainingState.selectedChoices || []).filter(c => c !== choice);
         }
         updateGameInfo();
-        // 不再用「選滿就自動結束」，改由按下確認或倒數結束後作答
+        // 多選需按下確認或等倒數結束
     } else {
-        checkAnswerSingle(button.dataset.choice);
+        // 單選模式：僅允許選取一個，須按確認作答
+        trainingState.selectedChoices = trainingState.selectedChoices || [];
+        const previouslySelected = trainingState.selectedChoices[0];
+        if (previouslySelected === choice) {
+            // 取消選取
+            trainingState.selectedChoices = [];
+            button.classList.remove('checked');
+        } else {
+            // 取消之前的選取
+            if (previouslySelected) {
+                const prevBtn = document.querySelector(`.grid-btn[data-choice="${previouslySelected}"]`);
+                if (prevBtn) prevBtn.classList.remove('checked');
+            }
+            trainingState.selectedChoices = [choice];
+            button.classList.add('checked');
+        }
+        updateGameInfo();
     }
 }
 
@@ -1881,6 +1904,25 @@ function checkAnswerMulti() {
         feedbackLabel.className = "feedback error";
     }
     finalizeRound();
+}
+
+// 通用確認作答按鈕處理：根據當前允許選擇數量，呼叫單選或複選的答題檢查
+function confirmAnswer() {
+    if (!trainingState || trainingState.hasAnswered) return;
+    // 若允許多選，使用 checkAnswerMulti
+    if (trainingState.allowedChoices && trainingState.allowedChoices > 1) {
+        checkAnswerMulti();
+    } else {
+        // 單選：取出首個已選擇，若無則視為逾時
+        const choice = (Array.isArray(trainingState.selectedChoices) && trainingState.selectedChoices.length > 0)
+            ? trainingState.selectedChoices[0]
+            : null;
+        checkAnswerSingle(choice);
+    }
+    // 回合結算後移除確認按鈕，以免重複
+    try {
+        document.getElementById('confirm-btn')?.remove();
+    } catch (e) {}
 }
 
 function finalizeRound() {
@@ -6549,6 +6591,8 @@ document.body.addEventListener('click', (event) => {
         'reset-stats': resetTrainingStats, 'clear-scores': clearMaxScores,
         'run-today-luck': runTodayLuck, 'show-luck-history': showLuckHistory,
         'show-upgrade-dialog': showUpgradeDialog, 'check-answer-multi': checkAnswerMulti,
+        // 通用確認作答按鈕
+        'confirm-answer': confirmAnswer,
         'show-use-item-dialog': showUseItemDialog, 'close-modal': () => modal.style.display = "none",
         'bulk-buy-items': bulkBuyItems,
         'use-exp-items': showUseExpDialog,
