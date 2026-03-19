@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>運氣訓練工具 V3-14（修仙網頁離線版）</title>
+    <title>運氣訓練工具 V3-15（修仙網頁離線版）</title>
     <style>
         :root {
             --bg-color: #f0f2f5;
@@ -803,42 +803,103 @@ const SECT_GRADE_COSTS = {
     '天品': 51200
 };
 
+// 被動裝備消耗修為點數：根據品階決定每題所需消耗的修為。裝備若無足夠修為將無法啟用效果。
+// 例如入品裝備每題消耗 2 點修為、下品 4 點、中品 6 點，以此遞增。
+const EQUIP_PASSIVE_COSTS = {
+    '入品': 2,
+    '下品': 4,
+    '中品': 6,
+    '上品': 8,
+    '極品': 10,
+    '超品': 12,
+    '絕品': 14,
+    '寶品': 16,
+    '地品': 18,
+    '天品': 20
+};
+
 // 新增護身符、靈盾、護腕等防禦道具：需裝備後方可生效，減免處罰與護甲類似
 const NEW_DEFENSE_ITEMS = {
-    '入品護身符': { type: 'amulet', reduce: 5, desc: '減免 5% 處罰' },
-    '下品護身符': { type: 'amulet', reduce: 7, desc: '減免 7% 處罰' },
-    '中品護身符': { type: 'amulet', reduce: 10, desc: '減免 10% 處罰' },
-    '上品護身符': { type: 'amulet', reduce: 15, desc: '減免 15% 處罰' },
-    '極品護身符': { type: 'amulet', reduce: 20, desc: '減免 20% 處罰' },
-    '超品護身符': { type: 'amulet', reduce: 25, desc: '減免 25% 處罰' },
-    '絕品護身符': { type: 'amulet', reduce: 30, desc: '減免 30% 處罰' },
-    '寶品護身符': { type: 'amulet', reduce: 35, desc: '減免 35% 處罰' },
-    '地品護身符': { type: 'amulet', reduce: 40, desc: '減免 40% 處罰' },
-    '天品護身符': { type: 'amulet', reduce: 50, desc: '減免 50% 處罰' },
-    '入品靈盾': { type: 'shield', reduce: 5, desc: '減免 5% 處罰' },
-    '下品靈盾': { type: 'shield', reduce: 7, desc: '減免 7% 處罰' },
-    '中品靈盾': { type: 'shield', reduce: 10, desc: '減免 10% 處罰' },
-    '上品靈盾': { type: 'shield', reduce: 15, desc: '減免 15% 處罰' },
-    '極品靈盾': { type: 'shield', reduce: 20, desc: '減免 20% 處罰' },
-    '超品靈盾': { type: 'shield', reduce: 25, desc: '減免 25% 處罰' },
-    '絕品靈盾': { type: 'shield', reduce: 30, desc: '減免 30% 處罰' },
-    '寶品靈盾': { type: 'shield', reduce: 35, desc: '減免 35% 處罰' },
-    '地品靈盾': { type: 'shield', reduce: 40, desc: '減免 40% 處罰' },
-    '天品靈盾': { type: 'shield', reduce: 50, desc: '減免 50% 處罰' },
-    '入品護腕': { type: 'cuff', reduce: 5, desc: '減免 5% 處罰' },
-    '下品護腕': { type: 'cuff', reduce: 7, desc: '減免 7% 處罰' },
-    '中品護腕': { type: 'cuff', reduce: 10, desc: '減免 10% 處罰' },
-    '上品護腕': { type: 'cuff', reduce: 15, desc: '減免 15% 處罰' },
-    '極品護腕': { type: 'cuff', reduce: 20, desc: '減免 20% 處罰' },
-    '超品護腕': { type: 'cuff', reduce: 25, desc: '減免 25% 處罰' },
-    '絕品護腕': { type: 'cuff', reduce: 30, desc: '減免 30% 處罰' },
-    '寶品護腕': { type: 'cuff', reduce: 35, desc: '減免 35% 處罰' },
-    '地品護腕': { type: 'cuff', reduce: 40, desc: '減免 40% 處罰' },
-    '天品護腕': { type: 'cuff', reduce: 50, desc: '減免 50% 處罰' },
+    // 護身符：提升結算獎勵加成。bonus 表示額外加成百分比，例如 5 代表 +5%。
+    '入品護身符': { type: 'amulet', bonus: 5, desc: '結算獎勵提升 5%（被動消耗修為）' },
+    '下品護身符': { type: 'amulet', bonus: 7, desc: '結算獎勵提升 7%（被動消耗修為）' },
+    '中品護身符': { type: 'amulet', bonus: 10, desc: '結算獎勵提升 10%（被動消耗修為）' },
+    '上品護身符': { type: 'amulet', bonus: 15, desc: '結算獎勵提升 15%（被動消耗修為）' },
+    '極品護身符': { type: 'amulet', bonus: 20, desc: '結算獎勵提升 20%（被動消耗修為）' },
+    '超品護身符': { type: 'amulet', bonus: 25, desc: '結算獎勵提升 25%（被動消耗修為）' },
+    '絕品護身符': { type: 'amulet', bonus: 30, desc: '結算獎勵提升 30%（被動消耗修為）' },
+    '寶品護身符': { type: 'amulet', bonus: 35, desc: '結算獎勵提升 35%（被動消耗修為）' },
+    '地品護身符': { type: 'amulet', bonus: 40, desc: '結算獎勵提升 40%（被動消耗修為）' },
+    '天品護身符': { type: 'amulet', bonus: 50, desc: '結算獎勵提升 50%（被動消耗修為）' },
+    // 靈盾：被動顯示錯誤選項。n 表示每題要顯示的錯誤選項數量。
+    '入品靈盾': { type: 'shield', n: 1, desc: '每題顯示 1 個錯誤答案（被動消耗修為）' },
+    '下品靈盾': { type: 'shield', n: 2, desc: '每題顯示 2 個錯誤答案（被動消耗修為）' },
+    '中品靈盾': { type: 'shield', n: 3, desc: '每題顯示 3 個錯誤答案（被動消耗修為）' },
+    '上品靈盾': { type: 'shield', n: 4, desc: '每題顯示 4 個錯誤答案（被動消耗修為）' },
+    '極品靈盾': { type: 'shield', n: 5, desc: '每題顯示 5 個錯誤答案（被動消耗修為）' },
+    '超品靈盾': { type: 'shield', n: 6, desc: '每題顯示 6 個錯誤答案（被動消耗修為）' },
+    '絕品靈盾': { type: 'shield', n: 7, desc: '每題顯示 7 個錯誤答案（被動消耗修為）' },
+    '寶品靈盾': { type: 'shield', n: 8, desc: '每題顯示 8 個錯誤答案（被動消耗修為）' },
+    '地品靈盾': { type: 'shield', n: 9, desc: '每題顯示 9 個錯誤答案（被動消耗修為）' },
+    '天品靈盾': { type: 'shield', n: 10, desc: '每題顯示 10 個錯誤答案（被動消耗修為）' },
+    // 護腕：增加作答時間。n 表示每題增加的秒數。
+    '入品護腕': { type: 'cuff', n: 5, desc: '每題增加 5 秒作答時間（被動消耗修為）' },
+    '下品護腕': { type: 'cuff', n: 7, desc: '每題增加 7 秒作答時間（被動消耗修為）' },
+    '中品護腕': { type: 'cuff', n: 10, desc: '每題增加 10 秒作答時間（被動消耗修為）' },
+    '上品護腕': { type: 'cuff', n: 15, desc: '每題增加 15 秒作答時間（被動消耗修為）' },
+    '極品護腕': { type: 'cuff', n: 20, desc: '每題增加 20 秒作答時間（被動消耗修為）' },
+    '超品護腕': { type: 'cuff', n: 25, desc: '每題增加 25 秒作答時間（被動消耗修為）' },
+    '絕品護腕': { type: 'cuff', n: 30, desc: '每題增加 30 秒作答時間（被動消耗修為）' },
+    '寶品護腕': { type: 'cuff', n: 35, desc: '每題增加 35 秒作答時間（被動消耗修為）' },
+    '地品護腕': { type: 'cuff', n: 40, desc: '每題增加 40 秒作答時間（被動消耗修為）' },
+    '天品護腕': { type: 'cuff', n: 50, desc: '每題增加 50 秒作答時間（被動消耗修為）' },
 };
 
 // 將新增防禦道具併入 ITEM_EFFECTS 供後續使用
 Object.assign(ITEM_EFFECTS, NEW_DEFENSE_ITEMS);
+
+// === 動態更新道具說明 ===
+// 為兵器、功法、陣法及防具類道具補充被動效果說明
+// 說明格式範例：被動：每題增加 X 次作答（消耗修為）
+try {
+    // 兵器類：增加可選答案數
+    Object.keys(WEAPONS).forEach(function(name) {
+        const eff = WEAPONS[name];
+        if (eff && typeof eff.n === 'number') {
+            eff.desc = `被動：每題增加 ${eff.n} 次作答（消耗修為）`;
+        }
+    });
+    // 功法類：排除錯誤答案
+    Object.keys(TECHNIQUES).forEach(function(name) {
+        const eff = TECHNIQUES[name];
+        if (eff && typeof eff.n === 'number') {
+            eff.desc = `被動：每題顯示 ${eff.n} 個錯誤答案（消耗修為）`;
+        }
+    });
+    // 陣法類：增加作答時間
+    Object.keys(FORMATIONS).forEach(function(name) {
+        const eff = FORMATIONS[name];
+        if (eff && typeof eff.n === 'number') {
+            eff.desc = `被動：每題增加 ${eff.n} 秒作答時間（消耗修為）`;
+        }
+    });
+    // 防具類：護甲、護身符、靈盾、護腕
+    Object.keys(ITEM_EFFECTS).forEach(function(name) {
+        const eff = ITEM_EFFECTS[name];
+        if (!eff) return;
+        if (eff.type === 'defense' && typeof eff.reduce === 'number') {
+            eff.desc = `被動：減免 ${eff.reduce}% 處罰（消耗修為）`;
+        } else if (eff.type === 'amulet' && typeof eff.bonus === 'number') {
+            eff.desc = `被動：結算獎勵提升 ${eff.bonus}%（消耗修為）`;
+        } else if (eff.type === 'shield' && typeof eff.n === 'number') {
+            eff.desc = `被動：每題顯示 ${eff.n} 個錯誤答案（消耗修為）`;
+        } else if (eff.type === 'cuff' && typeof eff.n === 'number') {
+            eff.desc = `被動：每題增加 ${eff.n} 秒作答時間（消耗修為）`;
+        }
+    });
+} catch (e) {
+    console.warn('更新道具說明失敗', e);
+}
 
 // 宗門商店可購買的基礎道具清單
 const SECT_SHOP_ITEMS = [
@@ -1544,7 +1605,7 @@ function renderMainMenu() {
     // 重新建構主選單 HTML：將 infoSection 移至訓練按鈕之前，更新版本號
     let html = `
         <h1>🎯 運氣訓練工具</h1>
-        <h2>V3-14（修仙網頁離線版）</h2>
+        <h2>V3-15（修仙網頁離線版）</h2>
         ${infoSection}
         <p style="text-align:center;">請選擇訓練難度（1 最簡單～10 最困難）</p>
     `;
@@ -1631,6 +1692,9 @@ function trainingNext() {
     // 重置倒數用的剩餘時間 (避免延續到下一題)
     trainingState.countdownRemaining = null;
 
+    // 在開始新題目前套用被動裝備效果：自動增加可選次數、加時、提示錯誤、結算加成並扣除修為
+    applyPassiveEquipmentEffects();
+
     const gameDef = ALL_GAMES[Math.floor(Math.random() * ALL_GAMES.length)];
     const gameFunc = window[gameDef.func];
     gameFunc(); // This function will call renderTrainingScreen
@@ -1680,6 +1744,17 @@ function renderTrainingScreen(title, items, correctAnswers, columns=5, btnSize=6
 
     updateGameInfo();
     trainingState.gameGridButtons = Array.from(document.querySelectorAll('.grid-btn'));
+    // 若有裝備靈盾，於顯示題目後自動標示部分錯誤答案
+    try {
+        const wrongCount = trainingState.wrongReveal || 0;
+        if (wrongCount > 0) {
+            const wrongButtons = trainingState.gameGridButtons.filter(b => !trainingState.correctAnswers.includes(b.dataset.choice));
+            // 隨機選取要標示的錯誤按鈕
+            const shuffled = wrongButtons.sort(() => Math.random() - 0.5);
+            const toReveal = shuffled.slice(0, wrongCount);
+            toReveal.forEach(b => b.classList.add('hint-wrong'));
+        }
+    } catch (e) { /* ignore */ }
     startAnswerCountdown(10);
 
     // 更新難度與下一階段門檻資訊
@@ -1929,13 +2004,18 @@ function showTrainingResult() {
     const [bonusExp, bonusMsg] = getCultivationBonusExp(score, required);
     const baseExp = 1;
     const totalGain = baseExp + Math.max(0, bonusExp);
+    // 套用護身符加成：被動護身符可提升結算獎勵（修為、貢獻、道具等）
+    const rewardBonus = (trainingState && typeof trainingState.rewardBonus === 'number') ? trainingState.rewardBonus : 0;
+    const rewardMultiplier = 1 + rewardBonus / 100;
+    // 最終應增加的修煉經驗（向下取整），最低為 0
+    const finalGain = Math.max(0, Math.floor(totalGain * rewardMultiplier));
     const prevExp = gameState.exp;
     // 記錄增加經驗前的宗門貢獻，用於顯示增量
     const beforeSectContrib = gameState.sectContribution || 0;
     // 累加玩家經驗
-    gameState.exp += totalGain;
+    gameState.exp += finalGain;
     // 若加入宗門，則依據獲得的經驗增加宗門貢獻
-    addSectContributionFromTraining(totalGain);
+    addSectContributionFromTraining(finalGain);
     // 計算本次訓練為宗門帶來的貢獻增量
     const sectAdded = (gameState.sectContribution || 0) - beforeSectContrib;
     // 將貢獻增量暫存於 trainingState 以便顯示
@@ -1948,7 +2028,8 @@ function showTrainingResult() {
         const correctCount = trainingState.success || 0;
         const totalRounds = trainingState.totalRounds || 20;
         const winRate = score; // 0-100
-        const expGainForTraining = totalGain;
+        // 使用護身符加成後的實際經驗增益作為挑戰計算依據
+        const expGainForTraining = finalGain;
         if (typeof updateHeavenChallengeProgressTraining === 'function') {
             updateHeavenChallengeProgressTraining(diffLevel, correctCount, totalRounds, winRate, expGainForTraining);
         }
@@ -1991,7 +2072,7 @@ function showTrainingResult() {
     let resultHTML = `
         <h2>🏁 訓練完成</h2>
         <div class="feedback success">得分：${score} / 100</div>
-        <p style="text-align:center;">💡 基本修煉經驗 +${baseExp}</p>
+        <p style="text-align:center;">💡 修煉經驗 +${finalGain}</p>
         <p class="${trainingAdded > 0 ? 'train-add' : 'train-none'}" style="text-align:center;">訓練次數+${trainingAdded > 0 ? trainingAdded : 0}</p>
     `;
     // 若有加入宗門且本次訓練產生貢獻，顯示貢獻增量
@@ -2006,15 +2087,18 @@ function showTrainingResult() {
     
     // 週期獎勵
     if (gameState.total > 0 && gameState.total % 5 === 0) {
-        const [rewardsList] = grantRandomRewards(1);
+        // 週期獎勵：基本 1 份，受到護身符結算加成影響
+        const rewardCountWeekly = Math.max(1, Math.floor(1 * rewardMultiplier));
+        const [rewardsList] = grantRandomRewards(rewardCountWeekly);
         rewardsHTML += `<div class="message msg-reward">🎉 累積訓練達 ${gameState.total} 次，達成週期獎勵！<br>${rewardsList.join('<br>')}</div>`;
     }
     
     // 里程碑獎勵：改以宗門貢獻度為依據
     const milestoneObj = syncTitleByContribution();
     if (milestoneObj) {
-        // 若位階提升則授予對應獎勵
-        const [rewardsList] = grantRandomRewards(milestoneObj.rewards);
+        // 若位階提升則授予對應獎勵，並受護身符結算加成影響
+        const rewardCountMilestone = Math.max(1, Math.floor((milestoneObj.rewards || 0) * rewardMultiplier));
+        const [rewardsList] = grantRandomRewards(rewardCountMilestone);
         rewardsHTML += `<div class="message msg-reward">🏆 恭喜！宗門貢獻達到 ${gameState.sectContribution}，晉升仙門位階！<br>獲得新位階：【${milestoneObj.title}】<br>獲得獎勵：<br>${rewardsList.join('<br>')}</div>`;
     }
 
@@ -2030,20 +2114,21 @@ function showTrainingResult() {
     if (score === 100) stonesAward += 3;
     const randomDrop = Math.random() < 0.10 ? 1 : 0;
     const totalStonesGain = stonesAward + randomDrop;
-    if (totalStonesGain > 0) {
-        gameState.stones += totalStonesGain;
-        let parts = [];
-        if (stonesAward > 0) parts.push(`根據表現獲得 ${stonesAward} 靈石`);
-        if (randomDrop > 0) parts.push("偶遇驚喜：+1 靈石");
-        rewardsHTML += `<p style="text-align:center; color:darkorchid">💎 ${parts.join('；')}</p>`;
+    // 根據護身符加成調整靈石獲得數量
+    const finalStones = Math.floor(totalStonesGain * rewardMultiplier);
+    if (finalStones > 0) {
+        gameState.stones += finalStones;
+        rewardsHTML += `<p style="text-align:center; color:darkorchid">💎 獲得 ${finalStones} 靈石</p>`;
     }
 
-    // # 如果得分是 100 分，依照挑戰難度給予額外獎勵（難度越高獎勵越多）
+    // # 如果得分是 100 分，依照挑戰難度給予額外獎勵（難度越高獎勵越多）。獎勵數量受護身符加成影響
     if (score === 100) {
         try {
             const diffLvl = trainingState.difficulty || 1;
-            const [perfRewards] = grantRandomRewards(diffLvl);
-            rewardsHTML += `<div class="message msg-reward">🌟 完美演出！難度 ${diffLvl} 完美答題，獲得 ${diffLvl} 份額外獎勵：<br>${perfRewards.join('<br>')}</div>`;
+            // 基本獎勵份數為 diffLvl，套用護身符加成
+            const perfCount = Math.max(1, Math.floor(diffLvl * rewardMultiplier));
+            const [perfRewards] = grantRandomRewards(perfCount);
+            rewardsHTML += `<div class="message msg-reward">🌟 完美演出！難度 ${diffLvl} 完美答題，獲得 ${perfCount} 份額外獎勵：<br>${perfRewards.join('<br>')}</div>`;
             // # 滿分達成時播放特殊獎勵音效（與樂透對獎中獎相似）
             try { if (typeof playRewardSound === 'function') playRewardSound(); } catch (_) {}
         } catch (e) { console.warn('滿分獎勵計算錯誤', e); }
@@ -2628,16 +2713,20 @@ function showGameRules() {
             <h3>2. 遊戲關卡說明</h3>
             <p>訓練共有 10 個難度，每回合包含 20 題圖示，請在倒數時間內選出目標。答對能累積修煉經驗與訓練次數；達到該難度要求的勝率，可額外獲得修煉經驗獎勵。</p>
             <h3>3. 道具升級及功能說明</h3>
-            <p>道具分為兵器、功法、陣法、靈器、靈符、仙丹等類，每種道具功能如下：</p>
+            <p>道具分為兵器、護甲、護腕、護身符、靈盾、功法、陣法、靈器、靈符、仙丹等類。自 V3-15 起，兵器與各類防具不再於訓練中主動使用，而是需要<strong>裝備</strong>後才會發揮被動效果，每題消耗一定修為點。品階越高，消耗越多。各類道具功能如下：</p>
             <ul>
-                <li><b>兵器</b>：增加可選答案數，可用於多選題。</li>
-                <li><b>功法</b>：排除部分錯誤答案。</li>
-                <li><b>陣法</b>：增加作答時間，僅對當題有效。</li>
-                <li><b>靈器</b>：顯示全部正確答案。</li>
-                <li><b>靈符</b>：顯示部分錯誤答案。</li>
+                <li><b>兵器</b>：被動增加每題可選答案數（作答次數）。裝備後每題會消耗修為。</li>
+                <li><b>護甲</b>：被動減免處罰率。裝備後每題會消耗修為。</li>
+                <li><b>護腕</b>：被動增加每題的作答秒數。裝備後每題會消耗修為。</li>
+                <li><b>護身符</b>：被動提升結算獎勵（修為、貢獻、道具、靈石），不影響訓練次數。裝備後每題會消耗修為。</li>
+                <li><b>靈盾</b>：被動顯示錯誤選項（如同靈符效果）。裝備後每題會消耗修為。</li>
+                <li><b>功法</b>：排除錯誤答案，功能與靈盾類似，需要裝備並消耗修為。</li>
+                <li><b>陣法</b>：增加作答時間，功能與護腕類似，需要裝備並消耗修為。</li>
+                <li><b>靈器</b>：顯示全部正確答案，屬於主動使用類道具。</li>
+                <li><b>靈符</b>：顯示部分錯誤答案，屬於主動使用類道具。</li>
                 <li><b>仙丹</b>：立即增加修煉經驗。</li>
             </ul>
-            <p>道具可在商店購買，或使用靈石進行升級以提升效果。升級時消耗的靈石會即刻從你的帳戶扣除並刷新主畫面。</p>
+            <p>裝備類道具需具備足夠修為點數才能裝備並發揮效果，否則無法裝備。裝備與升級均在<strong>宗門商店</strong>完成，升級消耗個人貢獻點，主選單的商店不再提供品階升級功能。靈器、靈符、仙丹仍可在主選單商店購買並即時使用。</p>
             <h3>4. 處罰機制</h3>
             <p>若訓練結算得分低於該難度要求的勝率門檻，你的修煉經驗將被扣減。與門檻差距每增加 5 分，處罰率提高：差 5 分扣 50%，差 10 分扣 55%，差 15 分扣 60%，差 20 分扣 65%，差 25 分扣 70%，差 30 分扣 75%，依此類推。當修煉經驗為 0 時不再扣減。自 V3-14 起，引入多種防禦裝備（護甲、護身符、靈盾、護腕），裝備後可減免一定比例的處罰率，越高品階減免越多。</p>
 
@@ -2705,7 +2794,7 @@ function showGameRules() {
                 <li><b>宗門名稱選擇：</b>建立宗門時可以從 200 個預設名稱中選擇。如欲自訂宗門名稱，需支付 100000 靈石。</li>
                 <li><b>加入與審核：</b>加入 AI 宗門無需審核；加入其他玩家創建的宗門需要宗主或管理層審核（離線版暫未開放）。</li>
                 <li><b>宗門改名與唯一 ID：</b>每個宗門都有唯一的 ID，避免排行榜重複。宗主可支付 100000 靈石修改宗門名稱，名稱變更後宗門 ID 不變。</li>
-                <li><b>宗門貢獻與倉庫：</b>宗門貢獻分為<strong>個人貢獻</strong>與<strong>宗門總貢獻</strong>兩部分。個人貢獻會永久累計，用於決定你的仙門位階與宗門職位；宗門總貢獻則在每週日 00:00 歸零，用於計算宗門等級、戰力與排行。加入宗門後，你在訓練或秘境試煉中獲得的修煉經驗將自動轉為貢獻，在結算畫面顯示本次貢獻增量。宗門倉庫使用與背包相同的顯示方式，清楚列出倉庫中存放的仙丹、靈器、靈符等物資及數量。</li>
+                <li><b>宗門貢獻與倉庫：</b>宗門貢獻分為<strong>個人貢獻</strong>與<strong>宗門總貢獻</strong>兩部分。兩者均會永久累計：個人貢獻決定你的仙門位階與宗門職位，宗門總貢獻則用於計算宗門等級、戰力與排行，不再在每週日自動歸零。如欲清空個人貢獻，可在宗門介面使用「個人貢獻歸零」按鈕。加入宗門後，你在訓練或秘境試煉中獲得的修煉經驗將自動轉為貢獻，在結算畫面顯示本次貢獻增量。宗門倉庫使用與背包相同的顯示方式，清楚列出倉庫中存放的仙丹、靈器、靈符等物資及數量。</li>
                 <li><b>宗門商店、宗門秘境與宗門擂台：</b>宗門介面新增「宗門商店」「宗門秘境」「宗門擂台」按鈕。宗門商店現已上架防禦裝備「護甲」，共分十個品階，可用個人貢獻購買並必須裝備在身上才能減免處罰機制，每位修士只能穿戴一件護甲；宗門秘境讓成員共同挑戰特殊副本；宗門擂台提供宗門內外的比武競技。功能將分階段開放，詳情請關注後續版本。</li>
                 <li><b>退出宗門按鈕位置：</b>為避免誤操作，退出宗門按鈕已移至宗門系統選單最底部，請謹慎操作。</li>
                 <li><b>上貢功能：</b>可透過「📦 上貢」按鈕捐贈仙丹、靈器、靈符或靈石，捐贈物品按其售價乘以係數計算貢獻，靈石則按 1:1 轉換為貢獻。完成上貢後會顯示獲得的貢獻值，貢獻將累積在宗門倉庫。</li>
@@ -2801,6 +2890,10 @@ function trialNext() {
     trainingState.selectedChoices = [];
     trainingState.roundExtraTime = 0;
     trainingState.countdownRemaining = null;
+    // 套用被動裝備效果：增加可選次數、提示錯誤與加時等，並消耗修為
+    try {
+        applyPassiveEquipmentEffects();
+    } catch (e) { /* ignore */ }
     const gameDef = ALL_GAMES[Math.floor(Math.random() * ALL_GAMES.length)];
     const gameFunc = window[gameDef.func];
     gameFunc();
@@ -2839,18 +2932,24 @@ function showTrialResult() {
     // 額外經驗：每 10 題 +1
     const bonusExp = Math.floor(correctCount / 10);
     const prevExp = gameState.exp;
+    // 套用護身符加成：被動護身符可提升結算獎勵
+    const rewardBonus = (trainingState && typeof trainingState.rewardBonus === 'number') ? trainingState.rewardBonus : 0;
+    const rewardMultiplier = 1 + rewardBonus / 100;
+    const totalGainTrial = baseExp + bonusExp;
+    const finalGainTrial = Math.max(0, Math.floor(totalGainTrial * rewardMultiplier));
     // 在增加經驗前記錄宗門貢獻以計算增量
     const beforeSectContrib = gameState.sectContribution || 0;
-    gameState.exp += baseExp + bonusExp;
+    gameState.exp += finalGainTrial;
     // 若加入宗門，則依據獲得的經驗增加宗門貢獻
-    addSectContributionFromTraining(baseExp + bonusExp);
+    addSectContributionFromTraining(finalGainTrial);
     // 計算本次秘境試煉為宗門帶來的貢獻
     const sectAddedTrial = (gameState.sectContribution || 0) - beforeSectContrib;
     trainingState._sectAdded = sectAddedTrial;
     if (bonusExp > 0) gameState.bonus = (gameState.bonus || 0) + bonusExp;
-    // 發放隨機獎勵：每 20 題 1 個
+    // 發放隨機獎勵：每 20 題 1 個，受護身符加成影響
     let rewardsHTML = '';
-    const rewardCount = Math.floor(correctCount / 20);
+    const baseRewardCount = Math.floor(correctCount / 20);
+    const rewardCount = Math.max(0, Math.floor(baseRewardCount * rewardMultiplier));
     if (rewardCount > 0) {
         const rewardsList = grantRandomRewards(rewardCount)[0];
         rewardsHTML += `<div class="message msg-reward">🎁 秘境表現獲得 ${rewardCount} 個隨機獎勵：<br>${rewardsList.join('<br>')}</div>`;
@@ -2860,7 +2959,8 @@ function showTrialResult() {
     try {
         if (correctCount > prevBestTrial) {
             // # 設定超越紀錄的獎勵數量：基於新紀錄的題數，每 100 題增加 2 份獎勵
-            const rewardCountRecord = 1 + Math.floor(correctCount / 100) * 2;
+            const baseRecord = 1 + Math.floor(correctCount / 100) * 2;
+            const rewardCountRecord = Math.max(1, Math.floor(baseRecord * rewardMultiplier));
             const [recordRewards] = grantRandomRewards(rewardCountRecord);
             recordRewardHTML = `<div class="message msg-reward">🏅 超越歷史紀錄！獲得 ${rewardCountRecord} 個額外獎勵：<br>${recordRewards.join('<br>')}</div>`;
         }
@@ -2869,7 +2969,8 @@ function showTrialResult() {
     // 天命挑戰進度更新（秘境試煉）
     try {
         const diffLevelTrial = trainingState.difficulty || 1;
-        const expGainTrial = baseExp + bonusExp;
+        // 使用加成後的實際經驗增益計入任務進度
+        const expGainTrial = finalGainTrial;
         if (typeof updateHeavenChallengeProgressTrial === 'function') {
             updateHeavenChallengeProgressTrial(correctCount, diffLevelTrial, expGainTrial);
         }
@@ -2878,11 +2979,12 @@ function showTrialResult() {
         }
     } catch (e) { /* ignore */ }
 
-    // 發放靈石：每 30 題 1 顆
+    // 發放靈石：每 30 題 1 顆，受護身符加成影響
     const stonesAward = Math.floor(correctCount / 30);
-    if (stonesAward > 0) {
-        gameState.stones += stonesAward;
-        rewardsHTML += `<p style="text-align:center; color:darkorchid">💎 秘境表現獲得 ${stonesAward} 靈石</p>`;
+    const finalStones = Math.floor(stonesAward * rewardMultiplier);
+    if (finalStones > 0) {
+        gameState.stones += finalStones;
+        rewardsHTML += `<p style="text-align:center; color:darkorchid">💎 獲得 ${finalStones} 靈石</p>`;
     }
 
     // # 若這次答題數超過以往最高紀錄，將紀錄獎勵加入顯示
@@ -2896,13 +2998,16 @@ function showTrialResult() {
     // # 在秘境試煉中也計算週期獎勵、里程碑獎勵以及特定次數獎勵，與普通訓練相同
     try {
         if (gameState.total > 0 && gameState.total % 5 === 0) {
-            const [cycleRewards] = grantRandomRewards(1);
+            // 週期獎勵：1 份，受護身符結算加成影響
+            const rewardCountCycle = Math.max(1, Math.floor(1 * rewardMultiplier));
+            const [cycleRewards] = grantRandomRewards(rewardCountCycle);
             rewardsHTML += `<div class="message msg-reward">🎉 累積訓練達 ${gameState.total} 次，達成週期獎勵！<br>${cycleRewards.join('<br>')}</div>`;
         }
-        // 以宗門貢獻度為里程碑：更新位階並顯示獎勵
+        // 以宗門貢獻度為里程碑：更新位階並顯示獎勵，數量受護身符加成影響
         const milestoneObj = syncTitleByContribution();
         if (milestoneObj) {
-            const [mRewards] = grantRandomRewards(milestoneObj.rewards);
+            const rewardCountMilestone = Math.max(1, Math.floor((milestoneObj.rewards || 0) * rewardMultiplier));
+            const [mRewards] = grantRandomRewards(rewardCountMilestone);
             rewardsHTML += `<div class="message msg-reward">🏆 恭喜！宗門貢獻達到 ${gameState.sectContribution}，晉升仙門位階！<br>獲得新位階：【${milestoneObj.title}】<br>獲得獎勵：<br>${mRewards.join('<br>')}</div>`;
         }
         const countRewards = checkTrainingCountRewards(prevTotalTrainCount, gameState.total);
@@ -2915,7 +3020,7 @@ function showTrialResult() {
     const trainingAdded = gameState.total - prevTotalTrainCount;
     let resultHTML = `<h2>🌌 秘境試煉完成</h2>`;
     resultHTML += `<div class="feedback success">連續答對題數：${correctCount}</div>`;
-    resultHTML += `<p style="text-align:center;">💡 修煉經驗 +${baseExp + bonusExp}</p>`;
+    resultHTML += `<p style="text-align:center;">💡 修煉經驗 +${finalGainTrial}</p>`;
     // 顯示訓練次數加減，根據本次答對題數判斷是否增加
     resultHTML += `<p class="${trainingAdded > 0 ? 'train-add' : 'train-none'}" style="text-align:center;">訓練次數+${trainingAdded > 0 ? trainingAdded : 0}</p>`;
     // 若有加入宗門且本次秘境試煉產生貢獻，顯示貢獻增量
@@ -3413,6 +3518,13 @@ function equipArmor(name) {
             addTemporaryMessage('⚠️ 背包中沒有該護甲', 'msg-shop-fail');
             return;
         }
+        // 裝備前檢查修為：依品階判定每題被動消耗，若修為不足則禁止裝備
+        const grade = getItemGradeName(name);
+        const cost = EQUIP_PASSIVE_COSTS[grade] || 0;
+        if (cost > 0 && gameState.exp < cost) {
+            addTemporaryMessage(`⚠️ 修為不足，無法裝備 ${name}`,'msg-shop-fail');
+            return;
+        }
         // 更新裝備狀態
         gameState.equippedArmor = name;
         const eff = ITEM_EFFECTS[name];
@@ -3438,14 +3550,15 @@ function getItemGradeName(name) {
 
 // 重新計算總防禦減免值：將護甲、護身符、靈盾、護腕的減免加總
 function recomputeDefenseReduction() {
+    // 僅護甲類裝備提供處罰減免，其他裝備不再累加減免
     let total = 0;
-    const equipNames = [gameState.equippedArmor, gameState.equippedAmulet, gameState.equippedShield, gameState.equippedCuff];
-    equipNames.forEach(n => {
-        const eff = ITEM_EFFECTS[n] || {};
-        if (typeof eff.reduce === 'number') {
+    const armorName = gameState.equippedArmor;
+    if (armorName) {
+        const eff = ITEM_EFFECTS[armorName] || {};
+        if (eff.type === 'defense' && typeof eff.reduce === 'number') {
             total += eff.reduce;
         }
-    });
+    }
     gameState.defenseReduction = total;
 }
 
@@ -3456,11 +3569,21 @@ function equipWeapon(name) {
             addTemporaryMessage('⚠️ 背包中沒有該兵器', 'msg-shop-fail');
             return;
         }
+        // 裝備前檢查修為：依品階判定每題被動消耗，若修為不足則禁止裝備
+        const grade = getItemGradeName(name);
+        const cost = EQUIP_PASSIVE_COSTS[grade] || 0;
+        if (cost > 0 && gameState.exp < cost) {
+            addTemporaryMessage(`⚠️ 修為不足，無法裝備 ${name}`,'msg-shop-fail');
+            return;
+        }
         gameState.equippedWeapon = name;
         // 兵器本身沒有減免，但若具有 reduce 屬性亦會累加
         recomputeDefenseReduction();
         saveGameState();
-        addTemporaryMessage(`✅ 已裝備 ${name}`, 'msg-shop');
+        // 顯示提示：兵器增加可選答案數
+        const eff = ITEM_EFFECTS[name] || {};
+        const n = eff.n || 0;
+        addTemporaryMessage(`✅ 已裝備 ${name} (作答可選次數 +${n})`, 'msg-shop');
     } catch (e) {
         console.warn('裝備兵器失敗', e);
     }
@@ -3474,10 +3597,20 @@ function equipAmulet(name) {
             addTemporaryMessage('⚠️ 背包中沒有該護身符', 'msg-shop-fail');
             return;
         }
+        // 裝備前檢查修為：依品階判定每題被動消耗，若修為不足則禁止裝備
+        const grade = getItemGradeName(name);
+        const cost = EQUIP_PASSIVE_COSTS[grade] || 0;
+        if (cost > 0 && gameState.exp < cost) {
+            addTemporaryMessage(`⚠️ 修為不足，無法裝備 ${name}`,'msg-shop-fail');
+            return;
+        }
         gameState.equippedAmulet = name;
         recomputeDefenseReduction();
         saveGameState();
-        addTemporaryMessage(`✅ 已裝備 ${name} (減免 ${gameState.defenseReduction}% 處罰)`, 'msg-shop');
+        // 根據護身符加成顯示提示
+        const eff = ITEM_EFFECTS[name] || {};
+        const bonus = eff.bonus || 0;
+        addTemporaryMessage(`✅ 已裝備 ${name} (結算獎勵 +${bonus}%)`, 'msg-shop');
     } catch (e) {
         console.warn('裝備護身符失敗', e);
     }
@@ -3491,10 +3624,20 @@ function equipShield(name) {
             addTemporaryMessage('⚠️ 背包中沒有該靈盾', 'msg-shop-fail');
             return;
         }
+        // 裝備前檢查修為：依品階判定每題被動消耗，若修為不足則禁止裝備
+        const grade = getItemGradeName(name);
+        const cost = EQUIP_PASSIVE_COSTS[grade] || 0;
+        if (cost > 0 && gameState.exp < cost) {
+            addTemporaryMessage(`⚠️ 修為不足，無法裝備 ${name}`,'msg-shop-fail');
+            return;
+        }
         gameState.equippedShield = name;
         recomputeDefenseReduction();
         saveGameState();
-        addTemporaryMessage(`✅ 已裝備 ${name} (減免 ${gameState.defenseReduction}% 處罰)`, 'msg-shop');
+        // 根據靈盾顯示提示：每題自動排除部分錯誤答案
+        const eff = ITEM_EFFECTS[name] || {};
+        const n = eff.n || 0;
+        addTemporaryMessage(`✅ 已裝備 ${name} (每題顯示 ${n} 個錯誤答案)`, 'msg-shop');
     } catch (e) {
         console.warn('裝備靈盾失敗', e);
     }
@@ -3508,14 +3651,87 @@ function equipCuff(name) {
             addTemporaryMessage('⚠️ 背包中沒有該護腕', 'msg-shop-fail');
             return;
         }
+        // 裝備前檢查修為：依品階判定每題被動消耗，若修為不足則禁止裝備
+        const grade = getItemGradeName(name);
+        const cost = EQUIP_PASSIVE_COSTS[grade] || 0;
+        if (cost > 0 && gameState.exp < cost) {
+            addTemporaryMessage(`⚠️ 修為不足，無法裝備 ${name}`,'msg-shop-fail');
+            return;
+        }
         gameState.equippedCuff = name;
         recomputeDefenseReduction();
         saveGameState();
-        addTemporaryMessage(`✅ 已裝備 ${name} (減免 ${gameState.defenseReduction}% 處罰)`, 'msg-shop');
+        // 根據護腕顯示提示：每題增加作答時間
+        const eff = ITEM_EFFECTS[name] || {};
+        const n = eff.n || 0;
+        addTemporaryMessage(`✅ 已裝備 ${name} (每題增加 ${n} 秒)`, 'msg-shop');
     } catch (e) {
         console.warn('裝備護腕失敗', e);
     }
     showBackpack();
+}
+
+// ===================== 被動裝備效果應用 =====================
+// 於每題開始前自動根據玩家裝備套用被動效果：增加可選答案數、增時、提示錯誤、結算加成等。
+// 此函式會從 gameState 讀取裝備名稱，根據品階計算每題修為消耗，若修為不足則跳過該裝備。
+function applyPassiveEquipmentEffects() {
+    if (!trainingState) return;
+    // 初始重置狀態
+    trainingState.extraAttempts = 0;      // 額外可選答案次數
+    trainingState.extraTime     = 0;      // 額外增加秒數
+    trainingState.wrongReveal   = 0;      // 顯示錯誤答案數量
+    trainingState.rewardBonus   = 0;      // 結算獎勵加成百分比
+    let remainingExp = gameState.exp || 0;
+    // 裝備評估順序：兵器、護甲、護腕、靈盾、護身符
+    const equipList = [
+        { name: gameState.equippedWeapon, type: 'weapon' },
+        { name: gameState.equippedArmor,  type: 'armor'  },
+        { name: gameState.equippedCuff,   type: 'cuff'   },
+        { name: gameState.equippedShield, type: 'shield' },
+        { name: gameState.equippedAmulet, type: 'amulet' }
+    ];
+    equipList.forEach(entry => {
+        const itemName = entry.name;
+        if (!itemName) return;
+        // 判定品階與消耗
+        const grade = getItemGradeName(itemName);
+        const cost  = EQUIP_PASSIVE_COSTS[grade] || 0;
+        // 若不足以支付此次裝備的消耗，則略過此裝備
+        if (cost > 0 && remainingExp < cost) return;
+        const eff = ITEM_EFFECTS[itemName] || {};
+        if (entry.type === 'weapon') {
+            // 兵器：增加可選答案數
+            const n = eff.n || 0;
+            trainingState.extraAttempts += n;
+            remainingExp -= cost;
+        } else if (entry.type === 'armor') {
+            // 護甲：僅消耗修為；減免機制於結算時計算
+            remainingExp -= cost;
+        } else if (entry.type === 'cuff') {
+            // 護腕：每題增加秒數
+            const n = eff.n || 0;
+            trainingState.extraTime += n;
+            remainingExp -= cost;
+        } else if (entry.type === 'shield') {
+            // 靈盾：自動顯示錯誤答案
+            const n = eff.n || 0;
+            trainingState.wrongReveal += n;
+            remainingExp -= cost;
+        } else if (entry.type === 'amulet') {
+            // 護身符：提升結算獎勵
+            const b = eff.bonus || 0;
+            trainingState.rewardBonus += b;
+            remainingExp -= cost;
+        }
+    });
+    // 應用增加可選次數與加時
+    trainingState.allowedChoices = (trainingState.allowedChoices || 1) + (trainingState.extraAttempts || 0);
+    trainingState.roundExtraTime = (trainingState.roundExtraTime || 0) + (trainingState.extraTime || 0);
+    // 扣除修為
+    if (remainingExp < (gameState.exp || 0)) {
+        gameState.exp = Math.max(0, remainingExp);
+        saveGameState();
+    }
 }
 
 // 重置個人宗門貢獻：將個人貢獻歸零，不影響宗門總貢獻
@@ -3877,13 +4093,14 @@ function upgradeItem(currentItem, nextItem, cost) {
 
 function showUseItemDialog() {
     // 取得所有可用的戰鬥道具（含兵器、功法、陣法、靈器、靈符）並依類型與品階排序
+    // 取得所有可用的消耗類戰鬥道具（靈器、靈符），不再包含兵器、功法、陣法
     const allUsableItems = Object.entries(gameState.inventory)
       .filter(([, qty]) => qty > 0)
       .map(([name]) => name)
       .filter(name => {
         const type = ITEM_EFFECTS[name]?.type;
-        // 僅限正確答案、錯誤答案、多選、標記錯誤、增加時間類型
-        return ["correct", "wrong", "multi_choice", "reveal_wrong", "add_time"].includes(type);
+        // 僅允許單次使用的顯示正確答案與排除錯誤答案道具
+        return ["correct", "wrong"].includes(type);
       })
       .sort((a, b) => compareItemNames(a, b));
     // 如果尚未設定過濾器，預設為快捷道具（若有設定）或兵器類
@@ -3891,14 +4108,13 @@ function showUseItemDialog() {
       if (Array.isArray(gameState.quickItems) && gameState.quickItems.length > 0) {
         currentItemFilter = 'quick';
       } else {
-        currentItemFilter = 'weapon';
+        // 預設為靈器分類
+        currentItemFilter = 'artifact';
       }
     }
     // 道具分類列表
+    // 只顯示靈器與靈符分類（及快捷道具），不再顯示兵器、功法、陣法
     const filterDefs = [
-      { id: 'weapon', label: '兵器' },
-      { id: 'technique', label: '功法' },
-      { id: 'formation', label: '陣法' },
       { id: 'artifact', label: '靈器' },
       { id: 'charm', label: '靈符' },
       { id: 'quick', label: '快捷道具' }
@@ -3964,6 +4180,11 @@ function showUseItemDialog() {
 function useItem(itemName) {
     const eff  = ITEM_EFFECTS[itemName];
     if (!eff) return;
+    // 兵器、功法、陣法類道具已改為裝備形式，不可在訓練中直接使用
+    if (["multi_choice", "reveal_wrong", "add_time"].includes(eff.type)) {
+        addTemporaryMessage('⚠️ 該道具需裝備後才能生效，請至背包裝備','msg-shop-fail');
+        return;
+    }
     const cost = eff.exp_cost || 0;
     if (gameState.exp < cost) return;
     if (['correct', 'wrong', 'multi_choice'].includes(eff.type)) {
