@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>運氣訓練工具 V3-15-2（修仙網頁離線版）</title>
+    <title>運氣訓練工具 V3-16（修仙網頁離線版）</title>
     <style>
         :root {
             --bg-color: #f0f2f5;
@@ -862,25 +862,28 @@ Object.assign(ITEM_EFFECTS, NEW_DEFENSE_ITEMS);
 // 為兵器、功法、陣法及防具類道具補充被動效果說明
 // 說明格式範例：被動：每題增加 X 次作答（消耗修為）
 try {
-    // 兵器類：增加可選答案數
+    // 兵器類：增加可選答案數（被動）
     Object.keys(WEAPONS).forEach(function(name) {
         const eff = WEAPONS[name];
         if (eff && typeof eff.n === 'number') {
+            // 兵器依然屬於被動裝備
             eff.desc = `被動：每題增加 ${eff.n} 次作答（消耗修為）`;
         }
     });
-    // 功法類：排除錯誤答案
+    // 功法類：主動使用以排除錯誤答案
     Object.keys(TECHNIQUES).forEach(function(name) {
         const eff = TECHNIQUES[name];
         if (eff && typeof eff.n === 'number') {
-            eff.desc = `被動：每題顯示 ${eff.n} 個錯誤答案（消耗修為）`;
+            // 功法不再為裝備，而是主動使用類道具
+            eff.desc = `主動：顯示 ${eff.n} 個錯誤答案（消耗修為）`;
         }
     });
-    // 陣法類：增加作答時間
+    // 陣法類：主動使用以增加作答時間
     Object.keys(FORMATIONS).forEach(function(name) {
         const eff = FORMATIONS[name];
         if (eff && typeof eff.n === 'number') {
-            eff.desc = `被動：每題增加 ${eff.n} 秒作答時間（消耗修為）`;
+            // 陣法不再為裝備，而是主動使用類道具
+            eff.desc = `主動：增加 ${eff.n} 秒作答時間（消耗修為）`;
         }
     });
     // 防具類：護甲、護身符、靈盾、護腕
@@ -1595,6 +1598,12 @@ function renderMainMenu() {
             <p>👥 在線人數：${typeof getOnlineCount === 'function' ? getOnlineCount() : 1}</p>
             <p>⛩️ 宗門：${gameState.sectName && gameState.sectName !== '' ? gameState.sectName : '散修'}</p>
             <p>👤 姓名：${gameState.personalName || '未設定'} | 性別：${gameState.gender || '未設定'} | 🌱 靈根：${(gameState.linggen === undefined || gameState.linggen === null) ? '未測' : ((gameState.linggen <= 0) ? '無靈根' : gameState.linggen + ' 靈根')}</p>
+            <!-- 顯示當前裝備的道具；若無裝備則顯示未裝備 -->
+            <p>🗡️ 兵器：${gameState.equippedWeapon && gameState.equippedWeapon !== '' ? gameState.equippedWeapon : '未裝備'}</p>
+            <p>🛡️ 護甲：${gameState.equippedArmor && gameState.equippedArmor !== '' ? gameState.equippedArmor : '未裝備'}</p>
+            <p>📿 護身符：${gameState.equippedAmulet && gameState.equippedAmulet !== '' ? gameState.equippedAmulet : '未裝備'}</p>
+            <p>🔰 靈盾：${gameState.equippedShield && gameState.equippedShield !== '' ? gameState.equippedShield : '未裝備'}</p>
+            <p>🧤 護腕：${gameState.equippedCuff && gameState.equippedCuff !== '' ? gameState.equippedCuff : '未裝備'}</p>
         </div>
     `;
     // 計算全部兌換按鈕的數據
@@ -1605,7 +1614,7 @@ function renderMainMenu() {
     // 重新建構主選單 HTML：將 infoSection 移至訓練按鈕之前，更新版本號
     let html = `
         <h1>🎯 運氣訓練工具</h1>
-        <h2>V3-15-2（修仙網頁離線版）</h2>
+        <h2>V3-16（修仙網頁離線版）</h2>
         ${infoSection}
         <p style="text-align:center;">請選擇訓練難度（1 最簡單～10 最困難）</p>
     `;
@@ -1617,6 +1626,8 @@ function renderMainMenu() {
     html += `<button class="btn-trial" data-action="show-trial-leaderboard">🏆 秘境排行榜</button>`;
     // 將宗門系統按鈕移至修仙排行榜之前
     html += `<button class="btn-other" data-action="show-sect-menu">⛩️ 宗門系統</button>`;
+    // 新增靈獸系統按鈕
+    html += `<button class="btn-other" data-action="render-spirit-beast-menu">🐾 靈獸系統</button>`;
     html += `<button class="btn-other" data-action="show-cultivation-leaderboard">🌄 修仙排行榜</button>`;
     html += `
         <button class="btn-other" data-action="show-stage-list">📜 查看修仙等級一覽</button>
@@ -2755,18 +2766,19 @@ function showGameRules() {
             <h3>2. 遊戲關卡說明</h3>
             <p>訓練共有 10 個難度，每回合包含 20 題圖示，請在倒數時間內選出目標。答對能累積修煉經驗與訓練次數；達到該難度要求的勝率，可額外獲得修煉經驗獎勵。</p>
             <h3>3. 道具升級及功能說明</h3>
-            <p>道具分為兵器、護甲、護腕、護身符、靈盾、功法、陣法、靈器、靈符、仙丹等類。自 V3-15 起，兵器與各類防具不再於訓練中主動使用，而是需要<strong>裝備</strong>後才會發揮被動效果，每題消耗一定修為點。品階越高，消耗越多。各類道具功能如下：</p>
+            <p>道具分為兵器、護甲、護腕、護身符、靈盾、功法、陣法、靈器、靈符、仙丹等類，另有靈獸系統（功能開發中）。兵器與各類防具需要<strong>裝備</strong>後才會發揮被動效果；功法與陣法則為<strong>主動</strong>道具，於作答時使用並消耗修為點。裝備類道具在每題開始時將消耗修為，品階越高消耗越多。各類道具功能如下：</p>
             <ul>
                 <li><b>兵器</b>：被動增加每題可選答案數（作答次數）。裝備後每題會消耗修為。</li>
                 <li><b>護甲</b>：被動減免處罰率。裝備後每題會消耗修為。</li>
                 <li><b>護腕</b>：被動增加每題的作答秒數。裝備後每題會消耗修為。</li>
                 <li><b>護身符</b>：被動提升結算獎勵（修為、貢獻、道具、靈石），不影響訓練次數。裝備後每題會消耗修為。</li>
                 <li><b>靈盾</b>：被動顯示錯誤選項（如同靈符效果）。裝備後每題會消耗修為。</li>
-                <li><b>功法</b>：排除錯誤答案，功能與靈盾類似，需要裝備並消耗修為。</li>
-                <li><b>陣法</b>：增加作答時間，功能與護腕類似，需要裝備並消耗修為。</li>
+                <li><b>功法</b>：主動使用後可顯示多個錯誤答案，消耗修為點。</li>
+                <li><b>陣法</b>：主動使用後增加當題作答時間，消耗修為點。</li>
                 <li><b>靈器</b>：顯示全部正確答案，屬於主動使用類道具。</li>
                 <li><b>靈符</b>：顯示部分錯誤答案，屬於主動使用類道具。</li>
                 <li><b>仙丹</b>：立即增加修煉經驗。</li>
+                <li><b>靈獸</b>：可自動協助作答，功能開發中。</li>
             </ul>
             <p>裝備類道具需具備足夠修為點數才能裝備並發揮效果，否則無法裝備。裝備與升級均在<strong>宗門商店</strong>完成，升級消耗個人貢獻點，主選單的商店不再提供品階升級功能。靈器、靈符、仙丹仍可在主選單商店購買並即時使用。</p>
             <h3>4. 處罰機制</h3>
@@ -2853,6 +2865,16 @@ function showGameRules() {
 }
 
 // ===================== 秘境試煉與排行榜 / 登入系統 =====================
+
+// ===================== 靈獸系統 =====================
+// 簡易靈獸介面：未來可提供自動作答等功能
+function renderSpiritBeastMenu() {
+    clearApp();
+    let html = '<h2>🐾 靈獸系統</h2>';
+    html += '<p>靈獸功能尚在開發中，敬請期待！</p>';
+    html += '<button data-action="render-main-menu">🔙 返回主選單</button>';
+    app.innerHTML = html;
+}
 
 // # 秘境試煉主選單：讓玩家挑選難度後開始秘境試煉
 function renderSecretTrialMenu() {
@@ -3524,13 +3546,30 @@ function showBackpack() {
       };
       if (equipCategories[currentBackpackFilter]) {
         const cfg = equipCategories[currentBackpackFilter];
+        // 對應卸下動作的按鈕映射
+        const unequipMap = {
+          'armor': 'unequip-armor',
+          'weapon': 'unequip-weapon',
+          'amulet': 'unequip-amulet',
+          'shield': 'unequip-shield',
+          'cuff': 'unequip-cuff'
+        };
+        const unequipAction = unequipMap[currentBackpackFilter] || '';
+        // 列出卸下按鈕
+        const unequipButton = `<li><button data-action="${unequipAction}" class="btn-secondary">不裝備</button></li>`;
         listHtml = '<ul style="padding-left: 20px; list-style-position: inside;">' +
+          unequipButton +
           filteredInventory.map(([name, qty]) => {
             const catCls = getItemCategoryClass(name);
             const gradeCls = getItemGradeClass(name);
             const isEquipped = (gameState[cfg.field] === name);
             const equipLabel = isEquipped ? '（已裝備）' : '';
-            return `<li class="cat-${catCls}"><button data-action="${cfg.action}" data-name="${name}" style="background:none;border:none;padding:0;color:inherit;text-decoration:underline;cursor:pointer;"><span class="grade-${gradeCls}">${name}</span>${equipLabel}</button> ×${qty}</li>`;
+            const eff = ITEM_EFFECTS[name] || {};
+            const desc = eff.desc || '';
+            return `<li class="cat-${catCls}">
+              <button data-action="${cfg.action}" data-name="${name}" style="background:none;border:none;padding:0;color:inherit;text-decoration:underline;cursor:pointer;"><span class="grade-${gradeCls}">${name}</span>${equipLabel}</button> ×${qty}
+              ${desc ? `<div style="font-size:0.8em;color:var(--secondary-color);margin-left:1em;">${desc}</div>` : ''}
+            </li>`;
           }).join('') +
           '</ul>';
       } else {
@@ -3538,7 +3577,11 @@ function showBackpack() {
           filteredInventory.map(([name, qty]) => {
             const catCls = getItemCategoryClass(name);
             const gradeCls = getItemGradeClass(name);
-            return `<li class="cat-${catCls}"><span class="grade-${gradeCls}">${name}</span> ×${qty}</li>`;
+            const eff = ITEM_EFFECTS[name] || {};
+            const desc = eff.desc || '';
+            return `<li class="cat-${catCls}"><span class="grade-${gradeCls}">${name}</span> ×${qty}
+              ${desc ? `<div style="font-size:0.8em;color:var(--secondary-color);margin-left:1em;">${desc}</div>` : ''}
+            </li>`;
           }).join('') +
           '</ul>';
       }
@@ -3709,6 +3752,70 @@ function equipCuff(name) {
         addTemporaryMessage(`✅ 已裝備 ${name} (每題增加 ${n} 秒)`, 'msg-shop');
     } catch (e) {
         console.warn('裝備護腕失敗', e);
+    }
+    showBackpack();
+}
+
+// === 卸下裝備函式 ===
+// 卸下兵器：將 equippedWeapon 置空，並重新計算狀態
+function unequipWeapon() {
+    try {
+        gameState.equippedWeapon = '';
+        // 卸下兵器不影響減免，僅需保存
+        saveGameState();
+        addTemporaryMessage('✅ 已卸下兵器', 'msg-shop');
+    } catch (e) {
+        console.warn('卸下兵器失敗', e);
+    }
+    showBackpack();
+}
+
+// 卸下護甲：重置減免並置空裝備
+function unequipArmor() {
+    try {
+        gameState.equippedArmor = '';
+        recomputeDefenseReduction();
+        saveGameState();
+        addTemporaryMessage('✅ 已卸下護甲', 'msg-shop');
+    } catch (e) {
+        console.warn('卸下護甲失敗', e);
+    }
+    showBackpack();
+}
+
+// 卸下護身符
+function unequipAmulet() {
+    try {
+        gameState.equippedAmulet = '';
+        saveGameState();
+        addTemporaryMessage('✅ 已卸下護身符', 'msg-shop');
+    } catch (e) {
+        console.warn('卸下護身符失敗', e);
+    }
+    showBackpack();
+}
+
+// 卸下靈盾
+function unequipShield() {
+    try {
+        gameState.equippedShield = '';
+        saveGameState();
+        addTemporaryMessage('✅ 已卸下靈盾', 'msg-shop');
+    } catch (e) {
+        console.warn('卸下靈盾失敗', e);
+    }
+    showBackpack();
+}
+
+// 卸下護腕
+function unequipCuff() {
+    try {
+        gameState.equippedCuff = '';
+        recomputeDefenseReduction();
+        saveGameState();
+        addTemporaryMessage('✅ 已卸下護腕', 'msg-shop');
+    } catch (e) {
+        console.warn('卸下護腕失敗', e);
     }
     showBackpack();
 }
@@ -4134,15 +4241,14 @@ function upgradeItem(currentItem, nextItem, cost) {
 // ===================== 遊戲中道具使用 =====================
 
 function showUseItemDialog() {
-    // 取得所有可用的戰鬥道具（含兵器、功法、陣法、靈器、靈符）並依類型與品階排序
-    // 取得所有可用的消耗類戰鬥道具（靈器、靈符），不再包含兵器、功法、陣法
+    // 取得所有可用的戰鬥道具，僅限主動使用類：靈器、靈符、功法、陣法
     const allUsableItems = Object.entries(gameState.inventory)
       .filter(([, qty]) => qty > 0)
       .map(([name]) => name)
       .filter(name => {
         const type = ITEM_EFFECTS[name]?.type;
-        // 僅允許單次使用的顯示正確答案與排除錯誤答案道具
-        return ["correct", "wrong"].includes(type);
+        // 可用類型：正確答案（靈器）、錯誤答案（靈符）、功法（reveal_wrong）、陣法（add_time）
+        return ["correct", "wrong", "reveal_wrong", "add_time"].includes(type);
       })
       .sort((a, b) => compareItemNames(a, b));
     // 如果尚未設定過濾器，預設為快捷道具（若有設定）或兵器類
@@ -4155,10 +4261,12 @@ function showUseItemDialog() {
       }
     }
     // 道具分類列表
-    // 只顯示靈器與靈符分類（及快捷道具），不再顯示兵器、功法、陣法
+    // 顯示靈器、靈符、功法、陣法分類（及快捷道具）
     const filterDefs = [
       { id: 'artifact', label: '靈器' },
       { id: 'charm', label: '靈符' },
+      { id: 'technique', label: '功法' },
+      { id: 'formation', label: '陣法' },
       { id: 'quick', label: '快捷道具' }
     ];
     // 建立分類按鈕列
@@ -4192,13 +4300,13 @@ function showUseItemDialog() {
           disabled = 'disabled';
           tooltip = ` (修煉經驗不足: ${cost})`;
         }
-        // 單次道具使用限制
-        if (['correct', 'wrong', 'multi_choice'].includes(eff.type) && trainingState.hasUsedSingleUseItem) {
+        // 單次道具使用限制：正確答案、錯誤答案、功法、陣法每題僅能使用一次
+        if (['correct', 'wrong', 'reveal_wrong', 'add_time'].includes(eff.type) && trainingState.hasUsedSingleUseItem) {
           disabled = 'disabled';
           tooltip = ' (本題已用過此類道具)';
         }
-        // 難度限制：正確與錯誤類道具需符合品階
-        if (['correct', 'wrong'].includes(eff.type)) {
+        // 難度限制：正確答案、錯誤答案、功法、陣法需符合品階
+        if (['correct', 'wrong', 'reveal_wrong', 'add_time'].includes(eff.type)) {
           const allowedGrade = getGradeByDifficulty(trainingState.difficulty);
           if (!item.startsWith(allowedGrade)) {
             disabled = 'disabled';
@@ -4222,9 +4330,9 @@ function showUseItemDialog() {
 function useItem(itemName) {
     const eff  = ITEM_EFFECTS[itemName];
     if (!eff) return;
-    // 兵器、功法、陣法類道具已改為裝備形式，不可在訓練中直接使用
-    if (["multi_choice", "reveal_wrong", "add_time"].includes(eff.type)) {
-        addTemporaryMessage('⚠️ 該道具需裝備後才能生效，請至背包裝備','msg-shop-fail');
+    // 兵器類道具需裝備後生效，不可在訓練中直接使用
+    if (eff.type === 'multi_choice') {
+        addTemporaryMessage('⚠️ 兵器需裝備後才能生效，請至背包裝備','msg-shop-fail');
         return;
     }
     const cost = eff.exp_cost || 0;
@@ -5386,7 +5494,9 @@ function renderSectShop() {
                 const cost = SECT_GRADE_COSTS[grade] || 0;
                 const catCls = getItemCategoryClass(name);
                 const gradeCls = getItemGradeClass(name);
-                html += `<li class="cat-${catCls}"><span class="grade-${gradeCls}">${name}</span> - ${cost} 貢獻 <button data-action="buy-sect-item" data-name="${name}" ${contrib < cost ? 'disabled' : ''}>購買</button></li>`;
+                const eff = ITEM_EFFECTS[name] || {};
+                const desc = eff.desc || '';
+                html += `<li class="cat-${catCls}"><span class="grade-${gradeCls}">${name}</span>${desc ? ` <span style="font-size:0.8em;color:var(--secondary-color);">(${desc})</span>` : ''} - ${cost} 貢獻 <button data-action="buy-sect-item" data-name="${name}" ${contrib < cost ? 'disabled' : ''}>購買</button></li>`;
             });
             html += '</ul>';
             // 道具升級
@@ -6626,6 +6736,14 @@ document.body.addEventListener('click', (event) => {
         'manage-quick-items': showQuickItemsManager,
         'confirm-set-quick-items': confirmSetQuickItems,
         'show-cultivation-leaderboard': showCultivationLeaderboard,
+        // 靈獸系統：顯示靈獸介面
+        'render-spirit-beast-menu': renderSpiritBeastMenu,
+        // 卸下裝備類動作
+        'unequip-weapon': unequipWeapon,
+        'unequip-armor': unequipArmor,
+        'unequip-amulet': unequipAmulet,
+        'unequip-shield': unequipShield,
+        'unequip-cuff': unequipCuff,
         // 每日簽到與任務
         'handle-daily-signin': handleDailySignIn,
         'show-daily-task': showDailyTask,
