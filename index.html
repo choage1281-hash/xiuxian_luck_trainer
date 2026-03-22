@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>運氣訓練工具 V3-15（修仙網頁離線版）</title>
+    <title>運氣訓練工具 V3-15-2（修仙網頁離線版）</title>
     <style>
         :root {
             --bg-color: #f0f2f5;
@@ -518,59 +518,59 @@ const TRAINING_MILESTONES = {
 // 此表以貢獻度為鍵，而非訓練次數。注意：原先的 36、37 兩個位階（宗門聖子、宗門聖女）已移除，
 // 後續位階的編號相應前移兩位以保持遞增順序。
 const CONTRIBUTION_MILESTONES = {
-    5: { rewards: 1, title: '1.宗門的基石' },
-    10: { rewards: 1, title: '2.見習弟子' },
-    25: { rewards: 2, title: '3.外門雜役' },
-    50: { rewards: 2, title: '4.外門弟子' },
-    75: { rewards: 3, title: '5.外門師兄' },
-    100: { rewards: 5, title: '6.外門菁英' },
-    150: { rewards: 3, title: '7.內門候補' },
-    200: { rewards: 4, title: '8.內門弟子' },
-    300: { rewards: 5, title: '9.內門師兄' },
-    400: { rewards: 5, title: '10.內門菁英' },
-    500: { rewards: 10, title: '11.宗門執事' },
-    600: { rewards: 5, title: '12.任務堂弟子' },
-    700: { rewards: 5, title: '13.傳法堂弟子' },
-    800: { rewards: 5, title: '14.煉丹閣弟子' },
-    900: { rewards: 5, title: '15.煉器坊弟子' },
-    1000: { rewards: 15, title: '16.親傳弟子' },
-    1200: { rewards: 6, title: '17.戒律堂執事' },
-    1400: { rewards: 6, title: '18.藏經閣執事' },
-    1600: { rewards: 6, title: '19.百草園管事' },
-    1800: { rewards: 6, title: '20.萬獸山管事' },
-    2000: { rewards: 20, title: '21.首席大弟子' },
-    2500: { rewards: 10, title: '22.任務堂長老' },
-    3000: { rewards: 10, title: '23.傳法堂長老' },
-    3500: { rewards: 10, title: '24.煉丹閣長老' },
-    4000: { rewards: 10, title: '25.煉器坊長老' },
-    5000: { rewards: 25, title: '26.宗門長老' },
-    6000: { rewards: 12, title: '27.刑法長老' },
-    7000: { rewards: 12, title: '28.傳功長老' },
-    8000: { rewards: 12, title: '29.客卿長老' },
-    9000: { rewards: 12, title: '30.巡山長老' },
-    10000: { rewards: 30, title: '31.宗門護法' },
-    12500: { rewards: 15, title: '32.丹道峰主' },
-    15000: { rewards: 15, title: '33.器道峰主' },
-    17500: { rewards: 15, title: '34.劍道峰主' },
-    20000: { rewards: 40, title: '35.太上長老' },
-    35000: { rewards: 20, title: '36.行走的傳說' },
-    40000: { rewards: 20, title: '37.護道人' },
-    50000: { rewards: 50, title: '38.代宗主' },
-    60000: { rewards: 25, title: '39.鎮派老祖' },
-    70000: { rewards: 25, title: '40.開派祖師' },
-    80000: { rewards: 25, title: '41.渡劫真仙' },
-    90000: { rewards: 25, title: '42.飛升之人' },
-    100000: { rewards: 100, title: '43.人間之神' },
-    120000: { rewards: 50, title: '44.天界行者' },
-    140000: { rewards: 50, title: '45.星界遊神' },
-    160000: { rewards: 50, title: '46.位面之主' },
-    180000: { rewards: 50, title: '47.時空旅者' },
-    200000: { rewards: 100, title: '48.萬古傳說' },
-    250000: { rewards: 100, title: '49.因果之手' },
-    300000: { rewards: 100, title: '50.命運編織者' },
-    400000: { rewards: 100, title: '51.規則制定者' },
-    500000: { rewards: 100, title: '52.大道之源' },
-    1000000: { rewards: 500, title: '53.終極造物主' }
+    50000: { rewards: 1, title: '1.宗門的基石' },
+    100000: { rewards: 1, title: '2.見習弟子' },
+    250000: { rewards: 2, title: '3.外門雜役' },
+    500000: { rewards: 2, title: '4.外門弟子' },
+    750000: { rewards: 3, title: '5.外門師兄' },
+    1000000: { rewards: 5, title: '6.外門菁英' },
+    1500000: { rewards: 3, title: '7.內門候補' },
+    2000000: { rewards: 4, title: '8.內門弟子' },
+    3000000: { rewards: 5, title: '9.內門師兄' },
+    4000000: { rewards: 5, title: '10.內門菁英' },
+    5000000: { rewards: 10, title: '11.宗門執事' },
+    6000000: { rewards: 5, title: '12.任務堂弟子' },
+    7000000: { rewards: 5, title: '13.傳法堂弟子' },
+    8000000: { rewards: 5, title: '14.煉丹閣弟子' },
+    9000000: { rewards: 5, title: '15.煉器坊弟子' },
+    10000000: { rewards: 15, title: '16.親傳弟子' },
+    12000000: { rewards: 6, title: '17.戒律堂執事' },
+    14000000: { rewards: 6, title: '18.藏經閣執事' },
+    16000000: { rewards: 6, title: '19.百草園管事' },
+    18000000: { rewards: 6, title: '20.萬獸山管事' },
+    20000000: { rewards: 20, title: '21.首席大弟子' },
+    25000000: { rewards: 10, title: '22.任務堂長老' },
+    30000000: { rewards: 10, title: '23.傳法堂長老' },
+    35000000: { rewards: 10, title: '24.煉丹閣長老' },
+    40000000: { rewards: 10, title: '25.煉器坊長老' },
+    50000000: { rewards: 25, title: '26.宗門長老' },
+    60000000: { rewards: 12, title: '27.刑法長老' },
+    70000000: { rewards: 12, title: '28.傳功長老' },
+    80000000: { rewards: 12, title: '29.客卿長老' },
+    90000000: { rewards: 12, title: '30.巡山長老' },
+    100000000: { rewards: 30, title: '31.宗門護法' },
+    125000000: { rewards: 15, title: '32.丹道峰主' },
+    150000000: { rewards: 15, title: '33.器道峰主' },
+    175000000: { rewards: 15, title: '34.劍道峰主' },
+    200000000: { rewards: 40, title: '35.太上長老' },
+    350000000: { rewards: 20, title: '36.行走的傳說' },
+    400000000: { rewards: 20, title: '37.護道人' },
+    500000000: { rewards: 50, title: '38.代宗主' },
+    600000000: { rewards: 25, title: '39.鎮派老祖' },
+    700000000: { rewards: 25, title: '40.開派祖師' },
+    800000000: { rewards: 25, title: '41.渡劫真仙' },
+    900000000: { rewards: 25, title: '42.飛升之人' },
+    1000000000: { rewards: 100, title: '43.人間之神' },
+    1200000000: { rewards: 50, title: '44.天界行者' },
+    1400000000: { rewards: 50, title: '45.星界遊神' },
+    1600000000: { rewards: 50, title: '46.位面之主' },
+    1800000000: { rewards: 50, title: '47.時空旅者' },
+    2000000000: { rewards: 100, title: '48.萬古傳說' },
+    2500000000: { rewards: 100, title: '49.因果之手' },
+    3000000000: { rewards: 100, title: '50.命運編織者' },
+    4000000000: { rewards: 100, title: '51.規則制定者' },
+    5000000000: { rewards: 100, title: '52.大道之源' },
+    10000000000: { rewards: 500, title: '53.終極造物主' }
 };
 
 // 根據宗門貢獻度返回當前達成的里程碑（若尚未達成，返回 null）。
@@ -1605,7 +1605,7 @@ function renderMainMenu() {
     // 重新建構主選單 HTML：將 infoSection 移至訓練按鈕之前，更新版本號
     let html = `
         <h1>🎯 運氣訓練工具</h1>
-        <h2>V3-15（修仙網頁離線版）</h2>
+        <h2>V3-15-2（修仙網頁離線版）</h2>
         ${infoSection}
         <p style="text-align:center;">請選擇訓練難度（1 最簡單～10 最困難）</p>
     `;
