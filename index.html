@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>運氣訓練工具 V3-16（修仙網頁離線版）</title>
+    <title>運氣訓練工具 V3-17（修仙網頁離線版）</title>
     <style>
         :root {
             --bg-color: #f0f2f5;
@@ -1614,7 +1614,7 @@ function renderMainMenu() {
     // 重新建構主選單 HTML：將 infoSection 移至訓練按鈕之前，更新版本號
     let html = `
         <h1>🎯 運氣訓練工具</h1>
-        <h2>V3-16（修仙網頁離線版）</h2>
+        <h2>V3-17（修仙網頁離線版）</h2>
         ${infoSection}
         <p style="text-align:center;">請選擇訓練難度（1 最簡單～10 最困難）</p>
     `;
@@ -2255,17 +2255,34 @@ function commentForScore(score, expected) {
 // ===================== 遊戲題庫生成 =====================
 // ▼▼▼ MAJOR FIX: Corrected the logic to ensure answer positions are truly random. ▼▼▼
 function game_template(title, pool, total, columns=5, btnSize=60) {
-    // 1. 從題庫中隨機選出本次要顯示的所有選項
-    const itemsForDisplay = [...pool].sort(() => 0.5 - Math.random()).slice(0, total);
+    // 1. 決定本題所需的最小選項數：難度 5~7 至少 20 選項，難度 8~10 至少 40 選項
+    let requiredCount = total;
+    try {
+        const diff = (trainingState && trainingState.difficulty) ? trainingState.difficulty : 1;
+        if (diff >= 5 && diff <= 7 && requiredCount < 20) {
+            requiredCount = 20;
+        } else if (diff >= 8 && diff <= 10 && requiredCount < 40) {
+            requiredCount = 40;
+        }
+    } catch (e) {
+        /* ignore if trainingState not defined */
+    }
+    // 2. 生成足夠長度的選項列表：若題庫不足，則重複題庫內容
+    let extendedPool = [];
+    while (extendedPool.length < requiredCount) {
+        extendedPool = extendedPool.concat(pool);
+    }
+    // 隨機選擇所需的選項數目
+    const itemsForDisplay = [...extendedPool].sort(() => 0.5 - Math.random()).slice(0, requiredCount);
 
-    // 2. 決定正確答案的數量
-    const correctCount = generateCorrectChoices(total);
+    // 3. 決定正確答案的數量，基於實際顯示的選項總數
+    const correctCount = generateCorrectChoices(requiredCount);
 
-    // 3. 從剛剛選出的選項中，**再次隨機挑選**出正確答案
+    // 4. 從剛剛選出的選項中，**再次隨機挑選**出正確答案
     //    這是修正的核心，確保正確答案不是固定在前幾個
     const correctAnswers = [...itemsForDisplay].sort(() => 0.5 - Math.random()).slice(0, correctCount);
 
-    // 4. 將隨機排列的選項和隨機選定的答案傳遞給渲染函式
+    // 5. 將隨機排列的選項和隨機選定的答案傳遞給渲染函式
     renderTrainingScreen(title, itemsForDisplay, correctAnswers, columns, btnSize);
 }
 
@@ -2764,7 +2781,7 @@ function showGameRules() {
             <h3>1. 升級獎勵說明</h3>
             <p>當你的修煉經驗與訓練次數同時達到下一層門檻時，修為會自動突破。每突破一層，依據突破層級差距獲得相應數量的測試機會與靈石。</p>
             <h3>2. 遊戲關卡說明</h3>
-            <p>訓練共有 10 個難度，每回合包含 20 題圖示，請在倒數時間內選出目標。答對能累積修煉經驗與訓練次數；達到該難度要求的勝率，可額外獲得修煉經驗獎勵。</p>
+            <p>訓練共有 10 個難度。難度 1～4 的題目選項數不受限制；難度 5～7 的題目會提供至少 20 個選項；難度 8～10 的題目則會提供至少 40 個選項。每回合包含 20 題圖示，請在倒數時間內選出目標。答對能累積修煉經驗與訓練次數；達到該難度要求的勝率，可額外獲得修煉經驗獎勵。</p>
             <h3>3. 道具升級及功能說明</h3>
             <p>道具分為兵器、護甲、護腕、護身符、靈盾、功法、陣法、靈器、靈符、仙丹等類，另有靈獸系統（功能開發中）。兵器與各類防具需要<strong>裝備</strong>後才會發揮被動效果；功法與陣法則為<strong>主動</strong>道具，於作答時使用並消耗修為點。裝備類道具在每題開始時將消耗修為，品階越高消耗越多。各類道具功能如下：</p>
             <ul>
@@ -2780,7 +2797,7 @@ function showGameRules() {
                 <li><b>仙丹</b>：立即增加修煉經驗。</li>
                 <li><b>靈獸</b>：可自動協助作答，功能開發中。</li>
             </ul>
-            <p>裝備類道具需具備足夠修為點數才能裝備並發揮效果，否則無法裝備。裝備與升級均在<strong>宗門商店</strong>完成，升級消耗個人貢獻點，主選單的商店不再提供品階升級功能。靈器、靈符、仙丹仍可在主選單商店購買並即時使用。</p>
+            <p>裝備類道具需具備足夠修為點數才能裝備並發揮效果，否則無法裝備。每名修士只能擁有一件護甲、護腕、護身符與靈盾，同一類型不可重複購買；兵器則可以各持有一種（劍、刀、槍各一）。如需更高品階，請使用宗門商店的升級功能。同一裝備可透過升級提升品階而非重複購買。裝備與升級均在<strong>宗門商店</strong>完成，升級消耗個人貢獻點，主選單的商店不再提供品階升級功能。靈器、靈符、仙丹仍可在主選單商店購買並即時使用。</p>
             <h3>4. 處罰機制</h3>
             <p>若訓練結算得分低於該難度要求的勝率門檻，你的修煉經驗將被扣減。與門檻差距每增加 5 分，處罰率提高：差 5 分扣 50%，差 10 分扣 55%，差 15 分扣 60%，差 20 分扣 65%，差 25 分扣 70%，差 30 分扣 75%，依此類推。當修煉經驗為 0 時不再扣減。自 V3-14 起，引入多種防禦裝備（護甲、護身符、靈盾、護腕），裝備後可減免一定比例的處罰率，越高品階減免越多。</p>
 
@@ -2810,7 +2827,7 @@ function showGameRules() {
             <p>每天將生成一個隨機任務，例如完成指定難度的普通訓練或秘境試煉多次。接受任務後，在訓練或試煉結算時若符合條件則會累計進度；達到指定次數即可完成任務並領取獎勵。任務僅當日有效，未完成或未接受的任務隔日會重新生成。</p>
 
             <h3>9. 天命挑戰（隨機任務系統）</h3>
-            <p>天命挑戰是以日為單位產生的隨機任務，每種任務類型都會提供 10 個項目可供選擇，任務內容會根據你的修為與挑戰難度自動生成。任務類型包含：<b>普通訓練任務</b>、<b>秘境試煉任務</b>、<b>道具使用任務</b>、<b>修為／成就任務</b>等。例如：</p>
+            <p>天命挑戰是以日為單位產生的隨機任務，每種任務類型都會提供 10 個項目可供選擇，任務內容會根據你的修為與挑戰難度自動生成。普通訓練類任務的難度範圍現已提升至 1～10。任務類型包含：<b>普通訓練任務</b>、<b>秘境試煉任務</b>、<b>道具使用任務</b>、<b>修為／成就任務</b>等。例如：</p>
             <ul>
                 <li>完成指定難度的普通訓練多次並達到特定勝率，例如「完成難度 3 普通訓練 10 次並達到勝率 50% 以上」。</li>
                 <li>於普通訓練累積正確回答一定題數，例如「於難度 2 訓練累積正確回答 30 題」。</li>
@@ -2836,7 +2853,7 @@ function showGameRules() {
                 <li><b>宗門等級無上限：</b>宗門可透過累積貢獻或完成宗門活動不斷提升等級，沒有最高限制。</li>
                 <li><b>建立宗門條件：</b>玩家必須至少達到「渡劫 1 層以上」修為（包含渡劫一層），方可建立宗門。宗門初始等級為 1，可透過貢獻與活動逐步提升。</li>
                 <li><b>AI 宗門與 AI 修士：</b>遊戲預設有十個 AI 宗門（如紫雲宗、青雲門等），等級預設為 20。加入 AI 宗門時會自動生成若干名 AI 修士（弟子或長老），他們擁有各自的修為、戰力與每日貢獻，會每日替宗門提供貢獻。宗門會自動招收新弟子：每天若成員未達上限，將新增一位 AI 修士。</li>
-                <li><b>宗門成員列表：</b>加入宗門後可查看宗門成員清單，包括 AI 修士與玩家本身。列表會顯示每位成員的修為、戰力、訓練次數、靈根、<b>累積貢獻</b>與職位，並顯示目前成員人數與最大可容納人數。累積貢獻為每個人在宗門中的總貢獻值，永不歸零，用於判定個人位階與職位。AI 修士戰力不再隨時間自動增長，而是透過訓練次數突破後提升。</li>
+                <li><b>宗門成員列表：</b>加入宗門後可查看宗門成員清單，包括 AI 修士與玩家本身。列表會顯示每位成員的修為、戰力、訓練次數、靈根、<b>累積貢獻</b>與其在宗門中的位階。職位名稱（弟子、長老）已改為展示修士的仙門位階，僅宗主仍以「宗主」稱呼。累積貢獻為每個人在宗門中的總貢獻值，永不歸零，用於判定個人位階。AI 修士戰力不再隨時間自動增長，而是透過訓練次數突破後提升。</li>
                 <li><b>宗門總戰力與貢獻：</b>宗門戰力為成員戰力之和，加上宗主本人的修為戰力。AI 修士的戰力不會隨時間自動提升；只有當其訓練次數達到門檻並突破修為時，戰力才會提升，因此宗門戰力會隨成員突破而增加。宗門貢獻則依 AI 修士的每日貢獻值持續增加，並可能因事件額外提升，所有變化都會定期自動更新。</li>
                 <li><b>宗門排行榜：</b>提供排行榜，按照宗門綜合實力排序（等級 × 1000 + 戰力 + 貢獻），列出所有 AI 宗門及玩家宗門。可查看每個宗門的等級、戰力與貢獻。</li>
                 <li><b>宗門每日事件：</b>每天都有機會觸發特殊事件，如新增成員、額外宗門貢獻或成員戰力大幅提升。</li>
@@ -2849,7 +2866,7 @@ function showGameRules() {
                 <li><b>加入與審核：</b>加入 AI 宗門無需審核；加入其他玩家創建的宗門需要宗主或管理層審核（離線版暫未開放）。</li>
                 <li><b>宗門改名與唯一 ID：</b>每個宗門都有唯一的 ID，避免排行榜重複。宗主可支付 100000 靈石修改宗門名稱，名稱變更後宗門 ID 不變。</li>
                 <li><b>宗門貢獻與倉庫：</b>宗門貢獻分為<strong>個人貢獻</strong>與<strong>宗門總貢獻</strong>兩部分。兩者均會永久累計：個人貢獻決定你的仙門位階與宗門職位，宗門總貢獻則用於計算宗門等級、戰力與排行，不再在每週日自動歸零。如欲清空個人貢獻，可在宗門介面使用「個人貢獻歸零」按鈕。加入宗門後，你在訓練或秘境試煉中獲得的修煉經驗將自動轉為貢獻，在結算畫面顯示本次貢獻增量。宗門倉庫使用與背包相同的顯示方式，清楚列出倉庫中存放的仙丹、靈器、靈符等物資及數量。</li>
-                <li><b>宗門商店、宗門秘境與宗門擂台：</b>宗門介面新增「宗門商店」「宗門秘境」「宗門擂台」按鈕。宗門商店現已上架防禦裝備「護甲」，共分十個品階，可用個人貢獻購買並必須裝備在身上才能減免處罰機制，每位修士只能穿戴一件護甲；宗門秘境讓成員共同挑戰特殊副本；宗門擂台提供宗門內外的比武競技。功能將分階段開放，詳情請關注後續版本。</li>
+                <li><b>宗門商店、宗門秘境與宗門擂台：</b>宗門介面新增「宗門商店」「宗門秘境」「宗門擂台」按鈕。宗門商店可購買兵器、護甲、護身符、靈盾、護腕等基礎裝備，但每名修士只能擁有一件護甲、護身符、靈盾與護腕；兵器則僅能劍、刀、槍各一，不得重複購買。欲提升裝備效能，需在商店使用升級功能以消耗個人貢獻將其升級至更高品階。宗門秘境讓成員共同挑戰特殊副本；宗門擂台提供宗門內外的比武競技。功能將分階段開放，詳情請關注後續版本。</li>
                 <li><b>退出宗門按鈕位置：</b>為避免誤操作，退出宗門按鈕已移至宗門系統選單最底部，請謹慎操作。</li>
                 <li><b>上貢功能：</b>可透過「📦 上貢」按鈕捐贈仙丹、靈器、靈符或靈石，捐贈物品按其售價乘以係數計算貢獻，靈石則按 1:1 轉換為貢獻。完成上貢後會顯示獲得的貢獻值，貢獻將累積在宗門倉庫。</li>
                 <li><b>宗門升級系統：</b>當宗門總貢獻與成員數達到相應門檻時，宗主可消耗貢獻提升宗門等級，每升一級需消耗等級×5000 的貢獻並有等級×3 名成員要求。宗門等級提升後將提高最大成員數。</li>
@@ -4872,7 +4889,8 @@ function generateHeavenTask(type) {
         // 可選子類：sessions、correct、streak
         const subTypes = ['sessions', 'correct', 'streak'];
         const subType = subTypes[randInt(0, subTypes.length - 1)];
-        const difficulty = randInt(1, 5);
+        // 訓練任務難度範圍改為 1~10
+        const difficulty = randInt(1, 10);
         if (subType === 'sessions') {
             const targetSessions = [5, 10, 15, 20][randInt(0, 3)];
             const winRate = [50, 60, 70][randInt(0, 2)];
@@ -5489,6 +5507,16 @@ function renderSectShop() {
             html += `<p>總減免處罰：${gameState.defenseReduction || 0}%</p>`;
             // 基礎道具購買
             html += '<h3>購買基礎道具</h3><ul style="padding-left:20px; list-style-position: inside;">';
+            // 準備檢查玩家是否已擁有某類裝備，以避免重複購買
+            const invKeys = Object.keys(gameState.inventory || {});
+            const hasArmor = invKeys.some(it => it.includes('護甲'));
+            const hasAmulet = invKeys.some(it => it.includes('護身符'));
+            const hasShield = invKeys.some(it => it.includes('靈盾'));
+            const hasCuff = invKeys.some(it => it.includes('護腕'));
+            // 武器類別可各擁有一種：劍、刀、槍
+            const hasSword = invKeys.some(it => /劍/.test(it));
+            const hasBlade = invKeys.some(it => /刀/.test(it));
+            const hasSpear = invKeys.some(it => /槍/.test(it));
             SECT_SHOP_ITEMS.forEach(name => {
                 const grade = getItemGradeName(name);
                 const cost = SECT_GRADE_COSTS[grade] || 0;
@@ -5496,7 +5524,25 @@ function renderSectShop() {
                 const gradeCls = getItemGradeClass(name);
                 const eff = ITEM_EFFECTS[name] || {};
                 const desc = eff.desc || '';
-                html += `<li class="cat-${catCls}"><span class="grade-${gradeCls}">${name}</span>${desc ? ` <span style="font-size:0.8em;color:var(--secondary-color);">(${desc})</span>` : ''} - ${cost} 貢獻 <button data-action="buy-sect-item" data-name="${name}" ${contrib < cost ? 'disabled' : ''}>購買</button></li>`;
+                // 判斷該道具是否因為已擁有而禁止購買
+                let ownedType = false;
+                if (name.includes('護甲')) {
+                    ownedType = hasArmor;
+                } else if (name.includes('護身符')) {
+                    ownedType = hasAmulet;
+                } else if (name.includes('靈盾')) {
+                    ownedType = hasShield;
+                } else if (name.includes('護腕')) {
+                    ownedType = hasCuff;
+                } else if (name.includes('劍')) {
+                    ownedType = hasSword;
+                } else if (name.includes('刀')) {
+                    ownedType = hasBlade;
+                } else if (name.includes('槍')) {
+                    ownedType = hasSpear;
+                }
+                const disabled = (contrib < cost || ownedType) ? 'disabled' : '';
+                html += `<li class="cat-${catCls}"><span class="grade-${gradeCls}">${name}</span>${desc ? ` <span style="font-size:0.8em;color:var(--secondary-color);">(${desc})</span>` : ''} - ${cost} 貢獻 <button data-action="buy-sect-item" data-name="${name}" ${disabled}>購買</button></li>`;
             });
             html += '</ul>';
             // 道具升級
@@ -6408,7 +6454,7 @@ function showSectMembers() {
             if (members.length === 0) {
                 html += '<p>目前只有你一人。</p>';
             } else {
-                html += '<table style="width:100%;"><thead><tr><th>成員</th><th>修為</th><th>戰力</th><th>訓練次數</th><th>靈根</th><th>累積貢獻</th><th>職位</th></tr></thead><tbody>';
+                html += '<table style="width:100%;"><thead><tr><th>成員</th><th>修為</th><th>戰力</th><th>訓練次數</th><th>靈根</th><th>累積貢獻</th><th>位階</th></tr></thead><tbody>';
                 // 將玩家也視為成員，合併後一併排序。依職位（宗主＞長老＞弟子）及修為高低排序
                 const combinedMembers = (members.slice());
                 const playerStageName = getCultivationStage(gameState.exp);
@@ -6452,7 +6498,25 @@ function showSectMembers() {
                         trainDisplay = m.trainCount || 0;
                         rootDisplay = (m.linggen !== undefined) ? (m.linggen + ' 靈根') : '';
                     }
-                    html += `<tr><td>${m.name}</td><td>${m.stage}</td><td>${m.power}</td><td>${trainDisplay}</td><td>${rootDisplay}</td><td>${contribDisplay}</td><td>${m.role || '弟子'}</td></tr>`;
+                    // 依據規則顯示位階：宗主保持宗主稱號，其餘成員顯示對應仙門位階
+                    let positionDisplay = '';
+                    if (m.name === '你') {
+                        // 玩家：若為宗主則顯示宗主，否則顯示當前仙門位階
+                        if ((gameState.sectRole || '') === '宗主') {
+                            positionDisplay = '宗主';
+                        } else {
+                            positionDisplay = gameState.current_title || '';
+                        }
+                    } else {
+                        // AI 成員：宗主顯示宗主，其餘根據累積貢獻顯示仙門位階
+                        if ((m.role || '') === '宗主') {
+                            positionDisplay = '宗主';
+                        } else {
+                            const milestone = getCurrentContributionMilestone(m.totalContrib || 0);
+                            positionDisplay = milestone && milestone.title ? milestone.title : '';
+                        }
+                    }
+                    html += `<tr><td>${m.name}</td><td>${m.stage}</td><td>${m.power}</td><td>${trainDisplay}</td><td>${rootDisplay}</td><td>${contribDisplay}</td><td>${positionDisplay}</td></tr>`;
                 });
                 html += '</tbody></table>';
             }
