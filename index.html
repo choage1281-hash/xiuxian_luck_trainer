@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>運氣訓練工具 V3-17（修仙網頁離線版）</title>
+    <title>運氣訓練工具 V3-17-2（修仙網頁離線版）</title>
     <style>
         :root {
             --bg-color: #f0f2f5;
@@ -1596,7 +1596,7 @@ function renderMainMenu() {
             <p>🎟️ 測試機會：${gameState.luck_tickets} 次 (累積獲得：${gameState.luck_tickets_total})</p>
             <p>💎 靈石：${gameState.stones}</p>
             <p>👥 在線人數：${typeof getOnlineCount === 'function' ? getOnlineCount() : 1}</p>
-            <p>⛩️ 宗門：${gameState.sectName && gameState.sectName !== '' ? gameState.sectName : '散修'}</p>
+            <p>⛩️ 宗門：${gameState.sectName && gameState.sectName !== '' ? gameState.sectName : '散修'}${gameState.sectName && gameState.sectName !== '' ? `<br/>仙門位階：${gameState.current_title}` : ''}</p>
             <p>👤 姓名：${gameState.personalName || '未設定'} | 性別：${gameState.gender || '未設定'} | 🌱 靈根：${(gameState.linggen === undefined || gameState.linggen === null) ? '未測' : ((gameState.linggen <= 0) ? '無靈根' : gameState.linggen + ' 靈根')}</p>
             <!-- 顯示當前裝備的道具；若無裝備則顯示未裝備 -->
             <p>🗡️ 兵器：${gameState.equippedWeapon && gameState.equippedWeapon !== '' ? gameState.equippedWeapon : '未裝備'}</p>
@@ -1614,7 +1614,7 @@ function renderMainMenu() {
     // 重新建構主選單 HTML：將 infoSection 移至訓練按鈕之前，更新版本號
     let html = `
         <h1>🎯 運氣訓練工具</h1>
-        <h2>V3-17（修仙網頁離線版）</h2>
+        <h2>V3-17-2（修仙網頁離線版）</h2>
         ${infoSection}
         <p style="text-align:center;">請選擇訓練難度（1 最簡單～10 最困難）</p>
     `;
@@ -2255,25 +2255,25 @@ function commentForScore(score, expected) {
 // ===================== 遊戲題庫生成 =====================
 // ▼▼▼ MAJOR FIX: Corrected the logic to ensure answer positions are truly random. ▼▼▼
 function game_template(title, pool, total, columns=5, btnSize=60) {
-    // 1. 決定本題所需的最小選項數：難度 5~7 至少 20 選項，難度 8~10 至少 40 選項
+    // 1. 決定本題所需的選項數：難度 5~7 至少 20 選項，難度 8~10 至少 40 選項。
+    //    如果題庫本身不足，則採用題庫的實際長度，不再重複題庫內容。
     let requiredCount = total;
     try {
         const diff = (trainingState && trainingState.difficulty) ? trainingState.difficulty : 1;
-        if (diff >= 5 && diff <= 7 && requiredCount < 20) {
-            requiredCount = 20;
-        } else if (diff >= 8 && diff <= 10 && requiredCount < 40) {
-            requiredCount = 40;
+        // 基本門檻（暫存值）
+        let threshold = total;
+        if (diff >= 5 && diff <= 7) {
+            threshold = Math.max(threshold, 20);
+        } else if (diff >= 8 && diff <= 10) {
+            threshold = Math.max(threshold, 40);
         }
+        // 若題庫長度不足門檻，則使用題庫長度
+        requiredCount = Math.min(threshold, pool.length);
     } catch (e) {
         /* ignore if trainingState not defined */
     }
-    // 2. 生成足夠長度的選項列表：若題庫不足，則重複題庫內容
-    let extendedPool = [];
-    while (extendedPool.length < requiredCount) {
-        extendedPool = extendedPool.concat(pool);
-    }
-    // 隨機選擇所需的選項數目
-    const itemsForDisplay = [...extendedPool].sort(() => 0.5 - Math.random()).slice(0, requiredCount);
+    // 2. 從題庫中隨機選出本次要顯示的所有選項
+    const itemsForDisplay = [...pool].sort(() => 0.5 - Math.random()).slice(0, requiredCount);
 
     // 3. 決定正確答案的數量，基於實際顯示的選項總數
     const correctCount = generateCorrectChoices(requiredCount);
@@ -3464,6 +3464,12 @@ function updateMainMenuInfo() {
     const ps = info.querySelectorAll('p');
     if (ps[0]) ps[0].innerHTML = `🧘‍♂️ 目前修為：${currentStage}`;
     if (ps[1]) ps[1].innerHTML = `🎖️ 目前仙門位階：${gameState.current_title}`;
+    // 更新宗門與仙門位階顯示（位於宗門行）
+    if (ps[7]) {
+        const sectName = (gameState.sectName && gameState.sectName !== '') ? gameState.sectName : '散修';
+        const sectTitle = (gameState.sectName && gameState.sectName !== '') ? gameState.current_title : '';
+        ps[7].innerHTML = `⛩️ 宗門：${sectName}` + (gameState.sectName && gameState.sectName !== '' ? `<br/>仙門位階：${sectTitle}` : '');
+    }
     let tip = "🌟 你已達到最終修為！";
     let progressVal = 100;
     if (nextInfo) {
@@ -5381,7 +5387,15 @@ function showSectMenu() {
             html += `<p>宗門等級：${level}</p>`;
             html += `<p>宗門貢獻：${contrib}</p>`;
             html += `<p>宗門總戰力：${power}</p>`;
-            html += `<p>你的職位：${role}</p>`;
+            // 以仙門位階取代原本的「你的職位」顯示
+            // 若為宗主，將其位階顯示為「宗主」，否則顯示個人仙門位階（由累積貢獻決定）
+            if (role === '宗主') {
+                html += `<p>仙門位階：宗主</p>`;
+            } else {
+                // 確保最新的個人位階已同步
+                try { syncTitleByContribution(); } catch (e) {}
+                html += `<p>仙門位階：${gameState.current_title || ''}</p>`;
+            }
             html += `<p>目前成員：${memberCount} / ${maxCap} 人</p>`;
             // 功能按鈕：成員列表、排行榜、改名、上貢、倉庫、商店、秘境、擂台、升級
             html += '<button data-action="show-sect-members">👥 成員列表</button> ';
@@ -5435,8 +5449,10 @@ function renderSectMenu() {
             if (!gameState.sectRole) {
                 gameState.sectRole = '宗主';
             }
-            // 更新每日貢獻與位階
+            // 更新每日貢獻、位階與個人仙門稱號
             updateSectDailyContribution();
+            // 更新個人仙門位階（根據個人貢獻）
+            try { syncTitleByContribution(); } catch (e) { /* ignore */ }
             const name = gameState.sectName;
             const level = gameState.sectLevel || 1;
             const contrib = gameState.sectContribution || 0;
@@ -5455,7 +5471,14 @@ function renderSectMenu() {
             // 顯示個人宗門貢獻
             html += `<p>你的個人貢獻：${gameState.sectPersonalContribution || 0}</p>`;
             html += `<p>宗門總戰力：${power}</p>`;
-            html += `<p>你的職位：${role}</p>`;
+            // 以仙門位階取代原「你的職位」顯示
+            // 宗主本身為最高職位，顯示為「宗主」；其他人顯示為其仙門位階
+            if (role === '宗主') {
+                html += `<p>仙門位階：宗主</p>`;
+            } else {
+                // 確保最新的個人位階已同步
+                html += `<p>仙門位階：${gameState.current_title || ''}</p>`;
+            }
             html += `<p>目前成員：${memberCount} / ${maxCap} 人</p>`;
             // 功能按鈕
             html += '<button data-action="show-sect-members">👥 成員列表</button> ';
