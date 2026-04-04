@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>運氣訓練工具 V3-17-2（修仙網頁離線版）</title>
+    <!-- 更新版本號至 V3-18-2 -->
+    <title>運氣訓練工具 V3-18-2（修仙網頁離線版）</title>
     <style>
         :root {
             --bg-color: #f0f2f5;
@@ -935,6 +936,24 @@ const OFFICE_B = OFFICE.slice(Math.ceil(OFFICE.length / 2));
 const TOOLS_A = TOOLS.slice(0, Math.ceil(TOOLS.length / 2));
 const TOOLS_B = TOOLS.slice(Math.ceil(TOOLS.length / 2));
 
+// ===================== 新增元素週期表題庫 =====================
+// 元素週期表共有 118 個正式命名的化學元素【561178875661821†L209-L214】。
+// 自 V3-18-2 起，題庫改用繁體中文名稱取代英文名稱，方便玩家閱讀與記憶。
+const PERIODIC_ELEMENTS = [
+    "氫", "氦", "鋰", "鈹", "硼", "碳", "氮", "氧", "氟", "氖",
+    "鈉", "鎂", "鋁", "矽", "磷", "硫", "氯", "氬", "鉀", "鈣",
+    "鈧", "鈦", "釩", "鉻", "錳", "鐵", "鈷", "鎳", "銅", "鋅",
+    "鎵", "鍺", "砷", "硒", "溴", "氪", "銣", "鍶", "釔", "鋯",
+    "鈮", "鉬", "鍀", "釕", "銠", "鈀", "銀", "鎘", "銦", "錫",
+    "銻", "碲", "碘", "氙", "銫", "鋇", "鑭", "鈰", "鐠", "釹",
+    "鉕", "釤", "銪", "釓", "鋱", "鏑", "鈥", "鉺", "銩", "鐿",
+    "鑥", "鉿", "鉭", "鎢", "錸", "鋨", "銥", "鉑", "金", "汞",
+    "鉈", "鉛", "鉍", "釙", "砹", "氡", "鈁", "鐳", "錒", "釷",
+    "鏷", "鈾", "鎿", "鈈", "鎇", "鋦", "錇", "鐦", "鎄", "鐨",
+    "鍆", "鍩", "鐒", "鑪", "𨧀", "𨭎", "𨨏", "𨭆", "䥑", "鐽",
+    "錀", "鎶", "鉨", "鈇", "鏌", "鉝", "鿬", "鿫"
+];
+
 // # === 新增符號與字母訓練題庫 ===
 // 羅馬數字（大寫 1–12）
 const ROMAN_NUMERALS_U = ["Ⅰ","Ⅱ","Ⅲ","Ⅳ","Ⅴ","Ⅵ","Ⅶ","Ⅷ","Ⅸ","Ⅹ","Ⅺ","Ⅻ"];
@@ -1024,6 +1043,8 @@ const ALL_GAMES = [
 
 
 // ===================== 遊戲狀態管理 =====================
+// 新增元素週期表訓練：使用 push 方式將元素週期表加入遊戲列表。
+ALL_GAMES.push({ name: "元素週期表", func: "game_periodic_table" });
 let gameState;
 let maxScores;
 let trainingState;
@@ -1614,7 +1635,8 @@ function renderMainMenu() {
     // 重新建構主選單 HTML：將 infoSection 移至訓練按鈕之前，更新版本號
     let html = `
         <h1>🎯 運氣訓練工具</h1>
-        <h2>V3-17-2（修仙網頁離線版）</h2>
+        <!-- 顯示版本號 V3-18-2 -->
+        <h2>V3-18-2（修仙網頁離線版）</h2>
         ${infoSection}
         <p style="text-align:center;">請選擇訓練難度（1 最簡單～10 最困難）</p>
     `;
@@ -2255,24 +2277,43 @@ function commentForScore(score, expected) {
 // ===================== 遊戲題庫生成 =====================
 // ▼▼▼ MAJOR FIX: Corrected the logic to ensure answer positions are truly random. ▼▼▼
 function game_template(title, pool, total, columns=5, btnSize=60) {
-    // 1. 決定本題所需的選項數：難度 5~7 至少 20 選項，難度 8~10 至少 40 選項。
-    //    如果題庫本身不足，則採用題庫的實際長度，不再重複題庫內容。
-    let requiredCount = total;
+    // 1. 決定本題所需的選項數：依據難度劃分為四個階段
+    //    - 難度 1~3：初級，從題庫中隨機擷取 10~20 個選項
+    //    - 難度 4~6：中級，從題庫中隨機擷取 21~40 個選項
+    //    - 難度 7~9：高級，從題庫中隨機擷取 41~60 個選項
+    //    - 難度 10：頂級，從題庫中隨機擷取 61~80 個選項
+    //    若題庫本身較小，則不重複題庫內容，並且至少保留 10 個選項（或題庫全長若不足 10）。
+    let requiredCount;
     try {
         const diff = (trainingState && trainingState.difficulty) ? trainingState.difficulty : 1;
-        // 基本門檻（暫存值）
-        let threshold = total;
-        if (diff >= 5 && diff <= 7) {
-            threshold = Math.max(threshold, 20);
-        } else if (diff >= 8 && diff <= 10) {
-            threshold = Math.max(threshold, 40);
+        // 預設範圍
+        let minCount = 10;
+        let maxCount = 20;
+        if (diff >= 1 && diff <= 3) {
+            minCount = 10;
+            maxCount = 20;
+        } else if (diff >= 4 && diff <= 6) {
+            minCount = 21;
+            maxCount = 40;
+        } else if (diff >= 7 && diff <= 9) {
+            minCount = 41;
+            maxCount = 60;
+        } else if (diff >= 10) {
+            minCount = 61;
+            maxCount = 80;
         }
-        // 若題庫長度不足門檻，則使用題庫長度
-        requiredCount = Math.min(threshold, pool.length);
+        // 從指定範圍內隨機選擇一個數字作為本次需要的選項數
+        let rangeSize = maxCount - minCount + 1;
+        let randomCount = minCount + Math.floor(Math.random() * rangeSize);
+        // 上限不能超過題庫長度
+        requiredCount = Math.min(randomCount, pool.length);
+        // 確保最少 10 個選項（或題庫長度若不足 10 時使用題庫長度）
+        requiredCount = Math.max(requiredCount, Math.min(10, pool.length));
     } catch (e) {
-        /* ignore if trainingState not defined */
+        // 若 trainingState 尚未初始化，則使用題庫長度
+        requiredCount = Math.min(pool.length, total);
     }
-    // 2. 從題庫中隨機選出本次要顯示的所有選項
+    // 2. 從題庫中隨機選出本次要顯示的選項，不重複
     const itemsForDisplay = [...pool].sort(() => 0.5 - Math.random()).slice(0, requiredCount);
 
     // 3. 決定正確答案的數量，基於實際顯示的選項總數
@@ -2369,6 +2410,12 @@ window.game_currency_symbols = () => { game_template("貨幣符號", CURRENCY_SY
 window.game_music_symbols = () => { game_template("音樂符號", MUSIC_SYMBOLS, MUSIC_SYMBOLS.length, 5); };
 // # 國際象棋符號
 window.game_chess_symbols = () => { game_template("國際象棋符號", CHESS_SYMBOLS, CHESS_SYMBOLS.length, 6); };
+
+// 新增元素週期表訓練函式
+// 元素週期表包含 118 個元素，題目數量大，為了提供更好的體驗，使用 10 列展示並採用較小的按鈕尺寸
+window.game_periodic_table = () => {
+    game_template("元素週期表", PERIODIC_ELEMENTS, PERIODIC_ELEMENTS.length, 10, 48);
+};
 
 // # 新增：生肖符號遊戲
 window.game_chinese_zodiacs = () => { game_template("生肖符號", CHINESE_ZODIAC, CHINESE_ZODIAC.length, 4, 48); };
@@ -2781,7 +2828,12 @@ function showGameRules() {
             <h3>1. 升級獎勵說明</h3>
             <p>當你的修煉經驗與訓練次數同時達到下一層門檻時，修為會自動突破。每突破一層，依據突破層級差距獲得相應數量的測試機會與靈石。</p>
             <h3>2. 遊戲關卡說明</h3>
-            <p>訓練共有 10 個難度。難度 1～4 的題目選項數不受限制；難度 5～7 的題目會提供至少 20 個選項；難度 8～10 的題目則會提供至少 40 個選項。每回合包含 20 題圖示，請在倒數時間內選出目標。答對能累積修煉經驗與訓練次數；達到該難度要求的勝率，可額外獲得修煉經驗獎勵。</p>
+            <p>訓練共有 10 個難度。為區隔不同難度，每題所提供的選項數量依難度分為四個等級：<br>
+            <b>難度 1～3</b>：隨機從題庫中擷取 <b>10～20</b> 個選項（初級）；<br>
+            <b>難度 4～6</b>：隨機擷取 <b>21～40</b> 個選項（中級）；<br>
+            <b>難度 7～9</b>：隨機擷取 <b>41～60</b> 個選項（高級）；<br>
+            <b>難度 10</b>：隨機擷取 <b>61～80</b> 個選項（頂級）。<br>
+            若題庫本身不足上述範圍，則會在保證最少 10 個選項的前提下隨機抽取可用項目，且不重複。每回合包含 20 題圖示，請在倒數時間內選出目標。答對能累積修煉經驗與訓練次數；達到該難度要求的勝率，可額外獲得修煉經驗獎勵。新增的「元素週期表」題庫以 118 個元素的繁體中文名稱呈現，也遵循上述規則，依難度隨機擷取相應數量的元素作為選項。</p>
             <h3>3. 道具升級及功能說明</h3>
             <p>道具分為兵器、護甲、護腕、護身符、靈盾、功法、陣法、靈器、靈符、仙丹等類，另有靈獸系統（功能開發中）。兵器與各類防具需要<strong>裝備</strong>後才會發揮被動效果；功法與陣法則為<strong>主動</strong>道具，於作答時使用並消耗修為點。裝備類道具在每題開始時將消耗修為，品階越高消耗越多。各類道具功能如下：</p>
             <ul>
