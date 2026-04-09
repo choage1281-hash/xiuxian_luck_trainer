@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <!-- 更新版本號至 V3-18-2 -->
-    <title>運氣訓練工具 V3-18-2（修仙網頁離線版）</title>
+    <!-- 更新版本號至 V3-18-3 -->
+    <title>運氣訓練工具 V3-18-3（修仙網頁離線版）</title>
     <style>
         :root {
             --bg-color: #f0f2f5;
@@ -819,6 +819,20 @@ const EQUIP_PASSIVE_COSTS = {
     '天品': 20
 };
 
+// === 裝備類每題修為消耗基準 ===
+// 為了符合最新規劃，裝備的修為消耗將按照每場（二十題）計算，再除以 20 得出每題成本。
+// 各類型裝備有不同基準：兵器、護甲、護身符每場基準為 4000 修為（即每題 200）；靈盾與護腕基準為 3000 修為（每題 150）。
+// 使用主動功法、陣法時亦視同每場消耗 4000 修為（每題 200），故其 exp_cost 將另行動態調整。
+const CATEGORY_PER_QUESTION_BASES = {
+    weapon: 200, // 20 題總消耗 4000
+    armor: 200,
+    amulet: 200,
+    shield: 150, // 20 題總消耗 3000
+    cuff: 150,
+    technique: 200,
+    formation: 200
+};
+
 // 新增護身符、靈盾、護腕等防禦道具：需裝備後方可生效，減免處罰與護甲類似
 const NEW_DEFENSE_ITEMS = {
     // 護身符：提升結算獎勵加成。bonus 表示額外加成百分比，例如 5 代表 +5%。
@@ -886,6 +900,22 @@ try {
             // 陣法不再為裝備，而是主動使用類道具
             eff.desc = `主動：增加 ${eff.n} 秒作答時間（消耗修為）`;
         }
+    });
+
+    // 動態調整功法與陣法的修為消耗（exp_cost）：
+    // 每場 20 題依品階消耗修為，兵器類基準 4000/場 => 每題 200，適用於功法與陣法
+    Object.keys(TECHNIQUES).forEach(function(name) {
+        const grade = getItemGradeName(name);
+        const idx   = GRADE_NAMES.indexOf(grade);
+        const base  = CATEGORY_PER_QUESTION_BASES['technique'] || 0;
+        // 每場消耗 = 基準 × (品階序號+1) × 20
+        TECHNIQUES[name].exp_cost = base * (idx + 1) * 20;
+    });
+    Object.keys(FORMATIONS).forEach(function(name) {
+        const grade = getItemGradeName(name);
+        const idx   = GRADE_NAMES.indexOf(grade);
+        const base  = CATEGORY_PER_QUESTION_BASES['formation'] || 0;
+        FORMATIONS[name].exp_cost = base * (idx + 1) * 20;
     });
     // 防具類：護甲、護身符、靈盾、護腕
     Object.keys(ITEM_EFFECTS).forEach(function(name) {
@@ -1635,8 +1665,8 @@ function renderMainMenu() {
     // 重新建構主選單 HTML：將 infoSection 移至訓練按鈕之前，更新版本號
     let html = `
         <h1>🎯 運氣訓練工具</h1>
-        <!-- 顯示版本號 V3-18-2 -->
-        <h2>V3-18-2（修仙網頁離線版）</h2>
+        <!-- 顯示版本號 V3-18-3 -->
+        <h2>V3-18-3（修仙網頁離線版）</h2>
         ${infoSection}
         <p style="text-align:center;">請選擇訓練難度（1 最簡單～10 最困難）</p>
     `;
@@ -2414,7 +2444,7 @@ window.game_chess_symbols = () => { game_template("國際象棋符號", CHESS_SY
 // 新增元素週期表訓練函式
 // 元素週期表包含 118 個元素，題目數量大，為了提供更好的體驗，使用 10 列展示並採用較小的按鈕尺寸
 window.game_periodic_table = () => {
-    game_template("元素週期表", PERIODIC_ELEMENTS, PERIODIC_ELEMENTS.length, 8, 48);
+    game_template("元素週期表", PERIODIC_ELEMENTS, PERIODIC_ELEMENTS.length, 10, 48);
 };
 
 // # 新增：生肖符號遊戲
@@ -2835,7 +2865,7 @@ function showGameRules() {
             <b>難度 10</b>：隨機擷取 <b>61～80</b> 個選項（頂級）。<br>
             若題庫本身不足上述範圍，則會在保證最少 10 個選項的前提下隨機抽取可用項目，且不重複。每回合包含 20 題圖示，請在倒數時間內選出目標。答對能累積修煉經驗與訓練次數；達到該難度要求的勝率，可額外獲得修煉經驗獎勵。新增的「元素週期表」題庫以 118 個元素的繁體中文名稱呈現，也遵循上述規則，依難度隨機擷取相應數量的元素作為選項。</p>
             <h3>3. 道具升級及功能說明</h3>
-            <p>道具分為兵器、護甲、護腕、護身符、靈盾、功法、陣法、靈器、靈符、仙丹等類，另有靈獸系統（功能開發中）。兵器與各類防具需要<strong>裝備</strong>後才會發揮被動效果；功法與陣法則為<strong>主動</strong>道具，於作答時使用並消耗修為點。裝備類道具在每題開始時將消耗修為，品階越高消耗越多。各類道具功能如下：</p>
+            <p>道具分為兵器、護甲、護腕、護身符、靈盾、功法、陣法、靈器、靈符、仙丹等類，另有靈獸系統（功能開發中）。兵器與各類防具需要<strong>裝備</strong>後才會發揮被動效果；功法與陣法則為<strong>主動</strong>道具，於作答時使用並消耗修為點。<strong>裝備類道具在每場（20 題）開始時會依品階一次性消耗修為</strong>：兵器、護甲、護腕、護身符每場分別消耗&nbsp;4000、8000、12000、16000……等修為；靈盾每場消耗&nbsp;3000、6000、9000……等修為；品階越高消耗越多。功法與陣法的主動使用同樣依品階消耗對應修為。各類道具功能如下：</p>
             <ul>
                 <li><b>兵器</b>：被動增加每題可選答案數（作答次數）。裝備後每題會消耗修為。</li>
                 <li><b>護甲</b>：被動減免處罰率。裝備後每題會消耗修為。</li>
@@ -3680,9 +3710,12 @@ function equipArmor(name) {
         }
         // 裝備前檢查修為：依品階判定每題被動消耗，若修為不足則禁止裝備
         const grade = getItemGradeName(name);
-        const cost = EQUIP_PASSIVE_COSTS[grade] || 0;
-        if (cost > 0 && gameState.exp < cost) {
-            addTemporaryMessage(`⚠️ 修為不足，無法裝備 ${name}`,'msg-shop-fail');
+        const idx   = GRADE_NAMES.indexOf(grade);
+        const base  = CATEGORY_PER_QUESTION_BASES['armor'] || 0;
+        const costPerQ  = base * (idx + 1);
+        const matchCost = costPerQ * 20;
+        if (matchCost > 0 && gameState.exp < matchCost) {
+            addTemporaryMessage(`⚠️ 修為不足，需要至少 ${matchCost} 修為才能裝備 ${name}`,'msg-shop-fail');
             return;
         }
         // 更新裝備狀態
@@ -3731,9 +3764,12 @@ function equipWeapon(name) {
         }
         // 裝備前檢查修為：依品階判定每題被動消耗，若修為不足則禁止裝備
         const grade = getItemGradeName(name);
-        const cost = EQUIP_PASSIVE_COSTS[grade] || 0;
-        if (cost > 0 && gameState.exp < cost) {
-            addTemporaryMessage(`⚠️ 修為不足，無法裝備 ${name}`,'msg-shop-fail');
+        const idx   = GRADE_NAMES.indexOf(grade);
+        const base  = CATEGORY_PER_QUESTION_BASES['weapon'] || 0;
+        const costPerQ  = base * (idx + 1);
+        const matchCost = costPerQ * 20;
+        if (matchCost > 0 && gameState.exp < matchCost) {
+            addTemporaryMessage(`⚠️ 修為不足，需要至少 ${matchCost} 修為才能裝備 ${name}`,'msg-shop-fail');
             return;
         }
         gameState.equippedWeapon = name;
@@ -3759,9 +3795,12 @@ function equipAmulet(name) {
         }
         // 裝備前檢查修為：依品階判定每題被動消耗，若修為不足則禁止裝備
         const grade = getItemGradeName(name);
-        const cost = EQUIP_PASSIVE_COSTS[grade] || 0;
-        if (cost > 0 && gameState.exp < cost) {
-            addTemporaryMessage(`⚠️ 修為不足，無法裝備 ${name}`,'msg-shop-fail');
+        const idx   = GRADE_NAMES.indexOf(grade);
+        const base  = CATEGORY_PER_QUESTION_BASES['amulet'] || 0;
+        const costPerQ  = base * (idx + 1);
+        const matchCost = costPerQ * 20;
+        if (matchCost > 0 && gameState.exp < matchCost) {
+            addTemporaryMessage(`⚠️ 修為不足，需要至少 ${matchCost} 修為才能裝備 ${name}`,'msg-shop-fail');
             return;
         }
         gameState.equippedAmulet = name;
@@ -3786,9 +3825,12 @@ function equipShield(name) {
         }
         // 裝備前檢查修為：依品階判定每題被動消耗，若修為不足則禁止裝備
         const grade = getItemGradeName(name);
-        const cost = EQUIP_PASSIVE_COSTS[grade] || 0;
-        if (cost > 0 && gameState.exp < cost) {
-            addTemporaryMessage(`⚠️ 修為不足，無法裝備 ${name}`,'msg-shop-fail');
+        const idx   = GRADE_NAMES.indexOf(grade);
+        const base  = CATEGORY_PER_QUESTION_BASES['shield'] || 0;
+        const costPerQ  = base * (idx + 1);
+        const matchCost = costPerQ * 20;
+        if (matchCost > 0 && gameState.exp < matchCost) {
+            addTemporaryMessage(`⚠️ 修為不足，需要至少 ${matchCost} 修為才能裝備 ${name}`,'msg-shop-fail');
             return;
         }
         gameState.equippedShield = name;
@@ -3813,9 +3855,12 @@ function equipCuff(name) {
         }
         // 裝備前檢查修為：依品階判定每題被動消耗，若修為不足則禁止裝備
         const grade = getItemGradeName(name);
-        const cost = EQUIP_PASSIVE_COSTS[grade] || 0;
-        if (cost > 0 && gameState.exp < cost) {
-            addTemporaryMessage(`⚠️ 修為不足，無法裝備 ${name}`,'msg-shop-fail');
+        const idx   = GRADE_NAMES.indexOf(grade);
+        const base  = CATEGORY_PER_QUESTION_BASES['cuff'] || 0;
+        const costPerQ  = base * (idx + 1);
+        const matchCost = costPerQ * 20;
+        if (matchCost > 0 && gameState.exp < matchCost) {
+            addTemporaryMessage(`⚠️ 修為不足，需要至少 ${matchCost} 修為才能裝備 ${name}`,'msg-shop-fail');
             return;
         }
         gameState.equippedCuff = name;
@@ -3917,9 +3962,12 @@ function applyPassiveEquipmentEffects() {
     equipList.forEach(entry => {
         const itemName = entry.name;
         if (!itemName) return;
-        // 判定品階與消耗
+        // 判定品階與類型，計算每題消耗 = 類型基準 × 品階序號
         const grade = getItemGradeName(itemName);
-        const cost  = EQUIP_PASSIVE_COSTS[grade] || 0;
+        const gradeIndex = GRADE_NAMES.indexOf(grade);
+        const base = CATEGORY_PER_QUESTION_BASES[entry.type] || 0;
+        // 根據品階序號 (0 起算) 計算每題修為消耗
+        const cost = base * (gradeIndex + 1);
         // 若不足以支付此次裝備的消耗，則略過此裝備
         if (cost > 0 && remainingExp < cost) return;
         const eff = ITEM_EFFECTS[itemName] || {};
