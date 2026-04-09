@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <!-- 更新版本號至 V3-18-3 -->
-    <title>運氣訓練工具 V3-18-3（修仙網頁離線版）</title>
+    <!-- 更新版本號至 V3-19 -->
+    <title>運氣訓練工具 V3-19（修仙網頁離線版）</title>
     <style>
         :root {
             --bg-color: #f0f2f5;
@@ -878,27 +878,42 @@ Object.assign(ITEM_EFFECTS, NEW_DEFENSE_ITEMS);
 // 說明格式範例：被動：每題增加 X 次作答（消耗修為）
 try {
     // 兵器類：增加可選答案數（被動）
+    // 根據品階計算每場（20 題）修為消耗並更新說明
     Object.keys(WEAPONS).forEach(function(name) {
         const eff = WEAPONS[name];
         if (eff && typeof eff.n === 'number') {
-            // 兵器依然屬於被動裝備
-            eff.desc = `被動：每題增加 ${eff.n} 次作答（消耗修為）`;
+            const grade = getItemGradeName(name);
+            const idx   = GRADE_NAMES.indexOf(grade);
+            const base  = CATEGORY_PER_QUESTION_BASES['weapon'] || 0;
+            // 每場消耗 = 基準 × (品階序號+1) × 20
+            const matchCost = base * (idx + 1) * 20;
+            eff.desc = `被動：每題增加 ${eff.n} 次作答（每場消耗 ${matchCost} 修為）`;
         }
     });
     // 功法類：主動使用以排除錯誤答案
+    // 主動使用亦依品階顯示每場修為消耗
     Object.keys(TECHNIQUES).forEach(function(name) {
         const eff = TECHNIQUES[name];
         if (eff && typeof eff.n === 'number') {
+            const grade = getItemGradeName(name);
+            const idx   = GRADE_NAMES.indexOf(grade);
+            const base  = CATEGORY_PER_QUESTION_BASES['technique'] || 0;
+            const matchCost = base * (idx + 1) * 20;
             // 功法不再為裝備，而是主動使用類道具
-            eff.desc = `主動：顯示 ${eff.n} 個錯誤答案（消耗修為）`;
+            eff.desc = `主動：顯示 ${eff.n} 個錯誤答案（每場消耗 ${matchCost} 修為）`;
         }
     });
     // 陣法類：主動使用以增加作答時間
+    // 亦依品階顯示每場修為消耗
     Object.keys(FORMATIONS).forEach(function(name) {
         const eff = FORMATIONS[name];
         if (eff && typeof eff.n === 'number') {
+            const grade = getItemGradeName(name);
+            const idx   = GRADE_NAMES.indexOf(grade);
+            const base  = CATEGORY_PER_QUESTION_BASES['formation'] || 0;
+            const matchCost = base * (idx + 1) * 20;
             // 陣法不再為裝備，而是主動使用類道具
-            eff.desc = `主動：增加 ${eff.n} 秒作答時間（消耗修為）`;
+            eff.desc = `主動：增加 ${eff.n} 秒作答時間（每場消耗 ${matchCost} 修為）`;
         }
     });
 
@@ -918,17 +933,23 @@ try {
         FORMATIONS[name].exp_cost = base * (idx + 1) * 20;
     });
     // 防具類：護甲、護身符、靈盾、護腕
+    // 依照裝備類型與品階計算每場修為消耗並更新說明
     Object.keys(ITEM_EFFECTS).forEach(function(name) {
         const eff = ITEM_EFFECTS[name];
         if (!eff) return;
+        // 若無品階（如特殊道具）則略過
+        const grade = getItemGradeName(name);
+        const idx   = GRADE_NAMES.indexOf(grade);
+        const base  = CATEGORY_PER_QUESTION_BASES[eff.type] || 0;
+        const matchCost = base * (idx + 1) * 20;
         if (eff.type === 'defense' && typeof eff.reduce === 'number') {
-            eff.desc = `被動：減免 ${eff.reduce}% 處罰（消耗修為）`;
+            eff.desc = `被動：減免 ${eff.reduce}% 處罰（每場消耗 ${matchCost} 修為）`;
         } else if (eff.type === 'amulet' && typeof eff.bonus === 'number') {
-            eff.desc = `被動：結算獎勵提升 ${eff.bonus}%（消耗修為）`;
+            eff.desc = `被動：結算獎勵提升 ${eff.bonus}%（每場消耗 ${matchCost} 修為）`;
         } else if (eff.type === 'shield' && typeof eff.n === 'number') {
-            eff.desc = `被動：每題顯示 ${eff.n} 個錯誤答案（消耗修為）`;
+            eff.desc = `被動：每題顯示 ${eff.n} 個錯誤答案（每場消耗 ${matchCost} 修為）`;
         } else if (eff.type === 'cuff' && typeof eff.n === 'number') {
-            eff.desc = `被動：每題增加 ${eff.n} 秒作答時間（消耗修為）`;
+            eff.desc = `被動：每題增加 ${eff.n} 秒作答時間（每場消耗 ${matchCost} 修為）`;
         }
     });
 } catch (e) {
@@ -1665,8 +1686,8 @@ function renderMainMenu() {
     // 重新建構主選單 HTML：將 infoSection 移至訓練按鈕之前，更新版本號
     let html = `
         <h1>🎯 運氣訓練工具</h1>
-        <!-- 顯示版本號 V3-18-3 -->
-        <h2>V3-18-3（修仙網頁離線版）</h2>
+        <!-- 顯示版本號 V3-19 -->
+        <h2>V3-19（修仙網頁離線版）</h2>
         ${infoSection}
         <p style="text-align:center;">請選擇訓練難度（1 最簡單～10 最困難）</p>
     `;
