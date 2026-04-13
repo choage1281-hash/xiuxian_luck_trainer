@@ -2377,8 +2377,15 @@ function game_template(title, pool, total, columns=5, btnSize=60) {
             maxCount = 80;
         }
         // 題庫不再按照索引區段切分，而是依難度設定「抽取選項數量」的範圍。
-        // 從完整題庫中隨機抽取指定數量選項，並確保不重複。
+        // 若題庫項目數不足最小選項數，則跳過本題型，避免出現無法滿足要求的狀況。
         currentPool = pool;
+        if (pool.length < minCount) {
+            if (trainingState && typeof trainingState.round === 'number') {
+                trainingState.round = Math.max(0, trainingState.round - 1);
+            }
+            trainingNext();
+            return;
+        }
         // 根據設定決定本題需要的選項數。範圍如下：
         //   難度 1~3：10～20 個
         //   難度 4~6：21～40 個
