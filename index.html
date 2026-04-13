@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <!-- 更新版本號至 V4-1 -->
-    <title>運氣訓練工具 V4-1（修仙網頁離線版）</title>
+    <!-- 更新版本號至 V4-1-2 -->
+    <title>運氣訓練工具 V4-1-2（修仙網頁離線版）</title>
     <style>
         :root {
             --bg-color: #f0f2f5;
@@ -766,7 +766,7 @@ const ITEM_EFFECTS = {
     "寶品護甲": {"type": "defense", "reduce": 35, "desc": "減免 35% 處罰"},
     "地品護甲": {"type": "defense", "reduce": 40, "desc": "減免 40% 處罰"},
     "天品護甲": {"type": "defense", "reduce": 50, "desc": "減免 50% 處罰"}
-    , "靈寵盲盒": {"type": "petbox", "desc": "使用後可隨機獲得一隻靈寵"}
+    , "靈寵盲盒": {"type": "petbox", "desc": "使用後隨機獲得一隻靈寵（初始 1 級，等級無上限、等比成長）"}
 };
 
 const ITEM_STONE_PRICES = {
@@ -1702,8 +1702,8 @@ function renderMainMenu() {
     // 重新建構主選單 HTML：將 infoSection 移至訓練按鈕之前，更新版本號
     let html = `
         <h1>🎯 運氣訓練工具</h1>
-        <!-- 顯示版本號 V4-1 -->
-        <h2>V4-1（修仙網頁離線版）</h2>
+        <!-- 顯示版本號 V4-1-2 -->
+        <h2>V4-1-2（修仙網頁離線版）</h2>
         ${infoSection}
         <p style="text-align:center;">請選擇訓練難度（1 最簡單～10 最困難）</p>
     `;
@@ -3006,7 +3006,7 @@ function showGameRules() {
             <p>在主選單中點擊「⛩️ 宗門系統」可查看目前宗門資訊、加入 AI 宗門、建立或退出宗門，並透過成員列表、戰力與貢獻查看宗門整體狀態。宗門功能會隨版本更新逐步擴充，例如宗門任務、宗門戰與更多互動。</p>
 
             <h3>12. 靈寵系統</h3>
-            <p>靈寵是修仙旅程中的夥伴。主選單的商店新增<b>靈寵盲盒</b>，每個售價 1000 靈石，使用後可隨機獲得一隻靈寵。每隻靈寵初始等級為 1，可透過自動訓練累積經驗並升級。你可以同時擁有多隻靈寵，並可為每隻靈寵命名或放生。靈寵管理介面位於「靈寵系統」頁面，背包中亦可查看現有靈寵。自動訓練會由靈寵代替你完成一場 20 題的訓練，所得的修煉經驗和個人貢獻將計入你的帳戶，未來版本將根據靈寵等級解鎖更高難度的自動訓練。</p>
+            <p>靈寵是修仙旅程中的夥伴。主選單的商店新增<b>靈寵盲盒</b>，每個售價 1000 靈石，使用後可隨機獲得一隻靈寵。每隻靈寵初始等級為 1，等級沒有上限，升級所需經驗採用等比級數增長（例如 Lv.1→2 需 100 經驗，Lv.2→3 需 150，Lv.3→4 需 225，以此類推）。你可以同時擁有多隻靈寵，並可為每隻靈寵命名或放生。靈寵管理介面位於「靈寵系統」頁面，背包中亦可查看現有靈寵。自動訓練會由靈寵代替你完成一場 20 題的訓練，所得的修煉經驗和個人貢獻將計入你的帳戶，未來版本將根據靈寵等級解鎖更高難度的自動訓練。</p>
         </div>
     `;
     showModal("📜 遊戲規則說明", content, `<button data-action="close-modal">關閉</button>`);
@@ -3049,8 +3049,14 @@ function renderSpiritBeastMenu() {
 
 // ===================== 靈寵輔助函式 =====================
 // 計算指定等級升級所需經驗。簡單線性成長：Lv.n 需要 n×100 EXP 升級
+// 計算指定等級升級所需經驗。採用等比級數成長：基數 100，每升一級所需經驗乘以 1.5
 function getPetLevelRequirement(level) {
-    return Math.max(100, level * 100);
+    // 例如：Lv.1→2 需 100 EXP；Lv.2→3 需 150；Lv.3→4 需 225；依此類推
+    const base = 100;
+    const ratio = 1.5;
+    // level 1: ratio^(level-1) = ratio^0 = 1
+    const req = base * Math.pow(ratio, Math.max(0, level - 1));
+    return Math.floor(req);
 }
 
 // 升級靈寵：若經驗累積超過等級需求則升級
@@ -3874,7 +3880,13 @@ function showBackpack() {
             const gradeCls = getItemGradeClass(name);
             const eff = ITEM_EFFECTS[name] || {};
             const desc = eff.desc || '';
+            // 若為可直接使用的道具（如靈寵盲盒），提供使用按鈕
+            let useBtn = '';
+            if (eff.type === 'petbox') {
+              useBtn = `<button data-action="use-item" data-item-name="${name}" style="margin-left:1em;" class="btn-primary">使用</button>`;
+            }
             return `<li class="cat-${catCls}"><span class="grade-${gradeCls}">${name}</span> ×${qty}
+              ${useBtn}
               ${desc ? `<div style="font-size:0.8em;color:var(--secondary-color);margin-left:1em;">${desc}</div>` : ''}
             </li>`;
           }).join('') +
