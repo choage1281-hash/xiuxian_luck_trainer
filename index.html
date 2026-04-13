@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <!-- 更新版本號至 V3-19 -->
-    <title>運氣訓練工具 V3-19（修仙網頁離線版）</title>
+    <!-- 更新版本號至 V4-1 -->
+    <title>運氣訓練工具 V4-1（修仙網頁離線版）</title>
     <style>
         :root {
             --bg-color: #f0f2f5;
@@ -144,6 +144,9 @@
         .cat-amulet { background-color: #e6ffe6; }
         .cat-shield { background-color: #e6f7ff; }
         .cat-cuff { background-color: #fff0f5; }
+
+        /* 盲盒分類底色：淡黃色，區分於其他類別 */
+        .cat-box { background-color: #fff7e6; }
 
         /*
          * 道具品階字體顏色區隔
@@ -625,7 +628,7 @@ const CULTIVATION_STAGES = (() => {
 const GRADE_NAMES = ["入品", "下品", "中品", "上品", "極品", "超品", "絕品", "寶品", "地品", "天品"];
 // 新增護甲分類於道具類型順序，用於背包與商店分類顯示
 // 新增護身符、靈盾、護腕等防具類型於道具排序中
-const ITEM_TYPE_ORDER = ['兵器', '功法', '陣法', '仙丹', '靈器', '靈符', '護甲', '護身符', '靈盾', '護腕'];
+const ITEM_TYPE_ORDER = ['兵器', '功法', '陣法', '仙丹', '靈器', '靈符', '護甲', '護身符', '靈盾', '護腕', '盲盒'];
 
 // ===================== 宗門相關常數 =====================
 // 預設 AI 宗門列表，名稱與初始等級。玩家可直接加入這些宗門，無需審核。
@@ -763,6 +766,7 @@ const ITEM_EFFECTS = {
     "寶品護甲": {"type": "defense", "reduce": 35, "desc": "減免 35% 處罰"},
     "地品護甲": {"type": "defense", "reduce": 40, "desc": "減免 40% 處罰"},
     "天品護甲": {"type": "defense", "reduce": 50, "desc": "減免 50% 處罰"}
+    , "靈寵盲盒": {"type": "petbox", "desc": "使用後可隨機獲得一隻靈寵"}
 };
 
 const ITEM_STONE_PRICES = {
@@ -770,6 +774,7 @@ const ITEM_STONE_PRICES = {
     "入品靈符": 1, "下品靈符": 2, "中品靈符": 4, "上品靈符": 8, "極品靈符": 16, "超品靈符": 32, "絕品靈符": 64, "寶品靈符": 128, "地品靈符": 256, "天品靈符": 512,
     "入品靈器": 5, "下品靈器": 10, "中品靈器": 20, "上品靈器": 40, "極品靈器": 80, "超品靈器": 160, "絕品靈器": 320, "寶品靈器": 640, "地品靈器": 1280, "天品靈器": 2560,
     "靈根重塑丹": 1024,
+    "靈寵盲盒": 1000,
 };
 
 const ITEM_RENAME_MAP = {
@@ -1005,6 +1010,13 @@ const PERIODIC_ELEMENTS = [
     "錀", "鎶", "鉨", "鈇", "鏌", "鉝", "鿬", "鿫"
 ];
 
+// ===================== 靈寵種類 =====================
+// 定義可隨機獲得的靈寵種類。每種靈寵都有預設的名字與外觀，玩家獲得靈寵後可自行取名。
+const PET_SPECIES = [
+    "靈狐", "靈兔", "靈虎", "靈龍", "靈鳳",
+    "靈龜", "靈鹿", "靈貓", "靈羊", "靈熊"
+];
+
 // # === 新增符號與字母訓練題庫 ===
 // 羅馬數字（大寫 1–12）
 const ROMAN_NUMERALS_U = ["Ⅰ","Ⅱ","Ⅲ","Ⅳ","Ⅴ","Ⅵ","Ⅶ","Ⅷ","Ⅸ","Ⅹ","Ⅺ","Ⅻ"];
@@ -1148,6 +1160,8 @@ const defaultStats = {
     , sectPersonalContribution: 0
     // 宗門成員：包含 AI 修士及玩家本人，用於計算宗門戰力與貢獻
     , sectMembers: []
+    // 玩家擁有的靈寵列表
+    , pets: []
     // 上一次領取每日宗門貢獻的日期，用於每日 AI 貢獻刷新
     , sectLastContributionDate: ""
     // 新增防禦裝備相關：目前裝備的護甲名稱與其減免值（百分比）
@@ -1444,6 +1458,7 @@ function getItemCategoryClass(itemName) {
         case '護身符': return 'amulet';
         case '靈盾': return 'shield';
         case '護腕': return 'cuff';
+        case '盲盒': return 'box';
         default: return 'unknown';
     }
 }
@@ -1676,6 +1691,7 @@ function renderMainMenu() {
             <p>📿 護身符：${gameState.equippedAmulet && gameState.equippedAmulet !== '' ? gameState.equippedAmulet : '未裝備'}</p>
             <p>🔰 靈盾：${gameState.equippedShield && gameState.equippedShield !== '' ? gameState.equippedShield : '未裝備'}</p>
             <p>🧤 護腕：${gameState.equippedCuff && gameState.equippedCuff !== '' ? gameState.equippedCuff : '未裝備'}</p>
+            <p>🐾 靈寵：${(gameState.pets && gameState.pets.length > 0) ? gameState.pets.map(p => (p.name || p.species) + ' Lv.' + (p.level || 1)).join('、') : '無'}</p>
         </div>
     `;
     // 計算全部兌換按鈕的數據
@@ -1686,8 +1702,8 @@ function renderMainMenu() {
     // 重新建構主選單 HTML：將 infoSection 移至訓練按鈕之前，更新版本號
     let html = `
         <h1>🎯 運氣訓練工具</h1>
-        <!-- 顯示版本號 V3-19 -->
-        <h2>V3-19（修仙網頁離線版）</h2>
+        <!-- 顯示版本號 V4-1 -->
+        <h2>V4-1（修仙網頁離線版）</h2>
         ${infoSection}
         <p style="text-align:center;">請選擇訓練難度（1 最簡單～10 最困難）</p>
     `;
@@ -1699,8 +1715,8 @@ function renderMainMenu() {
     html += `<button class="btn-trial" data-action="show-trial-leaderboard">🏆 秘境排行榜</button>`;
     // 將宗門系統按鈕移至修仙排行榜之前
     html += `<button class="btn-other" data-action="show-sect-menu">⛩️ 宗門系統</button>`;
-    // 新增靈獸系統按鈕
-    html += `<button class="btn-other" data-action="render-spirit-beast-menu">🐾 靈獸系統</button>`;
+    // 新增靈寵系統按鈕
+    html += `<button class="btn-other" data-action="render-spirit-beast-menu">🐾 靈寵系統</button>`;
     html += `<button class="btn-other" data-action="show-cultivation-leaderboard">🌄 修仙排行榜</button>`;
     html += `
         <button class="btn-other" data-action="show-stage-list">📜 查看修仙等級一覽</button>
@@ -2353,6 +2369,15 @@ function game_template(title, pool, total, columns=5, btnSize=60) {
             minCount = 61;
             maxCount = 80;
         }
+        // 如果題庫不足所需的最小選項數，直接跳過此類別，不列入本題訓練
+        if (pool.length < minCount) {
+            // 回退本回合計數，避免 round 增加
+            if (trainingState && typeof trainingState.round === 'number') {
+                trainingState.round = Math.max(0, trainingState.round - 1);
+            }
+            trainingNext();
+            return;
+        }
         // 從指定範圍內隨機選擇一個數字作為本次需要的選項數
         let rangeSize = maxCount - minCount + 1;
         let randomCount = minCount + Math.floor(Math.random() * rangeSize);
@@ -2463,9 +2488,9 @@ window.game_music_symbols = () => { game_template("音樂符號", MUSIC_SYMBOLS,
 window.game_chess_symbols = () => { game_template("國際象棋符號", CHESS_SYMBOLS, CHESS_SYMBOLS.length, 6); };
 
 // 新增元素週期表訓練函式
-// 元素週期表包含 118 個元素，題目數量大，為了提供更好的體驗，使用 10 列展示並採用較小的按鈕尺寸
+// 元素週期表包含 118 個元素，題目數量大，為了提供更好的體驗，使用 8 列展示並採用較小的按鈕尺寸
 window.game_periodic_table = () => {
-    game_template("元素週期表", PERIODIC_ELEMENTS, PERIODIC_ELEMENTS.length, 10, 48);
+    game_template("元素週期表", PERIODIC_ELEMENTS, PERIODIC_ELEMENTS.length, 8, 48);
 };
 
 // # 新增：生肖符號遊戲
@@ -2884,9 +2909,9 @@ function showGameRules() {
             <b>難度 4～6</b>：隨機擷取 <b>21～40</b> 個選項（中級）；<br>
             <b>難度 7～9</b>：隨機擷取 <b>41～60</b> 個選項（高級）；<br>
             <b>難度 10</b>：隨機擷取 <b>61～80</b> 個選項（頂級）。<br>
-            若題庫本身不足上述範圍，則會在保證最少 10 個選項的前提下隨機抽取可用項目，且不重複。每回合包含 20 題圖示，請在倒數時間內選出目標。答對能累積修煉經驗與訓練次數；達到該難度要求的勝率，可額外獲得修煉經驗獎勵。新增的「元素週期表」題庫以 118 個元素的繁體中文名稱呈現，也遵循上述規則，依難度隨機擷取相應數量的元素作為選項。</p>
+            當某個題庫的項目數無法滿足對應難度的最小選項數時，該題庫將不會出現在這些難度（例如：<b>月份符號</b>僅有 12 項，只會出現在難度 1～3；<b>日期符號</b>有 31 項，只會出現在難度 1～6）。如此可避免重複抽選或過度填補。每回合仍包含 20 題圖示，請在倒數時間內選出目標。答對能累積修煉經驗與訓練次數；達到該難度要求的勝率，可額外獲得修煉經驗獎勵。新增的「元素週期表」題庫以 118 個元素的繁體中文名稱呈現，採用 8 列顯示，並遵循上述選項規則。</p>
             <h3>3. 道具升級及功能說明</h3>
-            <p>道具分為兵器、護甲、護腕、護身符、靈盾、功法、陣法、靈器、靈符、仙丹等類，另有靈獸系統（功能開發中）。兵器與各類防具需要<strong>裝備</strong>後才會發揮被動效果；功法與陣法則為<strong>主動</strong>道具，於作答時使用並消耗修為點。<strong>裝備類道具在每場（20 題）開始時會依品階一次性消耗修為</strong>：兵器、護甲、護腕、護身符每場分別消耗&nbsp;4000、8000、12000、16000……等修為；靈盾每場消耗&nbsp;3000、6000、9000……等修為；品階越高消耗越多。功法與陣法的主動使用同樣依品階消耗對應修為。各類道具功能如下：</p>
+            <p>道具分為兵器、護甲、護腕、護身符、靈盾、功法、陣法、靈器、靈符、仙丹等類，另有<strong>靈寵系統</strong>可於商店購買盲盒獲取靈寵。兵器與各類防具需要<strong>裝備</strong>後才會發揮被動效果；功法與陣法則為<strong>主動</strong>道具，於作答時使用並消耗修為點。<strong>裝備類道具在每場（20 題）開始時會依品階一次性消耗修為</strong>：兵器、護甲、護腕、護身符每場分別消耗&nbsp;4000、8000、12000、16000……等修為；靈盾每場消耗&nbsp;3000、6000、9000……等修為；品階越高消耗越多。功法與陣法的主動使用同樣依品階消耗對應修為。各類道具功能如下：</p>
             <ul>
                 <li><b>兵器</b>：被動增加每題可選答案數（作答次數）。裝備後每題會消耗修為。</li>
                 <li><b>護甲</b>：被動減免處罰率。裝備後每題會消耗修為。</li>
@@ -2898,7 +2923,7 @@ function showGameRules() {
                 <li><b>靈器</b>：顯示全部正確答案，屬於主動使用類道具。</li>
                 <li><b>靈符</b>：顯示部分錯誤答案，屬於主動使用類道具。</li>
                 <li><b>仙丹</b>：立即增加修煉經驗。</li>
-                <li><b>靈獸</b>：可自動協助作答，功能開發中。</li>
+                <li><b>靈寵</b>：可自動協助作答。購買「靈寵盲盒」獲得靈寵後，可於靈寵系統進行管理與自動訓練。</li>
             </ul>
             <p>裝備類道具需具備足夠修為點數才能裝備並發揮效果，否則無法裝備。每名修士只能擁有一件護甲、護腕、護身符與靈盾，同一類型不可重複購買；兵器則可以各持有一種（劍、刀、槍各一）。如需更高品階，請使用宗門商店的升級功能。同一裝備可透過升級提升品階而非重複購買。裝備與升級均在<strong>宗門商店</strong>完成，升級消耗個人貢獻點，主選單的商店不再提供品階升級功能。靈器、靈符、仙丹仍可在主選單商店購買並即時使用。</p>
             <h3>4. 處罰機制</h3>
@@ -2979,6 +3004,9 @@ function showGameRules() {
                 <li><b>宗門自動運轉系統：</b>系統會在背景定時更新宗門狀態，每隔一段時間（例如每分鐘）呼叫宗門每日更新函式，使每位 AI 修士提供貢獻並累積訓練次數，並處理隨機事件。AI 修士不會因時間而直接提升修為；只有訓練次數達標時才會突破。最新的宗門貢獻與戰力會即時反映在主畫面和排行榜中。</li>
             </ul>
             <p>在主選單中點擊「⛩️ 宗門系統」可查看目前宗門資訊、加入 AI 宗門、建立或退出宗門，並透過成員列表、戰力與貢獻查看宗門整體狀態。宗門功能會隨版本更新逐步擴充，例如宗門任務、宗門戰與更多互動。</p>
+
+            <h3>12. 靈寵系統</h3>
+            <p>靈寵是修仙旅程中的夥伴。主選單的商店新增<b>靈寵盲盒</b>，每個售價 1000 靈石，使用後可隨機獲得一隻靈寵。每隻靈寵初始等級為 1，可透過自動訓練累積經驗並升級。你可以同時擁有多隻靈寵，並可為每隻靈寵命名或放生。靈寵管理介面位於「靈寵系統」頁面，背包中亦可查看現有靈寵。自動訓練會由靈寵代替你完成一場 20 題的訓練，所得的修煉經驗和個人貢獻將計入你的帳戶，未來版本將根據靈寵等級解鎖更高難度的自動訓練。</p>
         </div>
     `;
     showModal("📜 遊戲規則說明", content, `<button data-action="close-modal">關閉</button>`);
@@ -2986,14 +3014,140 @@ function showGameRules() {
 
 // ===================== 秘境試煉與排行榜 / 登入系統 =====================
 
-// ===================== 靈獸系統 =====================
-// 簡易靈獸介面：未來可提供自動作答等功能
+// ===================== 靈寵系統 =====================
+// 靈寵介面：可管理靈寵、自動訓練等功能
 function renderSpiritBeastMenu() {
     clearApp();
-    let html = '<h2>🐾 靈獸系統</h2>';
-    html += '<p>靈獸功能尚在開發中，敬請期待！</p>';
+    let html = '<h2>🐾 靈寵系統</h2>';
+    // 如果沒有靈寵，顯示提示文字
+    if (!gameState.pets || gameState.pets.length === 0) {
+        html += '<p>尚未擁有靈寵，您可以在商店購買「靈寵盲盒」隨機獲得。</p>';
+    } else {
+        html += '<p>以下為您擁有的靈寵。每隻靈寵都有等級與經驗，經驗達標後會提升等級。</p>';
+        html += '<div style="margin-bottom:10px;">';
+        gameState.pets.forEach((pet, idx) => {
+            const level = pet.level || 1;
+            const exp = pet.exp || 0;
+            const nextExp = getPetLevelRequirement(level);
+            const progress = Math.min(100, Math.floor(exp * 100 / nextExp));
+            html += `<div style="border:1px solid #ddd; padding:8px; margin-bottom:8px; border-radius:6px;">
+                <p><strong>${pet.name || pet.species}</strong>（${pet.species}） Lv.${level}</p>
+                <progress value="${progress}" max="100" style="width:100%;"></progress>
+                <p>${exp}/${nextExp} EXP</p>
+                <button data-action="rename-pet" data-index="${idx}">改名</button>
+                <button data-action="auto-train-pet" data-index="${idx}">自動訓練</button>
+                <button data-action="release-pet" data-index="${idx}" class="btn-danger">放生</button>
+            </div>`;
+        });
+        html += '</div>';
+    }
+    // 顯示等級一覽按鈕
+    html += '<button data-action="show-pet-level-list">📘 查看靈寵等級一覽</button>';
     html += '<button data-action="render-main-menu">🔙 返回主選單</button>';
     app.innerHTML = html;
+}
+
+// ===================== 靈寵輔助函式 =====================
+// 計算指定等級升級所需經驗。簡單線性成長：Lv.n 需要 n×100 EXP 升級
+function getPetLevelRequirement(level) {
+    return Math.max(100, level * 100);
+}
+
+// 升級靈寵：若經驗累積超過等級需求則升級
+function levelUpPet(pet) {
+    while (pet.exp >= getPetLevelRequirement(pet.level || 1)) {
+        const req = getPetLevelRequirement(pet.level || 1);
+        pet.exp -= req;
+        pet.level = (pet.level || 1) + 1;
+    }
+}
+
+// 重新命名靈寵
+function renamePet(index) {
+    try {
+        index = parseInt(index, 10);
+        if (!gameState.pets || index < 0 || index >= gameState.pets.length) return;
+        const currentName = gameState.pets[index].name || gameState.pets[index].species;
+        const newName = prompt(`請輸入新的靈寵名稱（當前：${currentName}）`);
+        if (newName && newName.trim() !== '') {
+            gameState.pets[index].name = newName.trim();
+            saveGameState();
+            renderSpiritBeastMenu();
+            updateMainMenuInfo();
+        }
+    } catch (e) { console.warn('重命名靈寵失敗', e); }
+}
+
+// 放生靈寵
+function releasePet(index) {
+    try {
+        index = parseInt(index, 10);
+        if (!gameState.pets || index < 0 || index >= gameState.pets.length) return;
+        const pet = gameState.pets[index];
+        const ok = confirm(`確定要放生 ${pet.name || pet.species} 嗎？放生後無法恢復。`);
+        if (ok) {
+            gameState.pets.splice(index, 1);
+            saveGameState();
+            renderSpiritBeastMenu();
+            updateMainMenuInfo();
+        }
+    } catch (e) { console.warn('放生靈寵失敗', e); }
+}
+
+// 自動訓練靈寵
+function autoTrainPet(index) {
+    try {
+        index = parseInt(index, 10);
+        if (!gameState.pets || index < 0 || index >= gameState.pets.length) return;
+        const pet = gameState.pets[index];
+        // 讓玩家輸入難度，預設為 1
+        let diff = prompt('請輸入訓練難度（1-10）', '1');
+        diff = parseInt(diff, 10);
+        if (!diff || diff < 1 || diff > 10) {
+            alert('難度輸入不正確');
+            return;
+        }
+        const rounds = 20;
+        // 隨機產生答對題數：介於 0 和 20 之間
+        const success = Math.floor(Math.random() * (rounds + 1));
+        const fail = rounds - success;
+        // 設定訓練狀態，並調用顯示結果邏輯以計算經驗與貢獻
+        trainingState = {
+            difficulty: diff,
+            round: rounds,
+            success: success,
+            fail: fail,
+            totalRounds: rounds,
+            hasAnswered: false,
+            correctAnswers: [],
+            mode: 'auto'
+        };
+        // 透過 showTrainingResult 計算並更新修煉經驗與宗門貢獻
+        try {
+            showTrainingResult();
+        } catch (e) { console.warn('自動訓練結算失敗', e); }
+        // 給靈寵增加經驗：依照答對題數與難度，每答對一題獲得等同難度的經驗
+        const petExpGain = success * diff;
+        pet.exp = (pet.exp || 0) + petExpGain;
+        levelUpPet(pet);
+        saveGameState();
+        updateMainMenuInfo();
+        // 顯示結算摘要
+        const summary = `<p>${pet.name || pet.species} 自動完成難度 ${diff} 的訓練，共答對 ${success} 題。</p><p>獲得 ${petExpGain} 點靈寵經驗。</p>`;
+        showModal('🐾 靈寵自動訓練結果', summary, '<button data-action="render-main-menu">確認</button>');
+    } catch (e) { console.warn('自動訓練失敗', e); }
+}
+
+// 顯示靈寵等級經驗一覽
+function showPetLevelList() {
+    try {
+        let html = '<p>靈寵升級所需經驗：</p><ul style="text-align:left;">';
+        for (let i = 1; i <= 10; i++) {
+            html += `<li>Lv.${i} → Lv.${i+1}：${getPetLevelRequirement(i)} EXP</li>`;
+        }
+        html += '</ul>';
+        showModal('📘 靈寵等級一覽', html, '<button data-action="render-spirit-beast-menu">返回</button>');
+    } catch (e) { console.warn('顯示靈寵等級表失敗', e); }
 }
 
 // # 秘境試煉主選單：讓玩家挑選難度後開始秘境試煉
@@ -3608,6 +3762,20 @@ function updateMainMenuInfo() {
         }
         ps[6].innerHTML = `👤 姓名：${nameVal} | 性別：${genderVal} | 🌱 靈根：${ling}`;
     }
+
+    // 更新靈寵資訊：最後一行顯示靈寵名稱與等級
+    if (ps.length > 0) {
+        const petIndex = ps.length - 1;
+        const pets = (gameState.pets || []);
+        if (ps[petIndex]) {
+            if (pets.length > 0) {
+                const desc = pets.map(p => `${p.name || p.species} Lv.${p.level || 1}`).join('、');
+                ps[petIndex].innerHTML = `🐾 靈寵：${desc}`;
+            } else {
+                ps[petIndex].innerHTML = `🐾 靈寵：無`;
+            }
+        }
+    }
 }
 
 function showBackpack() {
@@ -3631,6 +3799,7 @@ function showBackpack() {
       { id: 'amulet', label: '護身符' },
       { id: 'shield', label: '靈盾' },
       { id: 'cuff', label: '護腕' },
+      { id: 'box', label: '盲盒' },
       { id: 'quick', label: '快捷道具' }
     ];
     // 建立分類按鈕列
@@ -4474,6 +4643,35 @@ function showUseItemDialog() {
 function useItem(itemName) {
     const eff  = ITEM_EFFECTS[itemName];
     if (!eff) return;
+
+    // 靈寵盲盒：使用後隨機獲得一隻靈寵
+    if (eff.type === 'petbox') {
+        // 確認盲盒數量足夠
+        if ((gameState.inventory[itemName] || 0) <= 0) {
+            addTemporaryMessage('⚠️ 盲盒不足，無法使用','msg-shop-fail');
+            return;
+        }
+        // 減少盲盒數量
+        gameState.inventory[itemName] = Math.max(0, (gameState.inventory[itemName] || 0) - 1);
+        // 隨機選擇一種靈寵
+        const idx = Math.floor(Math.random() * PET_SPECIES.length);
+        const species = PET_SPECIES[idx];
+        // 建立寵物物件：預設名字等於物種，等級 1，經驗 0
+        const pet = {
+            species: species,
+            name: species,
+            level: 1,
+            exp: 0
+        };
+        gameState.pets = gameState.pets || [];
+        gameState.pets.push(pet);
+        saveGameState();
+        // 更新主界面資訊
+        try { updateMainMenuInfo(); } catch (e) {}
+        modal.style.display = 'none';
+        addTemporaryMessage(`🎁 你打開盲盒，獲得了靈寵 ${pet.species}！`, 'msg-shop');
+        return;
+    }
     // 兵器類道具需裝備後生效，不可在訓練中直接使用
     if (eff.type === 'multi_choice') {
         addTemporaryMessage('⚠️ 兵器需裝備後才能生效，請至背包裝備','msg-shop-fail');
@@ -6944,7 +7142,7 @@ document.body.addEventListener('click', (event) => {
         'manage-quick-items': showQuickItemsManager,
         'confirm-set-quick-items': confirmSetQuickItems,
         'show-cultivation-leaderboard': showCultivationLeaderboard,
-        // 靈獸系統：顯示靈獸介面
+        // 靈寵系統：顯示靈寵介面
         'render-spirit-beast-menu': renderSpiritBeastMenu,
         // 卸下裝備類動作
         'unequip-weapon': unequipWeapon,
@@ -7003,6 +7201,7 @@ document.body.addEventListener('click', (event) => {
         'show-sect-secret': showSectSecret,
         'show-sect-arena': showSectArena,
         // 裝備護甲為含參數動作，在後段 switch-case 中處理
+        // 靈寵相關動作（帶索引的）另於 switch-case 處理
     };
 
     if (simpleActions[action]) {
@@ -7094,6 +7293,23 @@ document.body.addEventListener('click', (event) => {
         case 'upgrade-sect-item':
             // 升級宗門道具：傳入當前道具、下一道具與成本
             upgradeSectItem(target.dataset.current, target.dataset.next, parseInt(target.dataset.cost, 10));
+            break;
+        // ==== 靈寵相關事件 ====
+        case 'show-pet-level-list':
+            // 顯示靈寵等級需求列表
+            if (typeof showPetLevelList === 'function') showPetLevelList();
+            break;
+        case 'rename-pet':
+            // 為指定索引的靈寵改名
+            if (typeof renamePet === 'function') renamePet(parseInt(target.dataset.index || '0', 10));
+            break;
+        case 'release-pet':
+            // 放生指定索引的靈寵
+            if (typeof releasePet === 'function') releasePet(parseInt(target.dataset.index || '0', 10));
+            break;
+        case 'auto-train-pet':
+            // 自動訓練指定索引的靈寵
+            if (typeof autoTrainPet === 'function') autoTrainPet(parseInt(target.dataset.index || '0', 10));
             break;
     }
 });
