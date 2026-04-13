@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <!-- 更新版本號至 V4-1-4 -->
-    <title>運氣訓練工具 V4-1-4（修仙網頁離線版）</title>
+    <!-- 更新版本號至 V4-2 -->
+    <title>運氣訓練工具 V4-2（修仙網頁離線版）</title>
     <style>
         :root {
             --bg-color: #f0f2f5;
@@ -1707,8 +1707,8 @@ function renderMainMenu() {
     // 重新建構主選單 HTML：將 infoSection 移至訓練按鈕之前，更新版本號
     let html = `
         <h1>🎯 運氣訓練工具</h1>
-        <!-- 顯示版本號 V4-1-4 -->
-        <h2>V4-1-4（修仙網頁離線版）</h2>
+        <!-- 顯示版本號 V4-2 -->
+        <h2>V4-2（修仙網頁離線版）</h2>
         ${infoSection}
         <p style="text-align:center;">請選擇訓練難度（1 最簡單～10 最困難）</p>
     `;
@@ -2376,38 +2376,20 @@ function game_template(title, pool, total, columns=5, btnSize=60) {
             minCount = 61;
             maxCount = 80;
         }
-        // 根據難度設定題庫範圍：初級取第 1-20 題，中級取 21-40 題，高級取 41-60 題，頂級取 61-80 題
-        let rangeStart = 0;
-        if (diff >= 1 && diff <= 3) {
-            rangeStart = 0;
-        } else if (diff >= 4 && diff <= 6) {
-            rangeStart = 20;
-        } else if (diff >= 7 && diff <= 9) {
-            rangeStart = 40;
-        } else {
-            rangeStart = 60;
-        }
-        const rangeEnd = rangeStart + 20;
-        // 從題庫中擷取當前難度對應的範圍
-        currentPool = pool.slice(rangeStart, rangeEnd);
-        /*
-         * 根據題庫總長度判斷是否支援當前難度。
-         * 若題庫的長度小於 rangeEnd，代表題庫不足以提供當前難度的 20 個選項，
-         * 則直接跳過本題型。這樣可避免生成空白或只有正確選項的題目。
-         */
-        if (pool.length < rangeEnd) {
-            if (trainingState && typeof trainingState.round === 'number') {
-                trainingState.round = Math.max(0, trainingState.round - 1);
-            }
-            trainingNext();
-            return;
-        }
-        // 從指定範圍內隨機選擇一個數字作為本次需要的選項數
+        // 題庫不再按照索引區段切分，而是依難度設定「抽取選項數量」的範圍。
+        // 從完整題庫中隨機抽取指定數量選項，並確保不重複。
+        currentPool = pool;
+        // 根據設定決定本題需要的選項數。範圍如下：
+        //   難度 1~3：10～20 個
+        //   難度 4~6：21～40 個
+        //   難度 7~9：41～60 個
+        //   難度 10 ：61～80 個
+        // 題庫較小時不重複題庫內容，且至少保留 10 個選項（或題庫全長若不足 10）。
         let rangeSize = maxCount - minCount + 1;
         let randomCount = minCount + Math.floor(Math.random() * rangeSize);
-        // 選項數不得超過範圍內題庫長度
+        // 所需選項數不得超過題庫長度
         requiredCount = Math.min(randomCount, currentPool.length);
-        // 至少 10 個選項；若範圍內題庫少於 10 個，則使用現有長度
+        // 至少保留 10 個選項；若題庫少於 10 個則全部使用
         requiredCount = Math.max(requiredCount, Math.min(10, currentPool.length));
     } catch (e) {
         // 若 trainingState 尚未初始化，則使用題庫長度
