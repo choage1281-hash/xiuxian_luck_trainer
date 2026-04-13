@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <!-- 更新版本號至 V4-1-2 -->
-    <title>運氣訓練工具 V4-1-2（修仙網頁離線版）</title>
+    <!-- 更新版本號至 V4-1-3 -->
+    <title>運氣訓練工具 V4-1-3（修仙網頁離線版）</title>
     <style>
         :root {
             --bg-color: #f0f2f5;
@@ -992,6 +992,9 @@ const OFFICE_B = OFFICE.slice(Math.ceil(OFFICE.length / 2));
 const TOOLS_A = TOOLS.slice(0, Math.ceil(TOOLS.length / 2));
 const TOOLS_B = TOOLS.slice(Math.ceil(TOOLS.length / 2));
 
+// 新增 1～80 的數字題庫供禮物與數字訓練使用（依難度範圍切分）
+const NUMBERS_80 = Array.from({ length: 80 }, (_, i) => String(i + 1));
+
 // ===================== 新增元素週期表題庫 =====================
 // 元素週期表共有 118 個正式命名的化學元素【561178875661821†L209-L214】。
 // 自 V3-18-2 起，題庫改用繁體中文名稱取代英文名稱，方便玩家閱讀與記憶。
@@ -1101,7 +1104,9 @@ const GANZHI = (() => {
 
 
 const ALL_GAMES = [
-    { name: "從 1～10 選出正確號碼", func: "game_guess_hidden" }, { name: "從 1～20 選出正確號碼", func: "game_guess_20" }, { name: "從 1～30 選出正確號碼", func: "game_guess_30" }, { name: "寶箱訓練：選出正確的", func: "game_treasure_box" }, { name: "選出好運表情符號", func: "game_emoji_pick" }, { name: "選出幸運動物", func: "game_animals" }, { name: "選出幸運食物", func: "game_foods" }, { name: "選出幸運地點", func: "game_places" }, { name: "選出幸運圖形", func: "game_shape_select" }, { name: "找出幸運顏色", func: "game_color_select" }, { name: "選出幸運國旗", func: "game_flags" }, { name: "選出幸運自然現象", func: "game_nature" }, { name: "選出幸運撲克牌符號", func: "game_cards" }, { name: "選出幸運麻將圖案", func: "game_mahjong" }, { name: "選出幸運交通工具", func: "game_vehicles" }, { name: "選出幸運星座符號", func: "game_zodiacs" }, { name: "禮物訓練：選出幸運禮物號碼", func: "game_gift_box" }, { name: "挑選今天幸運時段", func: "game_lucky_period" }, { name: "選出幸運職業", func: "game_professions" }, { name: "選出體育與獎項", func: "game_sports_awards" }, { name: "選出辦公文具A", func: "game_office_a" }, { name: "選出辦公文具B", func: "game_office_b" }, { name: "選出工具、家居用品及其他A", func: "game_tools_a" }, { name: "選出工具、家居用品及其他B", func: "game_tools_b" }, 
+    { name: "從 1～10 選出正確號碼", func: "game_guess_hidden" }, { name: "從 1～20 選出正確號碼", func: "game_guess_20" }, { name: "從 1～30 選出正確號碼", func: "game_guess_30" }, { name: "寶箱訓練：選出正確的", func: "game_treasure_box" }, { name: "選出好運表情符號", func: "game_emoji_pick" }, { name: "選出幸運動物", func: "game_animals" }, { name: "選出幸運食物", func: "game_foods" }, { name: "選出幸運地點", func: "game_places" }, { name: "選出幸運圖形", func: "game_shape_select" }, { name: "找出幸運顏色", func: "game_color_select" }, { name: "選出幸運國旗", func: "game_flags" }, { name: "選出幸運自然現象", func: "game_nature" }, { name: "選出幸運撲克牌符號", func: "game_cards" }, { name: "選出幸運麻將圖案", func: "game_mahjong" }, { name: "選出幸運交通工具", func: "game_vehicles" }, { name: "選出幸運星座符號", func: "game_zodiacs" }, { name: "禮物訓練：選出幸運禮物號碼", func: "game_gift_box" }, { name: "挑選今天幸運時段", func: "game_lucky_period" }, { name: "選出幸運職業", func: "game_professions" }, { name: "選出體育與獎項", func: "game_sports_awards" },
+    // 合併辦公文具與工具題庫，不再拆分 A/B
+    { name: "選出辦公文具", func: "game_office" }, { name: "選出工具、家居用品及其他", func: "game_tools" },
     { name: "羅馬數字（大寫）", func: "game_roman_u" }, { name: "羅馬數字（小寫）", func: "game_roman_l" }, { name: "數學符號", func: "game_math_symbols" }, { name: "單位符號", func: "game_unit_symbols" }, { name: "月份符號", func: "game_month_symbols" }, { name: "日期符號", func: "game_date_symbols" }, { name: "有襯線粗體英文字母（大寫）", func: "game_bold_serif_u" }, { name: "有襯線粗體英文字母（小寫）", func: "game_bold_serif_l" }, { name: "草書英文字母（大寫）", func: "game_script_u" }, { name: "草書英文字母（小寫）", func: "game_script_l" }, { name: "希臘字母（大寫）", func: "game_greek_u" }, { name: "希臘字母（小寫）", func: "game_greek_l" }, { name: "注音符號", func: "game_bopomofo" }, { name: "日文平假名", func: "game_hiragana" }, { name: "日文片假名", func: "game_katakana" }, { name: "韓文元音輔音", func: "game_korean_jamo" }, { name: "貨幣符號", func: "game_currency_symbols" }, { name: "音樂符號", func: "game_music_symbols" }, { name: "國際象棋符號", func: "game_chess_symbols" } ];
 
 
@@ -1702,8 +1707,8 @@ function renderMainMenu() {
     // 重新建構主選單 HTML：將 infoSection 移至訓練按鈕之前，更新版本號
     let html = `
         <h1>🎯 運氣訓練工具</h1>
-        <!-- 顯示版本號 V4-1-2 -->
-        <h2>V4-1-2（修仙網頁離線版）</h2>
+        <!-- 顯示版本號 V4-1-3 -->
+        <h2>V4-1-3（修仙網頁離線版）</h2>
         ${infoSection}
         <p style="text-align:center;">請選擇訓練難度（1 最簡單～10 最困難）</p>
     `;
@@ -2351,6 +2356,8 @@ function game_template(title, pool, total, columns=5, btnSize=60) {
     //    - 難度 10：頂級，從題庫中隨機擷取 61~80 個選項
     //    若題庫本身較小，則不重複題庫內容，並且至少保留 10 個選項（或題庫全長若不足 10）。
     let requiredCount;
+    // 預先建立一份可用題庫，依難度範圍切分
+    let currentPool = pool;
     try {
         const diff = (trainingState && trainingState.difficulty) ? trainingState.difficulty : 1;
         // 預設範圍
@@ -2369,9 +2376,21 @@ function game_template(title, pool, total, columns=5, btnSize=60) {
             minCount = 61;
             maxCount = 80;
         }
-        // 如果題庫不足所需的最小選項數，直接跳過此類別，不列入本題訓練
-        if (pool.length < minCount) {
-            // 回退本回合計數，避免 round 增加
+        // 根據難度設定題庫範圍：初級取第 1-20 題，中級取 21-40 題，高級取 41-60 題，頂級取 61-80 題
+        let rangeStart = 0;
+        if (diff >= 1 && diff <= 3) {
+            rangeStart = 0;
+        } else if (diff >= 4 && diff <= 6) {
+            rangeStart = 20;
+        } else if (diff >= 7 && diff <= 9) {
+            rangeStart = 40;
+        } else {
+            rangeStart = 60;
+        }
+        const rangeEnd = rangeStart + 20;
+        currentPool = pool.slice(rangeStart, rangeEnd);
+        // 如果此範圍內的題庫不足最小選項數，直接跳過此類別，不列入本題訓練
+        if (currentPool.length < minCount) {
             if (trainingState && typeof trainingState.round === 'number') {
                 trainingState.round = Math.max(0, trainingState.round - 1);
             }
@@ -2381,16 +2400,17 @@ function game_template(title, pool, total, columns=5, btnSize=60) {
         // 從指定範圍內隨機選擇一個數字作為本次需要的選項數
         let rangeSize = maxCount - minCount + 1;
         let randomCount = minCount + Math.floor(Math.random() * rangeSize);
-        // 上限不能超過題庫長度
-        requiredCount = Math.min(randomCount, pool.length);
-        // 確保最少 10 個選項（或題庫長度若不足 10 時使用題庫長度）
-        requiredCount = Math.max(requiredCount, Math.min(10, pool.length));
+        // 上限不能超過範圍內題庫長度
+        requiredCount = Math.min(randomCount, currentPool.length);
+        // 確保最少 10 個選項（或範圍內題庫長度若不足 10 時使用範圍長度）
+        requiredCount = Math.max(requiredCount, Math.min(10, currentPool.length));
     } catch (e) {
         // 若 trainingState 尚未初始化，則使用題庫長度
         requiredCount = Math.min(pool.length, total);
     }
     // 2. 從題庫中隨機選出本次要顯示的選項，不重複
-    const itemsForDisplay = [...pool].sort(() => 0.5 - Math.random()).slice(0, requiredCount);
+    // 2. 從範圍內題庫中隨機選出本次要顯示的選項，不重複
+    const itemsForDisplay = [...currentPool].sort(() => 0.5 - Math.random()).slice(0, requiredCount);
 
     // 3. 決定正確答案的數量，基於實際顯示的選項總數
     const correctCount = generateCorrectChoices(requiredCount);
@@ -2416,8 +2436,10 @@ function generateCorrectChoices(total) {
 window.game_guess_hidden = () => { const n = 10; game_template("從 1～10 選出正確號碼", Array.from({length: n}, (_, i) => String(i + 1)), n, 5); }
 window.game_guess_20 = () => { const n = 20; game_template("從 1～20 選出正確號碼", Array.from({length: n}, (_, i) => String(i + 1)), n, 5); }
 window.game_guess_30 = () => { const n = 30; game_template("從 1～30 選出正確號碼", Array.from({length: n}, (_, i) => String(i + 1)), n, 6); }
-window.game_treasure_box = () => { const n = [10, 20, 30][Math.floor(Math.random()*3)]; game_template("寶箱訓練", Array.from({length: n}, (_, i) => String(i + 1)), n, n > 20 ? 6 : 5); }
-window.game_gift_box = () => { const n = [10, 20, 30][Math.floor(Math.random()*3)]; game_template("禮物訓練", Array.from({length: n}, (_, i) => String(i + 1)), n, n > 20 ? 6 : 5); }
+// 寶箱訓練：改為使用 1～80 的數字題庫，依難度範圍抽取
+window.game_treasure_box = () => { game_template("寶箱訓練", NUMBERS_80, NUMBERS_80.length, 6); }
+// 禮物訓練：改為使用 1～80 的數字題庫，依難度範圍抽取
+window.game_gift_box = () => { game_template("禮物訓練", NUMBERS_80, NUMBERS_80.length, 6); }
 window.game_emoji_pick = () => { game_template("選出好運表情符號", EMOJIS, EMOJIS.length, 5); }
 window.game_animals = () => { game_template("選出幸運動物", ANIMALS, ANIMALS.length, 5); }
 window.game_foods = () => { game_template("選出幸運食物", FOODS, FOODS.length, 5); }
@@ -2438,10 +2460,11 @@ window.game_tools = () => { game_template("挑選工具、家居用品及其他"
 
 // 新增三種圖示訓練函式
 // 自動拆分後的四個題庫函式
-window.game_office_a = () => { game_template("選出辦公文具A", OFFICE_A, OFFICE_A.length, 6, 48); };
-window.game_office_b = () => { game_template("選出辦公文具B", OFFICE_B, OFFICE_B.length, 6, 48); };
-window.game_tools_a = () => { game_template("選出工具、家居用品及其他A", TOOLS_A, TOOLS_A.length, 6, 48); };
-window.game_tools_b = () => { game_template("選出工具、家居用品及其他B", TOOLS_B, TOOLS_B.length, 6, 48); };
+// 不再拆分辦公文具與工具題庫，兩個函式皆使用完整題庫依難度抽取
+window.game_office_a = () => { game_template("選出辦公文具", OFFICE, OFFICE.length, 6, 48); };
+window.game_office_b = () => { game_template("選出辦公文具", OFFICE, OFFICE.length, 6, 48); };
+window.game_tools_a = () => { game_template("選出工具、家居用品及其他", TOOLS, TOOLS.length, 6, 48); };
+window.game_tools_b = () => { game_template("選出工具、家居用品及其他", TOOLS, TOOLS.length, 6, 48); };
 
 window.game_sports_awards = () => { game_template("選出體育與獎項", SPORTS, SPORTS.length, 6, 48); };
 window.game_office_supplies = () => { game_template("選出辦公文具", OFFICE, OFFICE.length, 6, 48); };
@@ -2910,6 +2933,7 @@ function showGameRules() {
             <b>難度 7～9</b>：隨機擷取 <b>41～60</b> 個選項（高級）；<br>
             <b>難度 10</b>：隨機擷取 <b>61～80</b> 個選項（頂級）。<br>
             當某個題庫的項目數無法滿足對應難度的最小選項數時，該題庫將不會出現在這些難度（例如：<b>月份符號</b>僅有 12 項，只會出現在難度 1～3；<b>日期符號</b>有 31 項，只會出現在難度 1～6）。如此可避免重複抽選或過度填補。每回合仍包含 20 題圖示，請在倒數時間內選出目標。答對能累積修煉經驗與訓練次數；達到該難度要求的勝率，可額外獲得修煉經驗獎勵。新增的「元素週期表」題庫以 118 個元素的繁體中文名稱呈現，採用 8 列顯示，並遵循上述選項規則。</p>
+            <p>部份題庫（例如 <b>禮物訓練</b>、<b>寶箱訓練</b>、<b>辦公文具</b>、<b>工具／家居用品</b> 等）會以題目編號 1～80 排序，並按照難度分為四個區段：1～20 為初級、21～40 為中級、41～60 為高級、61～80 為頂級。抽題時僅從對應難度的區段中擷取，不再拆分為 A/B 子題庫。</p>
             <h3>3. 道具升級及功能說明</h3>
             <p>道具分為兵器、護甲、護腕、護身符、靈盾、功法、陣法、靈器、靈符、仙丹等類，另有<strong>靈寵系統</strong>可於商店購買盲盒獲取靈寵。兵器與各類防具需要<strong>裝備</strong>後才會發揮被動效果；功法與陣法則為<strong>主動</strong>道具，於作答時使用並消耗修為點。<strong>裝備類道具在每場（20 題）開始時會依品階一次性消耗修為</strong>：兵器、護甲、護腕、護身符每場分別消耗&nbsp;4000、8000、12000、16000……等修為；靈盾每場消耗&nbsp;3000、6000、9000……等修為；品階越高消耗越多。功法與陣法的主動使用同樣依品階消耗對應修為。各類道具功能如下：</p>
             <ul>
@@ -2949,6 +2973,8 @@ function showGameRules() {
                 <li>難度 10：不限題數（答對 0 題也可）</li>
             </ul>
             <p>只有達到上述要求，秘境試煉結束時才會增加一次訓練次數。</p>
+            <h3>靈寵體力規則</h3>
+            <p>靈寵具有體力，每升一級最大體力會增加。自動訓練時將消耗體力（普通訓練消耗等於所選難度，秘境試煉消耗等於難度的兩倍）。體力會隨時間自動恢復，也可以消耗靈石快速回復。當靈寵體力不足時將無法進行自動訓練。</p>
             <h3>7. 每日簽到</h3>
             <p>每天凌晨 00:00 會刷新簽到，當日首次簽到即可依照當前修為階層獲得修煉經驗與靈石獎勵。連續簽到天數越多，獎勵倍率越高；中斷簽到後，連續天數將重新計算。</p>
             <h3>8. 每日隨機任務</h3>
@@ -3023,20 +3049,33 @@ function renderSpiritBeastMenu() {
     if (!gameState.pets || gameState.pets.length === 0) {
         html += '<p>尚未擁有靈寵，您可以在商店購買「靈寵盲盒」隨機獲得。</p>';
     } else {
-        html += '<p>以下為您擁有的靈寵。每隻靈寵都有等級與經驗，經驗達標後會提升等級。</p>';
+        html += '<p>以下為您擁有的靈寵。每隻靈寵都有等級、經驗與體力。</p>';
         html += '<div style="margin-bottom:10px;">';
-        gameState.pets.forEach((pet, idx) => {
+        // 將靈寵依等級由高到低排序後顯示
+        const petsSorted = [...gameState.pets].sort((a,b) => (b.level || 1) - (a.level || 1));
+        petsSorted.forEach((pet) => {
+            const idxOriginal = gameState.pets.indexOf(pet);
+            // 在顯示前計算體力恢復
+            try { restorePetEnergy(pet); } catch (e) {}
             const level = pet.level || 1;
             const exp = pet.exp || 0;
             const nextExp = getPetLevelRequirement(level);
             const progress = Math.min(100, Math.floor(exp * 100 / nextExp));
+            const maxEnergy = getPetMaxEnergy(level);
+            if (typeof pet.energy === 'undefined') pet.energy = maxEnergy;
+            if (typeof pet.lastEnergyTimestamp === 'undefined') pet.lastEnergyTimestamp = Date.now();
+            const energy = Math.min(maxEnergy, pet.energy);
+            const energyPercent = Math.floor(energy * 100 / maxEnergy);
             html += `<div style="border:1px solid #ddd; padding:8px; margin-bottom:8px; border-radius:6px;">
                 <p><strong>${pet.name || pet.species}</strong>（${pet.species}） Lv.${level}</p>
                 <progress value="${progress}" max="100" style="width:100%;"></progress>
                 <p>${exp}/${nextExp} EXP</p>
-                <button data-action="rename-pet" data-index="${idx}">改名</button>
-                <button data-action="auto-train-pet" data-index="${idx}">自動訓練</button>
-                <button data-action="release-pet" data-index="${idx}" class="btn-danger">放生</button>
+                <progress value="${energy}" max="${maxEnergy}" style="width:100%;"></progress>
+                <p>體力：${energy}/${maxEnergy}</p>
+                <button data-action="rename-pet" data-index="${idxOriginal}">改名</button>
+                <button data-action="open-pet-train-menu" data-index="${idxOriginal}">自動訓練</button>
+                <button data-action="recover-pet-energy" data-index="${idxOriginal}">恢復體力</button>
+                <button data-action="release-pet" data-index="${idxOriginal}" class="btn-danger">放生</button>
             </div>`;
         });
         html += '</div>';
@@ -3154,6 +3193,173 @@ function showPetLevelList() {
         html += '</ul>';
         showModal('📘 靈寵等級一覽', html, '<button data-action="render-spirit-beast-menu">返回</button>');
     } catch (e) { console.warn('顯示靈寵等級表失敗', e); }
+}
+
+// 計算靈寵最大體力：基礎 100 點，每升一級增加 20 點
+function getPetMaxEnergy(level) {
+    level = level || 1;
+    return 100 + (level - 1) * 20;
+}
+
+// 體力恢復間隔（毫秒）：每 5 分鐘恢復 1 點體力
+const PET_ENERGY_RECOVER_INTERVAL = 1000 * 60 * 5;
+
+// 恢復靈寵體力：根據經過時間計算恢復量
+function restorePetEnergy(pet) {
+    try {
+        if (!pet) return;
+        const maxEnergy = getPetMaxEnergy(pet.level || 1);
+        if (typeof pet.energy === 'undefined') pet.energy = maxEnergy;
+        if (typeof pet.lastEnergyTimestamp === 'undefined') pet.lastEnergyTimestamp = Date.now();
+        const now = Date.now();
+        const elapsed = now - (pet.lastEnergyTimestamp || now);
+        const recoverPoints = Math.floor(elapsed / PET_ENERGY_RECOVER_INTERVAL);
+        if (recoverPoints > 0) {
+            pet.energy = Math.min(maxEnergy, (pet.energy || 0) + recoverPoints);
+            pet.lastEnergyTimestamp = (pet.lastEnergyTimestamp || now) + recoverPoints * PET_ENERGY_RECOVER_INTERVAL;
+        }
+    } catch (e) { console.warn('恢復靈寵體力失敗', e); }
+}
+
+// 使用靈石恢復靈寵體力：每 1 點體力消耗 10 顆靈石
+function recoverPetEnergy(index) {
+    try {
+        index = parseInt(index, 10);
+        if (!gameState.pets || index < 0 || index >= gameState.pets.length) return;
+        const pet = gameState.pets[index];
+        restorePetEnergy(pet);
+        const maxEnergy = getPetMaxEnergy(pet.level || 1);
+        const missing = maxEnergy - (pet.energy || 0);
+        if (missing <= 0) {
+            addTemporaryMessage('🐾 體力已滿，無需恢復。', 'msg-shop');
+            return;
+        }
+        const costPerPoint = 10;
+        const cost = missing * costPerPoint;
+        if (gameState.stones < cost) {
+            addTemporaryMessage('💎 靈石不足，無法恢復體力。', 'msg-shop-fail');
+            return;
+        }
+        gameState.stones -= cost;
+        pet.energy = maxEnergy;
+        pet.lastEnergyTimestamp = Date.now();
+        saveGameState();
+        try { updateMainMenuInfo(); } catch (e) {}
+        renderSpiritBeastMenu();
+        addTemporaryMessage(`✨ 消耗 ${cost} 靈石，${pet.name || pet.species} 體力已完全恢復！`, 'msg-shop');
+    } catch (e) { console.warn('恢復靈寵體力失敗', e); }
+}
+
+// 顯示靈寵自動訓練難度選單，包含普通訓練難度 1~10 及秘境試煉
+function renderPetTrainingDifficultyMenu(index) {
+    try {
+        index = parseInt(index, 10);
+        if (!gameState.pets || index < 0 || index >= gameState.pets.length) return;
+        const pet = gameState.pets[index];
+        restorePetEnergy(pet);
+        const maxEnergy = getPetMaxEnergy(pet.level || 1);
+        const energy = pet.energy || 0;
+        let html = `<p>選擇自動訓練難度（消耗體力 = 難度值），當前體力：${energy}/${maxEnergy}</p>`;
+        html += '<div style="display:flex; flex-wrap:wrap; justify-content:center; gap:4px;">';
+        for (let i = 1; i <= 10; i++) {
+            html += `<button data-action="confirm-auto-train-pet" data-index="${index}" data-diff="${i}" class="btn">${i}</button>`;
+        }
+        html += '</div>';
+        html += '<div style="margin-top:6px; display:flex; flex-wrap:wrap; justify-content:center; gap:4px;">';
+        for (let i = 1; i <= 10; i++) {
+            html += `<button data-action="confirm-auto-train-pet-secret" data-index="${index}" data-level="${i}" class="btn-trial">秘境${i}</button>`;
+        }
+        html += '</div>';
+        html += `<button data-action="render-spirit-beast-menu" class="btn-danger" style="margin-top:8px;">取消</button>`;
+        showModal('🐾 選擇訓練難度', html);
+    } catch (e) { console.warn('顯示靈寵訓練選單失敗', e); }
+}
+
+// 確認並執行普通自動訓練
+function confirmAutoTrainPet(index, diff) {
+    try {
+        index = parseInt(index, 10);
+        diff = parseInt(diff, 10);
+        if (!gameState.pets || index < 0 || index >= gameState.pets.length) return;
+        const pet = gameState.pets[index];
+        restorePetEnergy(pet);
+        const energyCost = diff;
+        const maxEnergy = getPetMaxEnergy(pet.level || 1);
+        if ((pet.energy || 0) < energyCost) {
+            addTemporaryMessage(`🐾 ${pet.name || pet.species} 體力不足，無法進行難度 ${diff} 訓練。`, 'msg-shop-fail');
+            return;
+        }
+        // 扣除體力
+        pet.energy -= energyCost;
+        pet.lastEnergyTimestamp = Date.now();
+        const rounds = 20;
+        const success = Math.floor(Math.random() * (rounds + 1));
+        const fail = rounds - success;
+        trainingState = {
+            difficulty: diff,
+            round: rounds,
+            success: success,
+            fail: fail,
+            totalRounds: rounds,
+            hasAnswered: false,
+            correctAnswers: [],
+            mode: 'auto'
+        };
+        // 計算並更新修煉經驗、宗門貢獻
+        showTrainingResult();
+        // 給靈寵增加經驗：依照答對題數與難度
+        const petExpGain = success * diff;
+        pet.exp = (pet.exp || 0) + petExpGain;
+        levelUpPet(pet);
+        saveGameState();
+        try { updateMainMenuInfo(); } catch (e) {}
+        // 結算摘要，包含體力消耗
+        let summary = `<p>${pet.name || pet.species} 自動完成難度 ${diff} 的訓練，共答對 ${success} 題。</p><p>獲得 ${petExpGain} 點靈寵經驗。</p>`;
+        summary += `<p>消耗體力：${energyCost}，剩餘體力 ${pet.energy}/${getPetMaxEnergy(pet.level || 1)}</p>`;
+        const buttons = `<button data-action="render-spirit-beast-menu">確認</button> <button data-action="retrain-pet" data-index="${index}" data-diff="${diff}">再次挑戰</button>`;
+        showModal('🐾 靈寵自動訓練結果', summary, buttons);
+    } catch (e) { console.warn('確認自動訓練失敗', e); }
+}
+
+// 確認並執行秘境自動訓練
+function confirmAutoTrainPetSecret(index, level) {
+    try {
+        index = parseInt(index, 10);
+        level = parseInt(level, 10);
+        if (!gameState.pets || index < 0 || index >= gameState.pets.length) return;
+        const pet = gameState.pets[index];
+        restorePetEnergy(pet);
+        const energyCost = level * 2;
+        const maxEnergy = getPetMaxEnergy(pet.level || 1);
+        if ((pet.energy || 0) < energyCost) {
+            addTemporaryMessage(`🐾 ${pet.name || pet.species} 體力不足，無法進行秘境難度 ${level} 訓練。`, 'msg-shop-fail');
+            return;
+        }
+        pet.energy -= energyCost;
+        pet.lastEnergyTimestamp = Date.now();
+        // 模擬秘境試煉結果：隨機答對題數，範圍 0～(20+level)
+        const success = Math.floor(Math.random() * (21 + level));
+        trainingState = {
+            difficulty: level,
+            success: success,
+            fail: 0,
+            totalRounds: success,
+            round: success,
+            hasAnswered: false,
+            correctAnswers: [],
+            mode: 'secretTrial'
+        };
+        showTrialResult();
+        const petExpGain = success * level;
+        pet.exp = (pet.exp || 0) + petExpGain;
+        levelUpPet(pet);
+        saveGameState();
+        try { updateMainMenuInfo(); } catch (e) {}
+        let summary = `<p>${pet.name || pet.species} 自動完成秘境難度 ${level}，共答對 ${success} 題。</p><p>獲得 ${petExpGain} 點靈寵經驗。</p>`;
+        summary += `<p>消耗體力：${energyCost}，剩餘體力 ${pet.energy}/${getPetMaxEnergy(pet.level || 1)}</p>`;
+        const buttons = `<button data-action="render-spirit-beast-menu">確認</button> <button data-action="retrain-pet" data-index="${index}" data-diff="${level}">再次挑戰</button>`;
+        showModal('🐾 靈寵秘境訓練結果', summary, buttons);
+    } catch (e) { console.warn('確認秘境自動訓練失敗', e); }
 }
 
 // # 秘境試煉主選單：讓玩家挑選難度後開始秘境試煉
@@ -4673,7 +4879,10 @@ function useItem(itemName) {
             species: species,
             name: species,
             level: 1,
-            exp: 0
+            exp: 0,
+            // 初始體力設置為最大值，並記錄上一次恢復時間
+            energy: getPetMaxEnergy(1),
+            lastEnergyTimestamp: Date.now()
         };
         gameState.pets = gameState.pets || [];
         gameState.pets.push(pet);
@@ -7320,8 +7529,23 @@ document.body.addEventListener('click', (event) => {
             if (typeof releasePet === 'function') releasePet(parseInt(target.dataset.index || '0', 10));
             break;
         case 'auto-train-pet':
-            // 自動訓練指定索引的靈寵
-            if (typeof autoTrainPet === 'function') autoTrainPet(parseInt(target.dataset.index || '0', 10));
+            // 改為顯示靈寵訓練難度選單
+            if (typeof renderPetTrainingDifficultyMenu === 'function') renderPetTrainingDifficultyMenu(parseInt(target.dataset.index || '0', 10));
+            break;
+        case 'open-pet-train-menu':
+            if (typeof renderPetTrainingDifficultyMenu === 'function') renderPetTrainingDifficultyMenu(parseInt(target.dataset.index || '0', 10));
+            break;
+        case 'recover-pet-energy':
+            if (typeof recoverPetEnergy === 'function') recoverPetEnergy(parseInt(target.dataset.index || '0', 10));
+            break;
+        case 'confirm-auto-train-pet':
+            if (typeof confirmAutoTrainPet === 'function') confirmAutoTrainPet(parseInt(target.dataset.index || '0', 10), parseInt(target.dataset.diff || '1', 10));
+            break;
+        case 'confirm-auto-train-pet-secret':
+            if (typeof confirmAutoTrainPetSecret === 'function') confirmAutoTrainPetSecret(parseInt(target.dataset.index || '0', 10), parseInt(target.dataset.level || '1', 10));
+            break;
+        case 'retrain-pet':
+            if (typeof confirmAutoTrainPet === 'function') confirmAutoTrainPet(parseInt(target.dataset.index || '0', 10), parseInt(target.dataset.diff || '1', 10));
             break;
     }
 });
