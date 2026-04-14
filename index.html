@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <!-- 更新版本號至 V4-3 -->
-    <title>運氣訓練工具 V4-3（修仙網頁離線版）</title>
+    <!-- 更新版本號至 V4-3-2 -->
+    <title>運氣訓練工具 V4-3-2（修仙網頁離線版）</title>
     <style>
         :root {
             --bg-color: #f0f2f5;
@@ -1707,8 +1707,8 @@ function renderMainMenu() {
     // 重新建構主選單 HTML：將 infoSection 移至訓練按鈕之前，更新版本號
     let html = `
         <h1>🎯 運氣訓練工具</h1>
-        <!-- 顯示版本號 V4-3 -->
-        <h2>V4-3（修仙網頁離線版）</h2>
+        <!-- 顯示版本號 V4-3-2 -->
+        <h2>V4-3-2（修仙網頁離線版）</h2>
         ${infoSection}
         <p style="text-align:center;">請選擇訓練難度（1 最簡單～10 最困難）</p>
     `;
@@ -4058,6 +4058,7 @@ function showBackpack() {
         const unequipAction = unequipMap[currentBackpackFilter] || '';
         // 列出卸下按鈕
         const unequipButton = `<li><button data-action="${unequipAction}" class="btn-secondary">不裝備</button></li>`;
+        // 每個裝備項目使用整個按鈕包裹名稱、數量與描述，確保點擊任何位置皆可觸發
         listHtml = '<ul style="padding-left: 20px; list-style-position: inside;">' +
           unequipButton +
           filteredInventory.map(([name, qty]) => {
@@ -4067,13 +4068,17 @@ function showBackpack() {
             const equipLabel = isEquipped ? '（已裝備）' : '';
             const eff = ITEM_EFFECTS[name] || {};
             const desc = eff.desc || '';
+            // 將按鈕擴大到整個列表項，避免點擊文字時無法觸發事件
             return `<li class="cat-${catCls}">
-              <button data-action="${cfg.action}" data-name="${name}" style="background:none;border:none;padding:0;color:inherit;text-decoration:underline;cursor:pointer;"><span class="grade-${gradeCls}">${name}</span>${equipLabel}</button> ×${qty}
-              ${desc ? `<div style="font-size:0.8em;color:var(--secondary-color);margin-left:1em;">${desc}</div>` : ''}
+              <button data-action="${cfg.action}" data-name="${name}" style="background:none;border:none;padding:0;color:inherit;text-align:left;width:100%;cursor:pointer;">
+                <span class="grade-${gradeCls}">${name}</span>${equipLabel} ×${qty}
+                ${desc ? `<div style="font-size:0.8em;color:var(--secondary-color);margin-left:1em;">${desc}</div>` : ''}
+              </button>
             </li>`;
           }).join('') +
           '</ul>';
       } else {
+        // 其他分類：非裝備類型
         listHtml = '<ul style="padding-left: 20px; list-style-position: inside;">' +
           filteredInventory.map(([name, qty]) => {
             const catCls = getItemCategoryClass(name);
@@ -4085,7 +4090,8 @@ function showBackpack() {
             if (eff.type === 'petbox') {
               useBtn = `<button data-action="use-item" data-item-name="${name}" style="margin-left:1em;" class="btn-primary">使用</button>`;
             }
-            return `<li class="cat-${catCls}"><span class="grade-${gradeCls}">${name}</span> ×${qty}
+            return `<li class="cat-${catCls}">
+              <span class="grade-${gradeCls}">${name}</span> ×${qty}
               ${useBtn}
               ${desc ? `<div style="font-size:0.8em;color:var(--secondary-color);margin-left:1em;">${desc}</div>` : ''}
             </li>`;
