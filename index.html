@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <!-- 更新版本號至 V4-4 -->
-    <title>運氣訓練工具 V4-4（修仙網頁離線版）</title>
+    <!-- 更新版本號至 V4-5 -->
+    <title>運氣訓練工具 V4-5（修仙網頁離線版）</title>
     <style>
         :root {
             --bg-color: #f0f2f5;
@@ -1707,8 +1707,8 @@ function renderMainMenu() {
     // 重新建構主選單 HTML：將 infoSection 移至訓練按鈕之前，更新版本號
     let html = `
         <h1>🎯 運氣訓練工具</h1>
-        <!-- 顯示版本號 V4-4 -->
-        <h2>V4-4（修仙網頁離線版）</h2>
+        <!-- 顯示版本號 V4-5 -->
+        <h2>V4-5（修仙網頁離線版）</h2>
         ${infoSection}
         <p style="text-align:center;">請選擇訓練難度（1 最簡單～10 最困難）</p>
     `;
@@ -2539,24 +2539,22 @@ window.game_solar_terms = () => {
     game_template("二十四節氣", SOLAR_TERMS, SOLAR_TERMS.length, 6, 72);
 };
 
-// # 調整遊戲列表：刪除原本的日文平假名、片假名、韓文元音輔音項目，並加入拆分版與新增的符號遊戲
+// # 調整遊戲列表：將日文平假名、片假名、韓文元音輔音保持為單一分類，並加入其他新增遊戲
+// 移除原本拆分 A/B 的邏輯，保留完整的符號類別
 (function() {
     try {
         if (Array.isArray(ALL_GAMES)) {
-            const filtered = ALL_GAMES.filter(it => !['日文平假名', '日文片假名', '韓文元音輔音'].includes(it.name));
-            filtered.push(
-                { name: '日文平假名A', func: 'game_hiragana_a' },
-                { name: '日文平假名B', func: 'game_hiragana_b' },
-                { name: '日文片假名A', func: 'game_katakana_a' },
-                { name: '日文片假名B', func: 'game_katakana_b' },
-                { name: '韓文字符號A', func: 'game_korean_jamo_a' },
-                { name: '韓文字符號B', func: 'game_korean_jamo_b' },
+            // 確保新增的遊戲存在於列表中，避免重複加入
+            const additionalGames = [
                 { name: '生肖符號', func: 'game_chinese_zodiacs' },
                 { name: '金庸小說14部', func: 'game_jinyong' },
                 { name: '中文數字（大寫）', func: 'game_chinese_big_digits' }
-            );
-            ALL_GAMES.length = 0;
-            filtered.forEach(it => ALL_GAMES.push(it));
+            ];
+            additionalGames.forEach(item => {
+                if (!ALL_GAMES.some(g => g.name === item.name)) {
+                    ALL_GAMES.push(item);
+                }
+            });
         }
     } catch (e) {
         console.warn('ALL_GAMES modify failed', e);
