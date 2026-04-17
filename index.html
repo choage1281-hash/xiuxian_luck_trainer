@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <!-- 更新版本號至 V4-3-2 -->
-    <title>運氣訓練工具 V4-3-2（修仙網頁離線版）</title>
+    <!-- 更新版本號至 V4-4 -->
+    <title>運氣訓練工具 V4-4（修仙網頁離線版）</title>
     <style>
         :root {
             --bg-color: #f0f2f5;
@@ -1707,8 +1707,8 @@ function renderMainMenu() {
     // 重新建構主選單 HTML：將 infoSection 移至訓練按鈕之前，更新版本號
     let html = `
         <h1>🎯 運氣訓練工具</h1>
-        <!-- 顯示版本號 V4-3-2 -->
-        <h2>V4-3-2（修仙網頁離線版）</h2>
+        <!-- 顯示版本號 V4-4 -->
+        <h2>V4-4（修仙網頁離線版）</h2>
         ${infoSection}
         <p style="text-align:center;">請選擇訓練難度（1 最簡單～10 最困難）</p>
     `;
@@ -2968,7 +2968,7 @@ function showGameRules() {
             </ul>
             <p>只有達到上述要求，秘境試煉結束時才會增加一次訓練次數。</p>
             <h3>靈寵體力規則</h3>
-            <p>靈寵具有體力，每升一級最大體力會增加。自動訓練時將消耗體力（普通訓練消耗等於所選難度，秘境試煉消耗等於難度的兩倍）。體力會隨時間自動恢復，也可以消耗靈石快速回復。當靈寵體力不足時將無法進行自動訓練。</p>
+            <p>靈寵具有體力，每升一級最大體力會增加。自動訓練時將消耗體力：普通訓練消耗按難度等比增長（難度 1 消耗 100，難度 2 消耗 200，難度 3 消耗 400，難度 4 消耗 800，難度 5 消耗 1600，難度 6 消耗 3200，依此類推），秘境試煉消耗為普通訓練的兩倍。體力會隨時間自動恢復，也可以按 1:1 使用靈石快速回復（1 靈石恢復 1 體力）。當靈寵體力不足時將無法進行自動訓練。</p>
             <h3>7. 每日簽到</h3>
             <p>每天凌晨 00:00 會刷新簽到，當日首次簽到即可依照當前修為階層獲得修煉經驗與靈石獎勵。連續簽到天數越多，獎勵倍率越高；中斷簽到後，連續天數將重新計算。</p>
             <h3>8. 每日隨機任務</h3>
@@ -3181,7 +3181,8 @@ function autoTrainPet(index) {
 function showPetLevelList() {
     try {
         let html = '<p>靈寵升級所需經驗：</p><ul style="text-align:left;">';
-        for (let i = 1; i <= 10; i++) {
+        // 展示至 Lv.200
+        for (let i = 1; i <= 199; i++) {
             html += `<li>Lv.${i} → Lv.${i+1}：${getPetLevelRequirement(i)} EXP</li>`;
         }
         html += '</ul>';
@@ -3228,19 +3229,20 @@ function recoverPetEnergy(index) {
             addTemporaryMessage('🐾 體力已滿，無需恢復。', 'msg-shop');
             return;
         }
-        const costPerPoint = 10;
-        const cost = missing * costPerPoint;
-        if (gameState.stones < cost) {
+        // 一靈石恢復一點體力，可部分恢復
+        const restorable = Math.min(missing, gameState.stones || 0);
+        if (restorable <= 0) {
             addTemporaryMessage('💎 靈石不足，無法恢復體力。', 'msg-shop-fail');
             return;
         }
-        gameState.stones -= cost;
-        pet.energy = maxEnergy;
+        // 扣除靈石並增加對應體力
+        gameState.stones -= restorable;
+        pet.energy = Math.min(maxEnergy, (pet.energy || 0) + restorable);
         pet.lastEnergyTimestamp = Date.now();
         saveGameState();
         try { updateMainMenuInfo(); } catch (e) {}
         renderSpiritBeastMenu();
-        addTemporaryMessage(`✨ 消耗 ${cost} 靈石，${pet.name || pet.species} 體力已完全恢復！`, 'msg-shop');
+        addTemporaryMessage(`✨ 消耗 ${restorable} 靈石，${pet.name || pet.species} 體力恢復 ${restorable} 點！`, 'msg-shop');
     } catch (e) { console.warn('恢復靈寵體力失敗', e); }
 }
 
@@ -3253,15 +3255,28 @@ function renderPetTrainingDifficultyMenu(index) {
         restorePetEnergy(pet);
         const maxEnergy = getPetMaxEnergy(pet.level || 1);
         const energy = pet.energy || 0;
-        let html = `<p>選擇自動訓練難度（消耗體力 = 難度值），當前體力：${energy}/${maxEnergy}</p>`;
-        html += '<div style="display:flex; flex-wrap:wrap; justify-content:center; gap:4px;">';
-        for (let i = 1; i <= 10; i++) {
-            html += `<button data-action="confirm-auto-train-pet" data-index="${index}" data-diff="${i}" class="btn">${i}</button>`;
+        // 說明：普通訓練消耗體力按難度等比增長（100→200→400→...），秘境試煉為普通的兩倍
+        let html = `<p>選擇自動訓練難度（普通消耗體力：100→200→400→…；秘境消耗體力為普通的兩倍）<br>當前體力：${energy}/${maxEnergy}</p>`;
+        // 普通訓練：每 5 個難度一列
+        html += '<div style="display:flex; flex-direction:column; align-items:center; gap:4px;">';
+        for (let row = 0; row < 2; row++) {
+            html += '<div style="display:flex; justify-content:center; gap:4px;">';
+            for (let col = 1; col <= 5; col++) {
+                const i = row * 5 + col;
+                html += `<button data-action="confirm-auto-train-pet" data-index="${index}" data-diff="${i}" class="btn">${i}</button>`;
+            }
+            html += '</div>';
         }
         html += '</div>';
-        html += '<div style="margin-top:6px; display:flex; flex-wrap:wrap; justify-content:center; gap:4px;">';
-        for (let i = 1; i <= 10; i++) {
-            html += `<button data-action="confirm-auto-train-pet-secret" data-index="${index}" data-level="${i}" class="btn-trial">秘境${i}</button>`;
+        // 秘境試煉：每 5 個難度一列
+        html += '<div style="margin-top:6px; display:flex; flex-direction:column; align-items:center; gap:4px;">';
+        for (let row = 0; row < 2; row++) {
+            html += '<div style="display:flex; justify-content:center; gap:4px;">';
+            for (let col = 1; col <= 5; col++) {
+                const i = row * 5 + col;
+                html += `<button data-action="confirm-auto-train-pet-secret" data-index="${index}" data-level="${i}" class="btn-trial">秘境${i}</button>`;
+            }
+            html += '</div>';
         }
         html += '</div>';
         html += `<button data-action="render-spirit-beast-menu" class="btn-danger" style="margin-top:8px;">取消</button>`;
@@ -3277,7 +3292,8 @@ function confirmAutoTrainPet(index, diff) {
         if (!gameState.pets || index < 0 || index >= gameState.pets.length) return;
         const pet = gameState.pets[index];
         restorePetEnergy(pet);
-        const energyCost = diff;
+        // 計算普通訓練體力消耗：基礎 100，每升一難度翻倍
+        const energyCost = 100 * Math.pow(2, diff - 1);
         const maxEnergy = getPetMaxEnergy(pet.level || 1);
         if ((pet.energy || 0) < energyCost) {
             addTemporaryMessage(`🐾 ${pet.name || pet.species} 體力不足，無法進行難度 ${diff} 訓練。`, 'msg-shop-fail');
@@ -3307,11 +3323,8 @@ function confirmAutoTrainPet(index, diff) {
         levelUpPet(pet);
         saveGameState();
         try { updateMainMenuInfo(); } catch (e) {}
-        // 結算摘要，包含體力消耗
-        let summary = `<p>${pet.name || pet.species} 自動完成難度 ${diff} 的訓練，共答對 ${success} 題。</p><p>獲得 ${petExpGain} 點靈寵經驗。</p>`;
-        summary += `<p>消耗體力：${energyCost}，剩餘體力 ${pet.energy}/${getPetMaxEnergy(pet.level || 1)}</p>`;
-        const buttons = `<button data-action="render-spirit-beast-menu">確認</button> <button data-action="retrain-pet" data-index="${index}" data-diff="${diff}">再次挑戰</button>`;
-        showModal('🐾 靈寵自動訓練結果', summary, buttons);
+        // 在訓練結果頁面附加靈寵訓練摘要與返回按鈕
+        appendPetTrainingSummary(pet, index, diff, energyCost, success, petExpGain, 'normal');
     } catch (e) { console.warn('確認自動訓練失敗', e); }
 }
 
@@ -3323,7 +3336,8 @@ function confirmAutoTrainPetSecret(index, level) {
         if (!gameState.pets || index < 0 || index >= gameState.pets.length) return;
         const pet = gameState.pets[index];
         restorePetEnergy(pet);
-        const energyCost = level * 2;
+        // 計算秘境試煉體力消耗：普通消耗的兩倍
+        const energyCost = 200 * Math.pow(2, level - 1);
         const maxEnergy = getPetMaxEnergy(pet.level || 1);
         if ((pet.energy || 0) < energyCost) {
             addTemporaryMessage(`🐾 ${pet.name || pet.species} 體力不足，無法進行秘境難度 ${level} 訓練。`, 'msg-shop-fail');
@@ -3349,11 +3363,26 @@ function confirmAutoTrainPetSecret(index, level) {
         levelUpPet(pet);
         saveGameState();
         try { updateMainMenuInfo(); } catch (e) {}
-        let summary = `<p>${pet.name || pet.species} 自動完成秘境難度 ${level}，共答對 ${success} 題。</p><p>獲得 ${petExpGain} 點靈寵經驗。</p>`;
-        summary += `<p>消耗體力：${energyCost}，剩餘體力 ${pet.energy}/${getPetMaxEnergy(pet.level || 1)}</p>`;
-        const buttons = `<button data-action="render-spirit-beast-menu">確認</button> <button data-action="retrain-pet" data-index="${index}" data-diff="${level}">再次挑戰</button>`;
-        showModal('🐾 靈寵秘境訓練結果', summary, buttons);
+        // 在訓練結果頁面附加靈寵秘境訓練摘要與返回按鈕
+        appendPetTrainingSummary(pet, index, level, energyCost, success, petExpGain, 'secret');
     } catch (e) { console.warn('確認秘境自動訓練失敗', e); }
+}
+
+// 在訓練結果頁面附加靈寵訓練摘要與按鈕
+function appendPetTrainingSummary(pet, index, diff, energyCost, success, petExpGain, mode) {
+    try {
+        const appEl = document.getElementById('app') || document.querySelector('#app');
+        if (!appEl) return;
+        // 建立摘要區塊
+        let summaryHTML = '<div class="pet-training-summary" style="margin-top:1em; padding:1em; border:1px solid var(--secondary-color); border-radius:8px; background:#f8f8f8; text-align:center;">';
+        const diffLabel = (mode === 'secret') ? '秘境難度' : '難度';
+        summaryHTML += `<p>${pet.name || pet.species} 自動完成${diffLabel} ${diff} 的訓練，共答對 ${success} 題。</p>`;
+        summaryHTML += `<p>獲得 ${petExpGain} 點靈寵經驗。</p>`;
+        summaryHTML += `<p>消耗體力：${energyCost}，剩餘體力 ${pet.energy}/${getPetMaxEnergy(pet.level || 1)}</p>`;
+        summaryHTML += `<button data-action="render-spirit-beast-menu" class="btn">回靈寵系統</button> <button data-action="retrain-pet" data-index="${index}" data-diff="${diff}" class="btn-secondary">再次挑戰</button>`;
+        summaryHTML += '</div>';
+        appEl.innerHTML += summaryHTML;
+    } catch (e) { console.warn('附加靈寵訓練摘要失敗', e); }
 }
 
 // # 秘境試煉主選單：讓玩家挑選難度後開始秘境試煉
