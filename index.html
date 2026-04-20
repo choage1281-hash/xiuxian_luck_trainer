@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <!-- 更新版本號至 V4-5 -->
-    <title>運氣訓練工具 V4-5（修仙網頁離線版）</title>
+    <!-- 更新版本號至 V4-6 -->
+    <title>運氣訓練工具 V4-6（修仙網頁離線版）</title>
     <style>
         :root {
             --bg-color: #f0f2f5;
@@ -1707,8 +1707,8 @@ function renderMainMenu() {
     // 重新建構主選單 HTML：將 infoSection 移至訓練按鈕之前，更新版本號
     let html = `
         <h1>🎯 運氣訓練工具</h1>
-        <!-- 顯示版本號 V4-5 -->
-        <h2>V4-5（修仙網頁離線版）</h2>
+        <!-- 顯示版本號 V4-6 -->
+        <h2>V4-6（修仙網頁離線版）</h2>
         ${infoSection}
         <p style="text-align:center;">請選擇訓練難度（1 最簡單～10 最困難）</p>
     `;
@@ -2966,7 +2966,7 @@ function showGameRules() {
             </ul>
             <p>只有達到上述要求，秘境試煉結束時才會增加一次訓練次數。</p>
             <h3>靈寵體力規則</h3>
-            <p>靈寵具有體力，每升一級最大體力會增加。自動訓練時將消耗體力：普通訓練消耗按難度等比增長（難度 1 消耗 100，難度 2 消耗 200，難度 3 消耗 400，難度 4 消耗 800，難度 5 消耗 1600，難度 6 消耗 3200，依此類推），秘境試煉消耗為普通訓練的兩倍。體力會隨時間自動恢復，也可以按 1:1 使用靈石快速回復（1 靈石恢復 1 體力）。當靈寵體力不足時將無法進行自動訓練。</p>
+            <p>靈寵具有體力，<b>Lv.1</b> 的最大體力為 <b>100</b>，每升一級最大值增加 <b>500</b>（例如 Lv.2 為 600、Lv.3 為 1100，以此類推）。靈寵升級時體力會自動恢復到滿值。自動訓練將消耗體力：普通訓練消耗按難度等比增長（難度 1 消耗 100、難度 2 消耗 200、難度 3 消耗 400、難度 4 消耗 800、難度 5 消耗 1600、難度 6 消耗 3200，依此類推），秘境試煉消耗為普通訓練的兩倍。體力會隨時間自動恢復，也可以按 1:1 使用靈石快速回復（1 靈石恢復 1 體力）。當靈寵體力不足時將無法進行自動訓練。</p>
             <h3>7. 每日簽到</h3>
             <p>每天凌晨 00:00 會刷新簽到，當日首次簽到即可依照當前修為階層獲得修煉經驗與靈石獎勵。連續簽到天數越多，獎勵倍率越高；中斷簽到後，連續天數將重新計算。</p>
             <h3>8. 每日隨機任務</h3>
@@ -3024,7 +3024,7 @@ function showGameRules() {
             <p>在主選單中點擊「⛩️ 宗門系統」可查看目前宗門資訊、加入 AI 宗門、建立或退出宗門，並透過成員列表、戰力與貢獻查看宗門整體狀態。宗門功能會隨版本更新逐步擴充，例如宗門任務、宗門戰與更多互動。</p>
 
             <h3>12. 靈寵系統</h3>
-            <p>靈寵是修仙旅程中的夥伴。主選單的商店新增<b>靈寵盲盒</b>，每個售價 1000 靈石，使用後可隨機獲得一隻靈寵。每隻靈寵初始等級為 1，等級沒有上限，升級所需經驗採用等比級數增長（例如 Lv.1→2 需 100 經驗，Lv.2→3 需 150，Lv.3→4 需 225，以此類推）。你可以同時擁有多隻靈寵，並可為每隻靈寵命名或放生。靈寵管理介面位於「靈寵系統」頁面，背包中亦可查看現有靈寵。自動訓練會由靈寵代替你完成一場 20 題的訓練，所得的修煉經驗和個人貢獻將計入你的帳戶，未來版本將根據靈寵等級解鎖更高難度的自動訓練。</p>
+            <p>靈寵是修仙旅程中的夥伴。主選單的商店新增<b>靈寵盲盒</b>，每個售價 1000 靈石，使用後可隨機獲得一隻靈寵。每隻靈寵初始等級為 1，等級沒有上限，升級所需經驗採用等比級數增長（例如 Lv.1→2 需 100 經驗，Lv.2→3 需 150，Lv.3→4 需 225，以此類推）。<br>靈寵每升一級最大體力增加 500 點（Lv.1 為 100，Lv.2 為 600，Lv.3 為 1100…），升級時體力會自動回滿。自動訓練獲得的靈寵經驗值依難度等比成長：<b>普通訓練</b>難度 1 獲得 100 經驗，難度 2 獲得 200，難度 3 獲得 400，依此類推；<b>秘境試煉</b>的經驗為普通訓練的兩倍。靈寵答題的精準度會隨等級提高，等級越高答對概率越高。<br>你可以同時擁有多隻靈寵，並可為每隻靈寵命名或放生。靈寵管理介面位於「靈寵系統」頁面，背包中亦可查看現有靈寵。自動訓練會由靈寵代替你完成一場 20 題的訓練，所得的修煉經驗和個人貢獻將計入你的帳戶，未來版本將根據靈寵等級解鎖更高難度的自動訓練。</p>
         </div>
     `;
     showModal("📜 遊戲規則說明", content, `<button data-action="close-modal">關閉</button>`);
@@ -3095,7 +3095,11 @@ function levelUpPet(pet) {
     while (pet.exp >= getPetLevelRequirement(pet.level || 1)) {
         const req = getPetLevelRequirement(pet.level || 1);
         pet.exp -= req;
+        // 等級提升
         pet.level = (pet.level || 1) + 1;
+        // 升級後恢復體力到新等級最大值
+        pet.energy = getPetMaxEnergy(pet.level || 1);
+        pet.lastEnergyTimestamp = Date.now();
     }
 }
 
@@ -3188,10 +3192,11 @@ function showPetLevelList() {
     } catch (e) { console.warn('顯示靈寵等級表失敗', e); }
 }
 
-// 計算靈寵最大體力：基礎 100 點，每升一級增加 20 點
+// 計算靈寵最大體力：基礎 100 點，每升一級增加 500 點（等差級數成長）
 function getPetMaxEnergy(level) {
     level = level || 1;
-    return 100 + (level - 1) * 20;
+    // Lv.1: 100，Lv.2: 600，Lv.3: 1100... 每級增加 500
+    return 100 + (level - 1) * 500;
 }
 
 // 體力恢復間隔（毫秒）：每 5 分鐘恢復 1 點體力
@@ -3214,7 +3219,7 @@ function restorePetEnergy(pet) {
     } catch (e) { console.warn('恢復靈寵體力失敗', e); }
 }
 
-// 使用靈石恢復靈寵體力：每 1 點體力消耗 10 顆靈石
+// 使用靈石恢復靈寵體力：每 1 點體力消耗 1 顆靈石
 function recoverPetEnergy(index) {
     try {
         index = parseInt(index, 10);
@@ -3253,26 +3258,30 @@ function renderPetTrainingDifficultyMenu(index) {
         restorePetEnergy(pet);
         const maxEnergy = getPetMaxEnergy(pet.level || 1);
         const energy = pet.energy || 0;
-        // 說明：普通訓練消耗體力按難度等比增長（100→200→400→...），秘境試煉為普通的兩倍
-        let html = `<p>選擇自動訓練難度（普通消耗體力：100→200→400→…；秘境消耗體力為普通的兩倍）<br>當前體力：${energy}/${maxEnergy}</p>`;
-        // 普通訓練：每 5 個難度一列
+        // 說明：普通訓練消耗體力與獲得經驗值皆按難度等比成長（100→200→400→...），秘境試煉的體力與經驗值為普通的兩倍
+        let html = `<p>選擇自動訓練難度（普通體力/經驗：100→200→400→…；秘境為普通的兩倍）<br>當前體力：${energy}/${maxEnergy}</p>`;
+        // 普通訓練：每 5 個難度一列，按鈕顯示消耗體力與獲得經驗值
         html += '<div style="display:flex; flex-direction:column; align-items:center; gap:4px;">';
         for (let row = 0; row < 2; row++) {
             html += '<div style="display:flex; justify-content:center; gap:4px;">';
             for (let col = 1; col <= 5; col++) {
                 const i = row * 5 + col;
-                html += `<button data-action="confirm-auto-train-pet" data-index="${index}" data-diff="${i}" class="btn">${i}</button>`;
+                const cost = 100 * Math.pow(2, i - 1);
+                const xp = 100 * Math.pow(2, i - 1);
+                html += `<button data-action="confirm-auto-train-pet" data-index="${index}" data-diff="${i}" class="btn">${i}<br><span style="font-size:12px;">耗${cost}/得${xp}</span></button>`;
             }
             html += '</div>';
         }
         html += '</div>';
-        // 秘境試煉：每 5 個難度一列
+        // 秘境試煉：每 5 個難度一列，按鈕顯示消耗體力與獲得經驗值
         html += '<div style="margin-top:6px; display:flex; flex-direction:column; align-items:center; gap:4px;">';
         for (let row = 0; row < 2; row++) {
             html += '<div style="display:flex; justify-content:center; gap:4px;">';
             for (let col = 1; col <= 5; col++) {
                 const i = row * 5 + col;
-                html += `<button data-action="confirm-auto-train-pet-secret" data-index="${index}" data-level="${i}" class="btn-trial">秘境${i}</button>`;
+                const cost = 200 * Math.pow(2, i - 1);
+                const xp = 200 * Math.pow(2, i - 1);
+                html += `<button data-action="confirm-auto-train-pet-secret" data-index="${index}" data-level="${i}" class="btn-trial">秘境${i}<br><span style="font-size:12px;">耗${cost}/得${xp}</span></button>`;
             }
             html += '</div>';
         }
@@ -3300,8 +3309,13 @@ function confirmAutoTrainPet(index, diff) {
         // 扣除體力
         pet.energy -= energyCost;
         pet.lastEnergyTimestamp = Date.now();
+        // 模擬答題：正確率依靈寵等級提升。基礎 50%，每升一級增加 2%，最高 95%。
         const rounds = 20;
-        const success = Math.floor(Math.random() * (rounds + 1));
+        const accuracy = Math.min(0.95, 0.5 + (pet.level || 1) * 0.02);
+        let success = 0;
+        for (let i = 0; i < rounds; i++) {
+            if (Math.random() < accuracy) success++;
+        }
         const fail = rounds - success;
         trainingState = {
             difficulty: diff,
@@ -3315,8 +3329,8 @@ function confirmAutoTrainPet(index, diff) {
         };
         // 計算並更新修煉經驗、宗門貢獻
         showTrainingResult();
-        // 給靈寵增加經驗：依照答對題數與難度
-        const petExpGain = success * diff;
+        // 給靈寵增加經驗：經驗值依難度等比成長（100、200、400、...），與答對題數無關
+        const petExpGain = 100 * Math.pow(2, diff - 1);
         pet.exp = (pet.exp || 0) + petExpGain;
         levelUpPet(pet);
         saveGameState();
@@ -3343,8 +3357,13 @@ function confirmAutoTrainPetSecret(index, level) {
         }
         pet.energy -= energyCost;
         pet.lastEnergyTimestamp = Date.now();
-        // 模擬秘境試煉結果：隨機答對題數，範圍 0～(20+level)
-        const success = Math.floor(Math.random() * (21 + level));
+        // 模擬秘境試煉結果：正確率依靈寵等級提升。基礎 50%，每升一級增加 2%，最高 95%。
+        const maxQuestions = 20 + level;
+        const accuracy = Math.min(0.95, 0.5 + (pet.level || 1) * 0.02);
+        let success = 0;
+        for (let i = 0; i < maxQuestions; i++) {
+            if (Math.random() < accuracy) success++;
+        }
         trainingState = {
             difficulty: level,
             success: success,
@@ -3356,7 +3375,8 @@ function confirmAutoTrainPetSecret(index, level) {
             mode: 'secretTrial'
         };
         showTrialResult();
-        const petExpGain = success * level;
+        // 給靈寵增加經驗：秘境訓練經驗值依難度等比成長，基數 200
+        const petExpGain = 200 * Math.pow(2, level - 1);
         pet.exp = (pet.exp || 0) + petExpGain;
         levelUpPet(pet);
         saveGameState();
