@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <!-- 更新版本號至 V4-6 -->
-    <title>運氣訓練工具 V4-6（修仙網頁離線版）</title>
+    <!-- 更新版本號至 V5-1：串接神器庫 Google Apps Script API（玩家系統 + 雲端排行榜） -->
+    <title>運氣訓練工具 V5-1（神器庫雲端排行榜版）</title>
     <style>
         :root {
             --bg-color: #f0f2f5;
@@ -456,9 +456,9 @@
 
 <script>
 // =================================================================================
-// 運氣訓練工具 V9-0 - JavaScript 離線網頁版
+// 運氣訓練工具 V5-1 - 神器庫雲端排行榜版
 // 作者：Gemini (移植自使用者提供的 Python 腳本)
-// 版本：1.2 - 修正訓練模式中答案位置規律排列的問題，實現真正隨機。
+// 版本：V5-1 - 新增 Google Apps Script API 玩家建立 / 查詢 / 雲端排行榜寫入與讀取。
 // =================================================================================
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -468,6 +468,15 @@ const SCORE_FILE = "max_scores"; // localStorage key
 const STATS_FILE = "training_stats"; // localStorage key
 // # 秘境試煉最高分資料儲存鍵，用於記錄玩家在各難度秘境試煉中的最佳成績。
 const TRIAL_SCORE_FILE = "max_trial_scores";
+
+// ===================== 神器庫 GAS API 設定（V5-1） =====================
+// V5-1 僅串接：玩家建立 / 查詢、雲端排行榜寫入 / 讀取。
+// 其他修為、背包、宗門、靈寵、任務仍保留 localStorage 離線存檔，避免一次雲端化造成資料風險。
+const SHENQIKU_API_URL = "https://script.google.com/macros/s/AKfycbxfcwie110Z885sAiG9rVLbBfP8YyuaHnGVfdbRLxWM6hNL18X5X_DWW1LnYenZXxxAag/exec";
+const CLOUD_PLAYER_ID_KEY = "shenqiku_player_id";
+const CLOUD_PLAYER_NAME_KEY = "shenqiku_player_name";
+const CLOUD_LAST_SUBMIT_KEY = "shenqiku_last_score_submit";
+
 
 // # 秘境試煉最高紀錄載入後存放於此物件，格式類似於 maxScores: { difficulty: bestScore }
 let maxTrialScores = {};
@@ -1578,6 +1587,202 @@ function grantDailyTicketIfNeeded() {
     }
 }
 
+
+// ===================== 神器庫 GAS API：玩家與雲端排行榜（V5-1） =====================
+function buildApiUrl(action, params = {}) {
+    const url = new URL(SHENQIKU_API_URL);
+    url.searchParams.set('action', action);
+    Object.entries(params).forEach(([key, value]) => {
+        url.searchParams.set(key, value == null ? '' : String(value));
+    });
+    return url.toString();
+}
+
+function getCloudPlayerId() {
+    try { return localStorage.getItem(CLOUD_PLAYER_ID_KEY) || ''; } catch (e) { return ''; }
+}
+
+function getCloudPlayerName() {
+    try { return localStorage.getItem(CLOUD_PLAYER_NAME_KEY) || ''; } catch (e) { return ''; }
+}
+
+function setCloudPlayer(player) {
+    try {
+        if (player && player.PlayerID) localStorage.setItem(CLOUD_PLAYER_ID_KEY, player.PlayerID);
+        if (player && player.PlayerName) localStorage.setItem(CLOUD_PLAYER_NAME_KEY, player.PlayerName);
+    } catch (e) {}
+}
+
+function guessPlayerNameForCloud() {
+    const fromCloud = getCloudPlayerName();
+    if (fromCloud) return fromCloud;
+    if (gameState && gameState.personalName) return gameState.personalName;
+    return '無名修士';
+}
+
+async function gasApi(action, params = {}) {
+    const url = buildApiUrl(action, params);
+    const res = await fetch(url, { method: 'GET', cache: 'no-store' });
+    return await res.json();
+}
+
+async function handleCreateCloudPlayer() {
+    const defaultName = guessPlayerNameForCloud();
+    const name = prompt('請輸入神器庫玩家名稱：', defaultName);
+    if (!name || !name.trim()) return;
+    const playerName = name.trim();
+    try {
+        const data = await gasApi('create_player', { PlayerName: playerName });
+        if (data && data.ok && data.data) {
+            setCloudPlayer(data.data);
+            if (gameState) {
+                gameState.personalName = playerName;
+                saveGameState();
+            }
+            alert((data.message || '玩家建立成功') + '\\n玩家：' + playerName + '\\nPlayerID：' + (data.data.PlayerID || ''));
+            renderMainMenu();
+        } else {
+            alert('建立玩家失敗：' + ((data && data.message) || '未知錯誤'));
+        }
+    } catch (e) {
+        console.warn('建立神器庫玩家失敗', e);
+        alert('建立玩家失敗：可能是 GAS API CORS 或網路問題。\\n目前不影響離線遊玩。');
+    }
+}
+
+async function handleGetCloudPlayer() {
+    const defaultName = guessPlayerNameForCloud();
+    const name = prompt('請輸入要查詢的神器庫玩家名稱：', defaultName);
+    if (!name || !name.trim()) return;
+    const playerName = name.trim();
+    try {
+        const data = await gasApi('get_player', { PlayerName: playerName });
+        if (data && data.ok && data.data) {
+            setCloudPlayer(data.data);
+            alert('已找到玩家\\n玩家：' + data.data.PlayerName + '\\nPlayerID：' + data.data.PlayerID);
+            renderMainMenu();
+        } else {
+            alert('找不到玩家：' + ((data && data.message) || playerName));
+        }
+    } catch (e) {
+        console.warn('查詢神器庫玩家失敗', e);
+        alert('查詢玩家失敗：可能是 GAS API CORS 或網路問題。');
+    }
+}
+
+function handleClearCloudPlayer() {
+    if (!confirm('確定要清除本機保存的神器庫玩家資訊？\\n這不會刪除 Google Sheet 裡的玩家資料。')) return;
+    try {
+        localStorage.removeItem(CLOUD_PLAYER_ID_KEY);
+        localStorage.removeItem(CLOUD_PLAYER_NAME_KEY);
+    } catch (e) {}
+    renderMainMenu();
+}
+
+function submitScoreToCloud(score, difficulty, mode) {
+    // 使用 GET 圖片請求寫入，避免 fetch CORS 造成無法送出；即使圖片載入失敗，請求通常仍會到達 Apps Script。
+    const playerName = guessPlayerNameForCloud();
+    const url = buildApiUrl('add_score_get', {
+        PlayerName: playerName,
+        Score: score,
+        Difficulty: difficulty,
+        Mode: mode || '普通訓練'
+    });
+    try {
+        localStorage.setItem(CLOUD_LAST_SUBMIT_KEY, JSON.stringify({
+            PlayerName: playerName,
+            Score: score,
+            Difficulty: difficulty,
+            Mode: mode || '普通訓練',
+            CreatedAt: new Date().toISOString()
+        }));
+    } catch (e) {}
+
+    try {
+        const img = new Image();
+        img.referrerPolicy = 'no-referrer';
+        img.src = url + '&_t=' + Date.now();
+    } catch (e) {
+        console.warn('雲端成績送出失敗', e);
+    }
+}
+
+async function showCloudLeaderboard() {
+    clearApp();
+    app.innerHTML = `
+        <h1>☁️ 神器庫雲端排行榜</h1>
+        <p style="text-align:center;">讀取 Google Sheet Leaderboard 中...</p>
+        <button data-action="render-main-menu">🔁 回主選單</button>
+    `;
+
+    try {
+        const data = await gasApi('get_leaderboard');
+        if (!data || !data.ok || !Array.isArray(data.data)) {
+            throw new Error((data && data.message) || '排行榜格式錯誤');
+        }
+
+        const rows = data.data
+            .filter(row => row && row.PlayerName)
+            .sort((a, b) => {
+                const scoreDiff = Number(b.Score || 0) - Number(a.Score || 0);
+                if (scoreDiff !== 0) return scoreDiff;
+                return new Date(b.CreatedAt || 0) - new Date(a.CreatedAt || 0);
+            })
+            .slice(0, 50);
+
+        let html = `<h1>☁️ 神器庫雲端排行榜</h1>`;
+        html += `<p style="text-align:center;">資料來源：Google Sheet Leaderboard，共顯示前 ${rows.length} 筆</p>`;
+
+        if (rows.length === 0) {
+            html += `<p style="text-align:center;">目前尚無雲端排行榜資料。</p>`;
+        } else {
+            html += `<div class="info-section" style="text-align:left;">`;
+            rows.forEach((row, index) => {
+                const created = row.CreatedAt ? new Date(row.CreatedAt).toLocaleString('zh-TW') : '';
+                html += `
+                    <p>
+                        <strong>#${index + 1} ${row.PlayerName}</strong><br>
+                        分數：${row.Score || 0}｜
+                        難度：${row.Difficulty || ''}｜
+                        模式：${row.Mode || ''}<br>
+                        <span style="font-size:0.9em;color:var(--secondary-color);">${created}</span>
+                    </p>
+                    <hr>
+                `;
+            });
+            html += `</div>`;
+        }
+
+        html += `<button data-action="render-main-menu">🔁 回主選單</button>`;
+        app.innerHTML = html;
+    } catch (e) {
+        console.warn('讀取雲端排行榜失敗', e);
+        app.innerHTML = `
+            <h1>☁️ 神器庫雲端排行榜</h1>
+            <p class="message msg-shop-fail">讀取失敗。可能是 GAS API CORS、網路或部署版本問題。</p>
+            <p style="text-align:center;">離線遊戲資料不受影響。</p>
+            <button data-action="render-main-menu">🔁 回主選單</button>
+        `;
+    }
+}
+
+function showLoginMenu() {
+    const cloudName = getCloudPlayerName();
+    const cloudId = getCloudPlayerId();
+    let content = `
+        <p>V5-1 使用 Google Apps Script API 建立玩家與雲端排行榜。</p>
+        <p>目前神器庫玩家：<strong>${cloudName || '尚未建立'}</strong></p>
+        <p>PlayerID：${cloudId || '尚未取得'}</p>
+        <hr>
+        <button data-action="cloud-create-player">建立 / 載入神器庫玩家</button>
+        <button data-action="cloud-get-player">查詢神器庫玩家</button>
+        <button data-action="show-cloud-leaderboard">☁️ 查看雲端排行榜</button>
+        <button class="btn-danger" data-action="cloud-clear-player">清除本機玩家資訊</button>
+    `;
+    showModal('神器庫玩家 / 帳號', content, `<button data-action="close-modal">關閉</button>`);
+}
+
+
 // ===================== 主選單渲染 =====================
 // ===================== 靈根測試與個人資料 =====================
 // # 提供初始設定介面，收集姓名與性別並啟動靈根測試
@@ -1688,6 +1893,7 @@ function renderMainMenu() {
             <p>🎟️ 測試機會：${gameState.luck_tickets} 次 (累積獲得：${gameState.luck_tickets_total})</p>
             <p>💎 靈石：${gameState.stones}</p>
             <p>👥 在線人數：${typeof getOnlineCount === 'function' ? getOnlineCount() : 1}</p>
+            <p>☁️ 神器庫玩家：${getCloudPlayerName()} ${getCloudPlayerId() ? '(' + getCloudPlayerId() + ')' : '（尚未建立）'}</p>
             <p>⛩️ 宗門：${gameState.sectName && gameState.sectName !== '' ? gameState.sectName : '散修'}${gameState.sectName && gameState.sectName !== '' ? `<br/>仙門位階：${gameState.current_title}` : ''}</p>
             <p>👤 姓名：${gameState.personalName || '未設定'} | 性別：${gameState.gender || '未設定'} | 🌱 靈根：${(gameState.linggen === undefined || gameState.linggen === null) ? '未測' : ((gameState.linggen <= 0) ? '無靈根' : gameState.linggen + ' 靈根')}</p>
             <!-- 顯示當前裝備的道具；若無裝備則顯示未裝備 -->
@@ -1707,8 +1913,8 @@ function renderMainMenu() {
     // 重新建構主選單 HTML：將 infoSection 移至訓練按鈕之前，更新版本號
     let html = `
         <h1>🎯 運氣訓練工具</h1>
-        <!-- 顯示版本號 V4-6 -->
-        <h2>V4-6（修仙網頁離線版）</h2>
+        <!-- 顯示版本號 V5-1 -->
+        <h2>V5-1（神器庫雲端排行榜版）</h2>
         ${infoSection}
         <p style="text-align:center;">請選擇訓練難度（1 最簡單～10 最困難）</p>
     `;
@@ -1722,7 +1928,8 @@ function renderMainMenu() {
     html += `<button class="btn-other" data-action="show-sect-menu">⛩️ 宗門系統</button>`;
     // 新增靈寵系統按鈕
     html += `<button class="btn-other" data-action="render-spirit-beast-menu">🐾 靈寵系統</button>`;
-    html += `<button class="btn-other" data-action="show-cultivation-leaderboard">🌄 修仙排行榜</button>`;
+    html += `<button class="btn-other" data-action="show-cultivation-leaderboard">🌄 修仙排行榜</button>
+    <button class="btn-other" data-action="show-cloud-leaderboard">☁️ 雲端排行榜</button>`;
     html += `
         <button class="btn-other" data-action="show-stage-list">📜 查看修仙等級一覽</button>
         <button class="btn-other" data-action="show-game-rules">📖 遊戲規則說明</button>
@@ -1736,7 +1943,7 @@ function renderMainMenu() {
         <button class="btn-other" data-action="show-heaven-challenges">🌠 天命挑戰</button>
         <!-- 已將宗門系統按鈕提前顯示，此處移除重複項 -->
         <button class="btn-other" data-action="test-sfx">🔊 測試音效</button>
-        <button class="btn-other" data-action="show-login-menu">👤 帳號</button>
+        <button class="btn-other" data-action="show-login-menu">👤 神器庫玩家 / 帳號</button>
         <button class="btn-secondary" data-action="exchange-stones" data-count="1">🪙 兌換 1 靈石 (-${STONE_EXCHANGE_COST} EXP)</button>
         <button class="btn-secondary" data-action="exchange-stones" data-count="100">🪙 兌換 100 靈石 (-${STONE_100_EXCHANGE_COST} EXP)</button>
         <button class="btn-secondary" data-action="exchange-stones" data-count="1000">🪙 兌換 1000 靈石 (-${STONE_1000_EXCHANGE_COST} EXP)</button>
@@ -2282,6 +2489,13 @@ function showTrainingResult() {
     }
 
     saveGameState();
+    // V5-1：訓練結束後同步寫入神器庫 GAS 雲端排行榜（不影響本機 localStorage 存檔）
+    try {
+        if (typeof submitScoreToCloud === 'function') {
+            submitScoreToCloud(score, trainingState.difficulty || 1, '普通訓練');
+        }
+    } catch (e) { console.warn('神器庫雲端排行榜送出失敗', e); }
+
     // # 線上版新增：訓練結束時，上傳雲端紀錄（Firebase Firestore）
     try {
         if (typeof onGameFinished === 'function') {
@@ -3861,7 +4075,7 @@ function showCultivationLeaderboard() {
 }
 
 // # 顯示登入/帳號管理介面
-function showLoginMenu() {
+function firebaseShowLoginMenu() {
     // 若雲端未啟用則顯示提示
     if (!FIREBASE_ONLINE_ENABLED || !auth) {
         showModal('帳號', '雲端未啟用，無法登入。', `<button data-action="close-modal">關閉</button>`);
@@ -7400,6 +7614,10 @@ document.body.addEventListener('click', (event) => {
         'render-secret-trial-menu': renderSecretTrialMenu,
         'show-trial-leaderboard': showTrialLeaderboard,
         'show-login-menu': showLoginMenu,
+        'cloud-create-player': handleCreateCloudPlayer,
+        'cloud-get-player': handleGetCloudPlayer,
+        'cloud-clear-player': handleClearCloudPlayer,
+        'show-cloud-leaderboard': showCloudLeaderboard,
         'login-google': loginGoogle,
         'login-email': loginEmail,
         'login-yahoo': loginYahoo,
