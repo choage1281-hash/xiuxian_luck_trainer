@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <!-- 更新版本號至 V5-1：串接神器庫 Google Apps Script API（玩家系統 + 雲端排行榜） -->
-    <title>運氣訓練工具 V5-1（神器庫雲端排行榜版）</title>
+    <!-- 更新版本號至 V5-2：新增神器庫雲端存檔上傳 / 下載 -->
+    <title>運氣訓練工具 V5-2（神器庫雲端存檔版）</title>
     <style>
         :root {
             --bg-color: #f0f2f5;
@@ -456,9 +456,9 @@
 
 <script>
 // =================================================================================
-// 運氣訓練工具 V5-1 - 神器庫雲端排行榜版
+// 運氣訓練工具 V5-2 - 神器庫雲端存檔版
 // 作者：Gemini (移植自使用者提供的 Python 腳本)
-// 版本：V5-1 - 新增 Google Apps Script API 玩家建立 / 查詢 / 雲端排行榜寫入與讀取。
+// 版本：V5-2 - 新增 Google Apps Script API 玩家建立 / 查詢 / 雲端排行榜 / 雲端存檔上傳與下載。
 // =================================================================================
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -469,13 +469,15 @@ const STATS_FILE = "training_stats"; // localStorage key
 // # 秘境試煉最高分資料儲存鍵，用於記錄玩家在各難度秘境試煉中的最佳成績。
 const TRIAL_SCORE_FILE = "max_trial_scores";
 
-// ===================== 神器庫 GAS API 設定（V5-1） =====================
-// V5-1 僅串接：玩家建立 / 查詢、雲端排行榜寫入 / 讀取。
-// 其他修為、背包、宗門、靈寵、任務仍保留 localStorage 離線存檔，避免一次雲端化造成資料風險。
+// ===================== 神器庫 GAS API 設定（V5-2） =====================
+// V5-2 串接：玩家建立 / 查詢、雲端排行榜寫入 / 讀取、雲端存檔整包備份 / 還原。
+// 修為、背包、宗門、靈寵、任務仍以 localStorage 為主，雲端存檔作為備份與換機還原。
 const SHENQIKU_API_URL = "https://script.google.com/macros/s/AKfycbxfcwie110Z885sAiG9rVLbBfP8YyuaHnGVfdbRLxWM6hNL18X5X_DWW1LnYenZXxxAag/exec";
 const CLOUD_PLAYER_ID_KEY = "shenqiku_player_id";
 const CLOUD_PLAYER_NAME_KEY = "shenqiku_player_name";
 const CLOUD_LAST_SUBMIT_KEY = "shenqiku_last_score_submit";
+const CLOUD_SAVE_LAST_UPLOAD_KEY = "shenqiku_last_save_upload";
+const CLOUD_SAVE_LAST_DOWNLOAD_KEY = "shenqiku_last_save_download";
 
 
 // # 秘境試煉最高紀錄載入後存放於此物件，格式類似於 maxScores: { difficulty: bestScore }
@@ -1588,7 +1590,7 @@ function grantDailyTicketIfNeeded() {
 }
 
 
-// ===================== 神器庫 GAS API：玩家與雲端排行榜（V5-1） =====================
+// ===================== 神器庫 GAS API：玩家、雲端排行榜與雲端存檔（V5-2） =====================
 function buildApiUrl(action, params = {}) {
     const url = new URL(SHENQIKU_API_URL);
     url.searchParams.set('action', action);
@@ -1770,16 +1772,167 @@ function showLoginMenu() {
     const cloudName = getCloudPlayerName();
     const cloudId = getCloudPlayerId();
     let content = `
-        <p>V5-1 使用 Google Apps Script API 建立玩家與雲端排行榜。</p>
+        <p>V5-2 使用 Google Apps Script API 建立玩家、雲端排行榜與雲端存檔。</p>
         <p>目前神器庫玩家：<strong>${cloudName || '尚未建立'}</strong></p>
         <p>PlayerID：${cloudId || '尚未取得'}</p>
         <hr>
         <button data-action="cloud-create-player">建立 / 載入神器庫玩家</button>
         <button data-action="cloud-get-player">查詢神器庫玩家</button>
         <button data-action="show-cloud-leaderboard">☁️ 查看雲端排行榜</button>
+        <button class="btn-warning" data-action="cloud-upload-save">☁️ 上傳雲端存檔</button>
+        <button class="btn-warning" data-action="cloud-download-save">☁️ 下載雲端存檔</button>
         <button class="btn-danger" data-action="cloud-clear-player">清除本機玩家資訊</button>
     `;
     showModal('神器庫玩家 / 帳號', content, `<button data-action="close-modal">關閉</button>`);
+}
+
+
+// ===================== V5-2：雲端存檔上傳 / 下載 =====================
+function collectLocalStorageSaveData() {
+    const items = {};
+    try {
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (!key) continue;
+            items[key] = localStorage.getItem(key);
+        }
+    } catch (e) {
+        console.warn('讀取 localStorage 失敗', e);
+    }
+    return {
+        version: 'V5-2',
+        app: 'xiuxian_luck_trainer',
+        exportedAt: new Date().toISOString(),
+        playerId: getCloudPlayerId(),
+        playerName: getCloudPlayerName() || guessPlayerNameForCloud(),
+        items: items
+    };
+}
+
+function restoreLocalStorageSaveData(saveObj) {
+    if (!saveObj || !saveObj.items || typeof saveObj.items !== 'object') {
+        throw new Error('雲端存檔格式錯誤');
+    }
+    const keepPlayerId = getCloudPlayerId();
+    const keepPlayerName = getCloudPlayerName();
+    Object.entries(saveObj.items).forEach(([key, value]) => {
+        try {
+            if (value === null || value === undefined) return;
+            localStorage.setItem(key, String(value));
+        } catch (e) {
+            console.warn('還原 localStorage 失敗：' + key, e);
+        }
+    });
+    // 避免下載舊存檔後覆蓋目前登入的神器庫玩家資訊。
+    if (keepPlayerId) localStorage.setItem(CLOUD_PLAYER_ID_KEY, keepPlayerId);
+    if (keepPlayerName) localStorage.setItem(CLOUD_PLAYER_NAME_KEY, keepPlayerName);
+}
+
+function submitCloudSaveByImage(playerId, playerName, saveData) {
+    // GET 版本僅適合小型存檔；大型存檔請改用 Apps Script doPost + 表單 POST。
+    const url = buildApiUrl('upload_save_get', {
+        PlayerID: playerId,
+        PlayerName: playerName,
+        SaveData: saveData
+    });
+    const img = new Image();
+    img.referrerPolicy = 'no-referrer';
+    img.src = url + '&_t=' + Date.now();
+}
+
+function submitCloudSaveByFormPost(playerId, playerName, saveData) {
+    // 透過隱藏 iframe + form POST，避免 URL 長度限制；需 Apps Script doPost 支援 upload_save_post。
+    const iframeName = 'shenqiku_cloud_save_iframe';
+    let iframe = document.querySelector('iframe[name="' + iframeName + '"]');
+    if (!iframe) {
+        iframe = document.createElement('iframe');
+        iframe.name = iframeName;
+        iframe.style.display = 'none';
+        document.body.appendChild(iframe);
+    }
+
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = SHENQIKU_API_URL + '?action=upload_save_post';
+    form.target = iframeName;
+    form.style.display = 'none';
+
+    const fields = {
+        PlayerID: playerId,
+        PlayerName: playerName,
+        SaveData: saveData
+    };
+    Object.entries(fields).forEach(([name, value]) => {
+        const input = document.createElement('textarea');
+        input.name = name;
+        input.value = value;
+        form.appendChild(input);
+    });
+
+    document.body.appendChild(form);
+    form.submit();
+    setTimeout(() => {
+        try { form.remove(); } catch (e) {}
+    }, 3000);
+}
+
+async function handleUploadCloudSave() {
+    const playerId = getCloudPlayerId();
+    const playerName = getCloudPlayerName() || guessPlayerNameForCloud();
+    if (!playerId) {
+        alert('請先建立 / 載入神器庫玩家，再上傳雲端存檔。');
+        showLoginMenu();
+        return;
+    }
+
+    const saveObj = collectLocalStorageSaveData();
+    const saveData = JSON.stringify(saveObj);
+    const sizeKB = Math.ceil(new Blob([saveData]).size / 1024);
+
+    if (!confirm('即將上傳目前本機存檔到 Google Sheet CloudSaves。\n玩家：' + playerName + '\n大小：約 ' + sizeKB + ' KB\n\n會覆蓋同 PlayerID 的舊雲端存檔，是否繼續？')) return;
+
+    try {
+        // 大於約 1.5KB 時改用 POST，避免 GET URL 過長造成 Apps Script 收不到完整 SaveData。
+        if (saveData.length > 1500) {
+            submitCloudSaveByFormPost(playerId, playerName, saveData);
+            localStorage.setItem(CLOUD_SAVE_LAST_UPLOAD_KEY, new Date().toISOString());
+            alert('已送出雲端存檔上傳請求。\n大型存檔採用 POST 表單方式，請稍後到 Google Sheet CloudSaves 確認 UpdatedAt 是否更新。');
+        } else {
+            submitCloudSaveByImage(playerId, playerName, saveData);
+            localStorage.setItem(CLOUD_SAVE_LAST_UPLOAD_KEY, new Date().toISOString());
+            alert('已送出雲端存檔上傳請求。請稍後到 Google Sheet CloudSaves 確認資料。');
+        }
+    } catch (e) {
+        console.warn('上傳雲端存檔失敗', e);
+        alert('上傳雲端存檔失敗：' + (e.message || e));
+    }
+}
+
+async function handleDownloadCloudSave() {
+    const playerId = getCloudPlayerId();
+    if (!playerId) {
+        alert('請先建立 / 載入神器庫玩家，再下載雲端存檔。');
+        showLoginMenu();
+        return;
+    }
+
+    if (!confirm('下載雲端存檔會覆蓋目前本機 localStorage 遊戲資料。\n建議先確認目前本機資料已上傳備份。\n\n是否繼續下載並還原？')) return;
+
+    try {
+        const data = await gasApi('download_save', { PlayerID: playerId });
+        if (!data || !data.ok || !data.data || !data.data.SaveData) {
+            alert('找不到雲端存檔：' + ((data && data.message) || 'CloudSaves 無資料'));
+            return;
+        }
+        const saveObj = JSON.parse(data.data.SaveData);
+        restoreLocalStorageSaveData(saveObj);
+        localStorage.setItem(CLOUD_SAVE_LAST_DOWNLOAD_KEY, new Date().toISOString());
+        alert('雲端存檔已下載並還原。頁面將重新載入。');
+        location.reload();
+    } catch (e) {
+        console.warn('下載雲端存檔失敗', e);
+        alert('下載雲端存檔失敗：可能是資料過大、JSON 格式錯誤、GAS API 或網路問題。\n' + (e.message || e));
+    }
 }
 
 
@@ -1913,8 +2066,8 @@ function renderMainMenu() {
     // 重新建構主選單 HTML：將 infoSection 移至訓練按鈕之前，更新版本號
     let html = `
         <h1>🎯 運氣訓練工具</h1>
-        <!-- 顯示版本號 V5-1 -->
-        <h2>V5-1（神器庫雲端排行榜版）</h2>
+        <!-- 顯示版本號 V5-2 -->
+        <h2>V5-2（神器庫雲端存檔版）</h2>
         ${infoSection}
         <p style="text-align:center;">請選擇訓練難度（1 最簡單～10 最困難）</p>
     `;
@@ -1929,7 +2082,9 @@ function renderMainMenu() {
     // 新增靈寵系統按鈕
     html += `<button class="btn-other" data-action="render-spirit-beast-menu">🐾 靈寵系統</button>`;
     html += `<button class="btn-other" data-action="show-cultivation-leaderboard">🌄 修仙排行榜</button>
-    <button class="btn-other" data-action="show-cloud-leaderboard">☁️ 雲端排行榜</button>`;
+    <button class="btn-other" data-action="show-cloud-leaderboard">☁️ 雲端排行榜</button>
+    <button class="btn-warning" data-action="cloud-upload-save">☁️ 上傳雲端存檔</button>
+    <button class="btn-warning" data-action="cloud-download-save">☁️ 下載雲端存檔</button>`;
     html += `
         <button class="btn-other" data-action="show-stage-list">📜 查看修仙等級一覽</button>
         <button class="btn-other" data-action="show-game-rules">📖 遊戲規則說明</button>
@@ -7618,6 +7773,8 @@ document.body.addEventListener('click', (event) => {
         'cloud-get-player': handleGetCloudPlayer,
         'cloud-clear-player': handleClearCloudPlayer,
         'show-cloud-leaderboard': showCloudLeaderboard,
+        'cloud-upload-save': handleUploadCloudSave,
+        'cloud-download-save': handleDownloadCloudSave,
         'login-google': loginGoogle,
         'login-email': loginEmail,
         'login-yahoo': loginYahoo,
