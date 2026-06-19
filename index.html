@@ -478,6 +478,14 @@ const CLOUD_PLAYER_NAME_KEY = "shenqiku_player_name";
 const CLOUD_LAST_SUBMIT_KEY = "shenqiku_last_score_submit";
 const CLOUD_SAVE_LAST_UPLOAD_KEY = "shenqiku_last_save_upload";
 const CLOUD_SAVE_LAST_DOWNLOAD_KEY = "shenqiku_last_save_download";
+// V5-3 自動雲端同步設定：本機仍即時存檔，雲端採延遲與間隔控管，避免過度呼叫 GAS。
+const CLOUD_AUTO_SYNC_ENABLED_KEY = "shenqiku_auto_sync_enabled";
+const CLOUD_AUTO_SYNC_LAST_RUN_KEY = "shenqiku_auto_sync_last_run";
+const CLOUD_AUTO_SYNC_LAST_STATUS_KEY = "shenqiku_auto_sync_last_status";
+const CLOUD_AUTO_SYNC_DEBOUNCE_MS = 15000;      // 存檔變動後 15 秒再上傳
+const CLOUD_AUTO_SYNC_MIN_INTERVAL_MS = 300000; // 兩次自動同步至少間隔 5 分鐘
+let cloudAutoSyncTimer = null;
+let cloudAutoSyncRunning = false;
 
 
 // # 秘境試煉最高紀錄載入後存放於此物件，格式類似於 maxScores: { difficulty: bestScore }
@@ -1213,6 +1221,10 @@ function saveGameState() {
     saveToLocalStorage(SCORE_FILE, maxScores);
     // # 同步秘境試煉最高紀錄到 localStorage
     saveToLocalStorage(TRIAL_SCORE_FILE, maxTrialScores);
+    // V5-3：本機存檔後排程自動雲端同步。未建立神器庫玩家時不會上傳。
+    try {
+        if (typeof scheduleCloudAutoSync === 'function') scheduleCloudAutoSync('saveGameState');
+    } catch (e) {}
 }
 
 // 根據玩家的修為與宗門貢獻自動更新其在宗門中的職位（僅適用於非宗主角色）。
@@ -1590,7 +1602,7 @@ function grantDailyTicketIfNeeded() {
 }
 
 
-// ===================== 神器庫 GAS API：玩家、雲端排行榜與雲端存檔（V5-2） =====================
+// ===================== 神器庫 GAS API：玩家、雲端排行榜、雲端存檔與自動同步（V5-3） =====================
 function buildApiUrl(action, params = {}) {
     const url = new URL(SHENQIKU_API_URL);
     url.searchParams.set('action', action);
@@ -1772,14 +1784,16 @@ function showLoginMenu() {
     const cloudName = getCloudPlayerName();
     const cloudId = getCloudPlayerId();
     let content = `
-        <p>V5-2 使用 Google Apps Script API 建立玩家、雲端排行榜與雲端存檔。</p>
+        <p>V5-3 使用 Google Apps Script API 建立玩家、雲端排行榜、雲端存檔與自動雲端同步。</p>
         <p>目前神器庫玩家：<strong>${cloudName || '尚未建立'}</strong></p>
         <p>PlayerID：${cloudId || '尚未取得'}</p>
         <hr>
         <button data-action="cloud-create-player">建立 / 載入神器庫玩家</button>
         <button data-action="cloud-get-player">查詢神器庫玩家</button>
         <button data-action="show-cloud-leaderboard">☁️ 查看雲端排行榜</button>
-        <button class="btn-warning" data-action="cloud-upload-save">☁️ 上傳雲端存檔</button>
+        <button class="btn-warning" data-action="cloud-sync-now">☁️ 立即同步雲端</button>
+        <button class="btn-warning" data-action="cloud-toggle-auto-sync">☁️ 自動雲端同步：${isCloudAutoSyncEnabled() ? '開啟' : '關閉'}</button>
+        <button class="btn-warning" data-action="cloud-upload-save">☁️ 手動上傳雲端存檔</button>
         <button class="btn-warning" data-action="cloud-download-save">☁️ 下載雲端存檔</button>
         <button class="btn-danger" data-action="cloud-clear-player">清除本機玩家資訊</button>
     `;
@@ -1787,7 +1801,7 @@ function showLoginMenu() {
 }
 
 
-// ===================== V5-2：雲端存檔上傳 / 下載 =====================
+// ===================== V5-2/V5-3：雲端存檔上傳 / 下載 =====================
 function collectLocalStorageSaveData() {
     const items = {};
     try {
@@ -1800,7 +1814,7 @@ function collectLocalStorageSaveData() {
         console.warn('讀取 localStorage 失敗', e);
     }
     return {
-        version: 'V5-2',
+        version: 'V5-3',
         app: 'xiuxian_luck_trainer',
         exportedAt: new Date().toISOString(),
         playerId: getCloudPlayerId(),
@@ -1876,6 +1890,152 @@ function submitCloudSaveByFormPost(playerId, playerName, saveData) {
     }, 3000);
 }
 
+
+// ===================== V5-3：自動雲端同步 =====================
+function isCloudAutoSyncEnabled() {
+    try {
+        return localStorage.getItem(CLOUD_AUTO_SYNC_ENABLED_KEY) !== 'disabled';
+    } catch (e) {
+        return true;
+    }
+}
+
+function setCloudAutoSyncEnabled(enabled) {
+    try {
+        localStorage.setItem(CLOUD_AUTO_SYNC_ENABLED_KEY, enabled ? 'enabled' : 'disabled');
+    } catch (e) {}
+}
+
+function getCloudAutoSyncLastRunText() {
+    try {
+        const last = localStorage.getItem(CLOUD_AUTO_SYNC_LAST_RUN_KEY) || '';
+        if (!last) return '尚未同步';
+        return new Date(last).toLocaleString('zh-TW');
+    } catch (e) {
+        return '尚未同步';
+    }
+}
+
+function getCloudAutoSyncStatusText() {
+    try {
+        return localStorage.getItem(CLOUD_AUTO_SYNC_LAST_STATUS_KEY) || '';
+    } catch (e) {
+        return '';
+    }
+}
+
+function setCloudAutoSyncStatus(status) {
+    try {
+        localStorage.setItem(CLOUD_AUTO_SYNC_LAST_STATUS_KEY, status || '');
+    } catch (e) {}
+}
+
+function scheduleCloudAutoSync(reason) {
+    if (!isCloudAutoSyncEnabled()) return;
+    if (!getCloudPlayerId()) return;
+
+    const now = Date.now();
+    let lastRun = 0;
+    try {
+        lastRun = Number(localStorage.getItem(CLOUD_AUTO_SYNC_LAST_RUN_KEY) || 0);
+    } catch (e) {}
+
+    const waitByInterval = Math.max(0, CLOUD_AUTO_SYNC_MIN_INTERVAL_MS - (now - lastRun));
+    const wait = Math.max(CLOUD_AUTO_SYNC_DEBOUNCE_MS, waitByInterval);
+
+    if (cloudAutoSyncTimer) {
+        clearTimeout(cloudAutoSyncTimer);
+        cloudAutoSyncTimer = null;
+    }
+
+    cloudAutoSyncTimer = setTimeout(() => {
+        cloudAutoSyncTimer = null;
+        uploadCloudSaveSilent(false, reason || 'auto');
+    }, wait);
+
+    setCloudAutoSyncStatus('已排程自動同步：' + new Date(now + wait).toLocaleString('zh-TW'));
+}
+
+function uploadCloudSaveSilent(force, reason) {
+    const playerId = getCloudPlayerId();
+    const playerName = getCloudPlayerName() || guessPlayerNameForCloud();
+    if (!playerId) {
+        setCloudAutoSyncStatus('尚未建立神器庫玩家，自動同步未啟動');
+        return false;
+    }
+    if (!force && !isCloudAutoSyncEnabled()) {
+        setCloudAutoSyncStatus('自動同步已關閉');
+        return false;
+    }
+    if (cloudAutoSyncRunning) return false;
+
+    const now = Date.now();
+    if (!force) {
+        let lastRun = 0;
+        try { lastRun = Number(localStorage.getItem(CLOUD_AUTO_SYNC_LAST_RUN_KEY) || 0); } catch (e) {}
+        if (now - lastRun < CLOUD_AUTO_SYNC_MIN_INTERVAL_MS) {
+            scheduleCloudAutoSync(reason || 'interval');
+            return false;
+        }
+    }
+
+    try {
+        cloudAutoSyncRunning = true;
+        const saveObj = collectLocalStorageSaveData();
+        saveObj.syncMode = force ? 'manual-sync-now' : 'auto-sync';
+        saveObj.syncReason = reason || '';
+        saveObj.exportedAt = new Date().toISOString();
+        const saveData = JSON.stringify(saveObj);
+
+        // 自動同步一律使用 POST 表單，避免 GET URL 長度限制與 CORS 阻擋。
+        submitCloudSaveByFormPost(playerId, playerName, saveData);
+
+        const nowIso = new Date().toISOString();
+        localStorage.setItem(CLOUD_SAVE_LAST_UPLOAD_KEY, nowIso);
+        localStorage.setItem(CLOUD_AUTO_SYNC_LAST_RUN_KEY, String(now));
+        setCloudAutoSyncStatus((force ? '已手動同步' : '已自動同步') + '：' + new Date(nowIso).toLocaleString('zh-TW'));
+        return true;
+    } catch (e) {
+        console.warn('自動雲端同步失敗', e);
+        setCloudAutoSyncStatus('自動同步失敗：' + (e.message || e));
+        return false;
+    } finally {
+        setTimeout(() => { cloudAutoSyncRunning = false; }, 1000);
+    }
+}
+
+function handleCloudSyncNow() {
+    const playerId = getCloudPlayerId();
+    if (!playerId) {
+        alert('請先建立 / 載入神器庫玩家，再使用自動同步。');
+        showLoginMenu();
+        return;
+    }
+    const ok = uploadCloudSaveSilent(true, 'manual-button');
+    if (ok) {
+        alert('已送出立即同步雲端請求。\n請稍後到 Google Sheet CloudSaves 確認 UpdatedAt 是否更新。');
+    } else {
+        alert('立即同步未送出：' + getCloudAutoSyncStatusText());
+    }
+}
+
+function handleToggleCloudAutoSync() {
+    const enabled = !isCloudAutoSyncEnabled();
+    setCloudAutoSyncEnabled(enabled);
+    if (enabled) {
+        scheduleCloudAutoSync('toggle-on');
+        alert('☁️ 自動雲端同步已開啟。\n本機仍會即時存檔，雲端會在資料變動後延遲同步，且每次同步至少間隔 5 分鐘。');
+    } else {
+        if (cloudAutoSyncTimer) {
+            clearTimeout(cloudAutoSyncTimer);
+            cloudAutoSyncTimer = null;
+        }
+        setCloudAutoSyncStatus('自動同步已關閉');
+        alert('☁️ 自動雲端同步已關閉。\n你仍可使用「手動上傳雲端存檔」。');
+    }
+    renderMainMenu();
+}
+
 async function handleUploadCloudSave() {
     const playerId = getCloudPlayerId();
     const playerName = getCloudPlayerName() || guessPlayerNameForCloud();
@@ -1896,10 +2056,12 @@ async function handleUploadCloudSave() {
         if (saveData.length > 1500) {
             submitCloudSaveByFormPost(playerId, playerName, saveData);
             localStorage.setItem(CLOUD_SAVE_LAST_UPLOAD_KEY, new Date().toISOString());
+            setCloudAutoSyncStatus('已手動上傳：' + new Date().toLocaleString('zh-TW'));
             alert('已送出雲端存檔上傳請求。\n大型存檔採用 POST 表單方式，請稍後到 Google Sheet CloudSaves 確認 UpdatedAt 是否更新。');
         } else {
             submitCloudSaveByImage(playerId, playerName, saveData);
             localStorage.setItem(CLOUD_SAVE_LAST_UPLOAD_KEY, new Date().toISOString());
+            setCloudAutoSyncStatus('已手動上傳：' + new Date().toLocaleString('zh-TW'));
             alert('已送出雲端存檔上傳請求。請稍後到 Google Sheet CloudSaves 確認資料。');
         }
     } catch (e) {
@@ -2047,6 +2209,8 @@ function renderMainMenu() {
             <p>💎 靈石：${gameState.stones}</p>
             <p>👥 在線人數：${typeof getOnlineCount === 'function' ? getOnlineCount() : 1}</p>
             <p>☁️ 神器庫玩家：${getCloudPlayerName()} ${getCloudPlayerId() ? '(' + getCloudPlayerId() + ')' : '（尚未建立）'}</p>
+            <p>☁️ 自動同步：${getCloudPlayerId() ? (isCloudAutoSyncEnabled() ? '開啟' : '關閉') : '未登入'}｜最後：${getCloudAutoSyncLastRunText()}</p>
+            <p style="font-size:0.85em;color:var(--secondary-color);">${getCloudAutoSyncStatusText()}</p>
             <p>⛩️ 宗門：${gameState.sectName && gameState.sectName !== '' ? gameState.sectName : '散修'}${gameState.sectName && gameState.sectName !== '' ? `<br/>仙門位階：${gameState.current_title}` : ''}</p>
             <p>👤 姓名：${gameState.personalName || '未設定'} | 性別：${gameState.gender || '未設定'} | 🌱 靈根：${(gameState.linggen === undefined || gameState.linggen === null) ? '未測' : ((gameState.linggen <= 0) ? '無靈根' : gameState.linggen + ' 靈根')}</p>
             <!-- 顯示當前裝備的道具；若無裝備則顯示未裝備 -->
@@ -2066,8 +2230,8 @@ function renderMainMenu() {
     // 重新建構主選單 HTML：將 infoSection 移至訓練按鈕之前，更新版本號
     let html = `
         <h1>🎯 運氣訓練工具</h1>
-        <!-- 顯示版本號 V5-2 -->
-        <h2>V5-2（神器庫雲端存檔版）</h2>
+        <!-- 顯示版本號 V5-3 -->
+        <h2>V5-3（神器庫自動雲端同步版）</h2>
         ${infoSection}
         <p style="text-align:center;">請選擇訓練難度（1 最簡單～10 最困難）</p>
     `;
@@ -2083,7 +2247,9 @@ function renderMainMenu() {
     html += `<button class="btn-other" data-action="render-spirit-beast-menu">🐾 靈寵系統</button>`;
     html += `<button class="btn-other" data-action="show-cultivation-leaderboard">🌄 修仙排行榜</button>
     <button class="btn-other" data-action="show-cloud-leaderboard">☁️ 雲端排行榜</button>
-    <button class="btn-warning" data-action="cloud-upload-save">☁️ 上傳雲端存檔</button>
+    <button class="btn-warning" data-action="cloud-sync-now">☁️ 立即同步雲端</button>
+    <button class="btn-warning" data-action="cloud-toggle-auto-sync">☁️ 自動雲端同步：${isCloudAutoSyncEnabled() ? '開啟' : '關閉'}</button>
+    <button class="btn-warning" data-action="cloud-upload-save">☁️ 手動上傳雲端存檔</button>
     <button class="btn-warning" data-action="cloud-download-save">☁️ 下載雲端存檔</button>`;
     html += `
         <button class="btn-other" data-action="show-stage-list">📜 查看修仙等級一覽</button>
@@ -7775,6 +7941,8 @@ document.body.addEventListener('click', (event) => {
         'show-cloud-leaderboard': showCloudLeaderboard,
         'cloud-upload-save': handleUploadCloudSave,
         'cloud-download-save': handleDownloadCloudSave,
+        'cloud-sync-now': handleCloudSyncNow,
+        'cloud-toggle-auto-sync': handleToggleCloudAutoSync,
         'login-google': loginGoogle,
         'login-email': loginEmail,
         'login-yahoo': loginYahoo,
