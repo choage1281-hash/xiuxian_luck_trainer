@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <!-- 更新版本號至 V5-5：雲端玩家修練排行榜改為玩家修練資訊排行榜，並同步宗門位階顯示 -->
-    <title>運氣訓練工具 V5-5（玩家修練資訊排行榜版）</title>
+    <!-- 更新版本號至 V5-6：原雲端排行榜改為雲端秘境排行榜，秘境試煉成績同步 Google Sheet -->
+    <title>運氣訓練工具 V5-6（雲端秘境排行榜版）</title>
     <style>
         :root {
             --bg-color: #f0f2f5;
@@ -456,9 +456,9 @@
 
 <script>
 // =================================================================================
-// 運氣訓練工具 V5-5 - 玩家修練資訊排行榜版
+// 運氣訓練工具 V5-6 - 雲端秘境排行榜版
 // 作者：Gemini (移植自使用者提供的 Python 腳本)
-// 版本：V5-5 - 雲端玩家修練排行榜改為玩家修練資訊排行榜，提交玩家修練經驗、訓練次數、靈石與宗門位階。
+// 版本：V5-6 - 原雲端排行榜改為雲端秘境排行榜，秘境試煉結算後同步玩家最高秘境紀錄。
 // =================================================================================
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -470,7 +470,7 @@ const STATS_FILE = "training_stats"; // localStorage key
 const TRIAL_SCORE_FILE = "max_trial_scores";
 
 // ===================== 神器庫 GAS API 設定（V5-5） =====================
-// V5-5 串接：玩家建立 / 查詢、雲端排行榜、雲端存檔、自動雲端同步、玩家修練資訊排行榜雲端同步。
+// V5-6 串接：玩家建立 / 查詢、雲端秘境排行榜、雲端存檔、自動雲端同步、玩家修練資訊排行榜雲端同步。
 // 修為、背包、靈寵、任務仍以 localStorage 為主，CloudSaves 作為整包備份與換機還原。
 const SHENQIKU_API_URL = "https://script.google.com/macros/s/AKfycbxfcwie110Z885sAiG9rVLbBfP8YyuaHnGVfdbRLxWM6hNL18X5X_DWW1LnYenZXxxAag/exec";
 const CLOUD_PLAYER_ID_KEY = "shenqiku_player_id";
@@ -1623,7 +1623,7 @@ function grantDailyTicketIfNeeded() {
 }
 
 
-// ===================== 神器庫 GAS API：玩家、排行榜、雲端存檔、自動同步與玩家修練排行榜（V5-5） =====================
+// ===================== 神器庫 GAS API：玩家、排行榜、雲端存檔、自動同步與玩家修練排行榜（V5-4） =====================
 function buildApiUrl(action, params = {}) {
     const url = new URL(SHENQIKU_API_URL);
     url.searchParams.set('action', action);
@@ -1742,60 +1742,106 @@ function submitScoreToCloud(score, difficulty, mode) {
     }
 }
 
+// V5-6：將秘境試煉最高紀錄同步到 Google Sheet SecretTrialLeaderboard。
+function submitSecretTrialScoreToCloud(correctCount, difficulty, expGain, stoneGain) {
+    const playerId = getCloudPlayerId();
+    const playerName = guessPlayerNameForCloud();
+    if (!playerId || !playerName) {
+        console.warn('未建立神器庫玩家，略過雲端秘境排行榜同步');
+        return;
+    }
+
+    const bestCorrect = (maxTrialScores && maxTrialScores[difficulty]) ? maxTrialScores[difficulty] : correctCount;
+    const score = Number(difficulty || 1) * 1000000 + Number(bestCorrect || 0) * 1000 + Number(expGain || 0);
+    const url = buildApiUrl('submit_secret_trial_rank', {
+        PlayerID: playerId,
+        PlayerName: playerName,
+        Difficulty: difficulty || 1,
+        CorrectCount: correctCount || 0,
+        BestCorrectCount: bestCorrect || correctCount || 0,
+        CultivationExpGain: expGain || 0,
+        TrainingCount: (gameState && gameState.total) ? gameState.total : 0,
+        SpiritStone: (gameState && gameState.stones) ? gameState.stones : 0,
+        SectPosition: (typeof getSyncedSectPositionForDisplay === 'function') ? getSyncedSectPositionForDisplay() : (gameState.current_title || ''),
+        Score: score
+    });
+
+    try {
+        const img = new Image();
+        img.referrerPolicy = 'no-referrer';
+        img.src = url + '&_t=' + Date.now();
+    } catch (e) {
+        console.warn('雲端秘境排行榜送出失敗', e);
+    }
+}
+
 async function showCloudLeaderboard() {
     clearApp();
     app.innerHTML = `
-        <h1>☁️ 神器庫雲端排行榜</h1>
-        <p style="text-align:center;">讀取 Google Sheet Leaderboard 中...</p>
+        <h1>🌌 雲端秘境排行榜</h1>
+        <p style="text-align:center;">讀取 Google Sheet SecretTrialLeaderboard 中...</p>
         <button data-action="render-main-menu">🔁 回主選單</button>
     `;
 
     try {
-        const data = await gasApi('get_leaderboard');
+        const data = await gasApi('get_secret_trial_leaderboard');
         if (!data || !data.ok || !Array.isArray(data.data)) {
-            throw new Error((data && data.message) || '排行榜格式錯誤');
+            throw new Error((data && data.message) || '雲端秘境排行榜格式錯誤');
         }
 
         const rows = data.data
-            .filter(row => row && row.PlayerName)
+            .filter(row => row && row.PlayerID && row.PlayerName)
             .sort((a, b) => {
-                const scoreDiff = Number(b.Score || 0) - Number(a.Score || 0);
-                if (scoreDiff !== 0) return scoreDiff;
-                return new Date(b.CreatedAt || 0) - new Date(a.CreatedAt || 0);
-            })
-            .slice(0, 50);
+                const diffA = Number(a.Difficulty || 0);
+                const diffB = Number(b.Difficulty || 0);
+                if (diffB !== diffA) return diffB - diffA;
+                const bestA = Number(a.BestCorrectCount || a.CorrectCount || 0);
+                const bestB = Number(b.BestCorrectCount || b.CorrectCount || 0);
+                if (bestB !== bestA) return bestB - bestA;
+                return Number(b.Score || 0) - Number(a.Score || 0);
+            });
 
-        let html = `<h1>☁️ 神器庫雲端排行榜</h1>`;
-        html += `<p style="text-align:center;">資料來源：Google Sheet Leaderboard，共顯示前 ${rows.length} 筆</p>`;
+        let html = `<h1>🌌 雲端秘境排行榜</h1>`;
+        html += `<p style="text-align:center;">資料來源：Google Sheet SecretTrialLeaderboard</p>`;
 
         if (rows.length === 0) {
-            html += `<p style="text-align:center;">目前尚無雲端排行榜資料。</p>`;
+            html += `<p style="text-align:center;">目前尚無雲端秘境排行榜資料。</p>`;
         } else {
-            html += `<div class="info-section" style="text-align:left;">`;
-            rows.forEach((row, index) => {
-                const created = row.CreatedAt ? new Date(row.CreatedAt).toLocaleString('zh-TW') : '';
-                html += `
-                    <p>
-                        <strong>#${index + 1} ${row.PlayerName}</strong><br>
-                        分數：${row.Score || 0}｜
-                        難度：${row.Difficulty || ''}｜
-                        模式：${row.Mode || ''}<br>
-                        <span style="font-size:0.9em;color:var(--secondary-color);">${created}</span>
-                    </p>
-                    <hr>
-                `;
-            });
-            html += `</div>`;
+            for (let diff = 10; diff >= 1; diff--) {
+                const group = rows.filter(row => Number(row.Difficulty || 0) === diff).slice(0, 10);
+                if (group.length === 0) continue;
+                html += `<h3>秘境難度 ${diff}</h3>`;
+                html += `<div class="info-section" style="text-align:left;">`;
+                group.forEach((row, index) => {
+                    const updated = row.UpdatedAt ? new Date(row.UpdatedAt).toLocaleString('zh-TW') : '';
+                    const best = row.BestCorrectCount || row.CorrectCount || 0;
+                    html += `
+                        <p>
+                            <strong>#${index + 1} ${row.PlayerName}</strong><br>
+                            玩家ID：${row.PlayerID || ''}<br>
+                            最高連續答對：${best} 題｜
+                            修練經驗：${row.CultivationExpGain || 0}｜
+                            訓練次數：${row.TrainingCount || 0}｜
+                            靈石：${row.SpiritStone || 0}<br>
+                            宗門位階：${row.SectPosition || '尚無'}<br>
+                            <span style="font-size:0.9em;color:var(--secondary-color);">${updated}</span>
+                        </p>
+                        <hr>
+                    `;
+                });
+                html += `</div>`;
+            }
         }
 
         html += `<button data-action="render-main-menu">🔁 回主選單</button>`;
         app.innerHTML = html;
     } catch (e) {
-        console.warn('讀取雲端排行榜失敗', e);
+        console.warn('讀取雲端秘境排行榜失敗', e);
         app.innerHTML = `
-            <h1>☁️ 神器庫雲端排行榜</h1>
-            <p class="message msg-shop-fail">讀取失敗。可能是 GAS API CORS、網路或部署版本問題。</p>
-            <p style="text-align:center;">離線遊戲資料不受影響。</p>
+            <h1>🌌 雲端秘境排行榜</h1>
+            <p class="message msg-shop-fail">讀取失敗。請確認 Apps Script 已加入 V5-6 SecretTrialLeaderboard API，並已重新部署。</p>
+            <p style="text-align:center;">本機遊戲資料不受影響。</p>
+            <button data-action="show-trial-leaderboard">查看本機秘境排行榜</button>
             <button data-action="render-main-menu">🔁 回主選單</button>
         `;
     }
@@ -1805,13 +1851,13 @@ function showLoginMenu() {
     const cloudName = getCloudPlayerName();
     const cloudId = getCloudPlayerId();
     let content = `
-        <p>V5-5 使用 Google Apps Script API 建立玩家、雲端排行榜、雲端存檔、自動雲端同步與玩家修練資訊排行榜雲端同步。</p>
+        <p>V5-6 使用 Google Apps Script API 建立玩家、雲端秘境排行榜、雲端存檔、自動雲端同步與玩家修練資訊排行榜雲端同步。</p>
         <p>目前神器庫玩家：<strong>${cloudName || '尚未建立'}</strong></p>
         <p>PlayerID：${cloudId || '尚未取得'}</p>
         <hr>
         <button data-action="cloud-create-player">建立 / 載入神器庫玩家</button>
         <button data-action="cloud-get-player">查詢神器庫玩家</button>
-        <button data-action="show-cloud-leaderboard">☁️ 查看雲端排行榜</button>
+        <button data-action="show-cloud-leaderboard">🌌 查看雲端秘境排行榜</button>
         <button data-action="show-sect-rank">📜 查看玩家修練排行榜</button>
         <button class="btn-warning" data-action="cloud-sync-now">☁️ 立即同步雲端</button>
         <button class="btn-warning" data-action="cloud-toggle-auto-sync">☁️ 自動雲端同步：${isCloudAutoSyncEnabled() ? '開啟' : '關閉'}</button>
@@ -1994,7 +2040,7 @@ function collectLocalStorageSaveData() {
         console.warn('讀取 localStorage 失敗', e);
     }
     return {
-        version: 'V5-5',
+        version: 'V5-4',
         app: 'xiuxian_luck_trainer',
         exportedAt: new Date().toISOString(),
         playerId: getCloudPlayerId(),
@@ -2410,8 +2456,8 @@ function renderMainMenu() {
     // 重新建構主選單 HTML：將 infoSection 移至訓練按鈕之前，更新版本號
     let html = `
         <h1>🎯 運氣訓練工具</h1>
-        <!-- 顯示版本號 V5-5 -->
-        <h2>V5-5（玩家修練資訊排行榜版）</h2>
+        <!-- 顯示版本號 V5-4 -->
+        <h2>V5-6（雲端秘境排行榜版）</h2>
         ${infoSection}
         <p style="text-align:center;">請選擇訓練難度（1 最簡單～10 最困難）</p>
     `;
@@ -2427,7 +2473,7 @@ function renderMainMenu() {
     // 新增靈寵系統按鈕
     html += `<button class="btn-other" data-action="render-spirit-beast-menu">🐾 靈寵系統</button>`;
     html += `<button class="btn-other" data-action="show-cultivation-leaderboard">🌄 修仙排行榜</button>
-    <button class="btn-other" data-action="show-cloud-leaderboard">☁️ 雲端排行榜</button>
+    <button class="btn-trial" data-action="show-cloud-leaderboard">🌌 雲端秘境排行榜</button>
     <button class="btn-warning" data-action="cloud-sync-now">☁️ 立即同步雲端</button>
     <button class="btn-warning" data-action="cloud-toggle-auto-sync">☁️ 自動雲端同步：${isCloudAutoSyncEnabled() ? '開啟' : '關閉'}</button>
     <button class="btn-warning" data-action="cloud-upload-save">☁️ 手動上傳雲端存檔</button>
@@ -2991,12 +3037,7 @@ function showTrainingResult() {
     }
 
     saveGameState();
-    // V5-1：訓練結束後同步寫入神器庫 GAS 雲端排行榜（不影響本機 localStorage 存檔）
-    try {
-        if (typeof submitScoreToCloud === 'function') {
-            submitScoreToCloud(score, trainingState.difficulty || 1, '普通訓練');
-        }
-    } catch (e) { console.warn('神器庫雲端排行榜送出失敗', e); }
+    // V5-6：原雲端排行榜已改為雲端秘境排行榜，普通訓練不再送入 Leaderboard。
 
     // # 線上版新增：訓練結束時，上傳雲端紀錄（Firebase Firestore）
     try {
@@ -4350,6 +4391,12 @@ function showTrialResult() {
     resultHTML += `<button class="btn-trial" data-action="render-main-menu">🔁 回主選單</button>`;
     app.innerHTML = resultHTML;
     saveGameState();
+    // V5-6：秘境試煉完成後同步送入 Google Sheet SecretTrialLeaderboard。
+    try {
+        if (typeof submitSecretTrialScoreToCloud === 'function') {
+            submitSecretTrialScoreToCloud(correctCount, trainingState.difficulty || 1, finalGainTrial, finalStones);
+        }
+    } catch (e) { console.warn('雲端秘境排行榜送出失敗', e); }
     // # 上傳秘境紀錄至雲端 (Firestore)
     try {
         if (typeof saveTrialRecord === 'function') {
